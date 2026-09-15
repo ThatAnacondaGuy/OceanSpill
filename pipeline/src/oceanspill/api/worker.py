@@ -214,7 +214,8 @@ class Worker:
         pseudo_case = {"id": f"WATCH-{area.id}", "incident": {"position": {"lat": centre_lat, "lon": centre_lon},
                                                              "time": scene_row.start.isoformat()}}
         radius_km = max(40.0, _half_span_km(area))
-        result = run_detector(path, pseudo_case, scene_row.id, self.land, self.settings.data_dir, radius_km=radius_km)
+        result = run_detector(path, pseudo_case, scene_row.id, self.land, self.settings.data_dir,
+                              radius_km=radius_km, model_path=self.pipeline.sar_model or None)
 
         made = 0
         for i, spot in enumerate(result.get("spots", [])):

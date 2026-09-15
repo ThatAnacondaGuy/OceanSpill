@@ -37,6 +37,8 @@ class Settings:
 
     cache_dir: Path = PIPELINE_DIR / ".cache"
     output_dir: Path = OUTPUT_DIR
+    # A trained segmentation model exported to ONNX. Empty means the classical detector is used.
+    sar_model: str = ""
 
     @classmethod
     def load(cls, env_file: Path | None = None) -> "Settings":
@@ -56,4 +58,5 @@ class Settings:
             cmems_username=os.getenv("CMEMS_USERNAME", ""),
             cmems_password=os.getenv("CMEMS_PASSWORD", ""),
             cache_dir=cache_path,
+            sar_model=os.getenv("SAR_MODEL", ""),
         )

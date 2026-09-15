@@ -95,7 +95,8 @@ def cmd_process(settings: Settings, args: argparse.Namespace) -> int:
     for path in paths:
         name = path.name.removesuffix(".zip").removesuffix(".SAFE")
         try:
-            record = process_scene(path, case, name, land_source, settings.output_dir, radius_km=args.radius_km, factor=args.factor)
+            record = process_scene(path, case, name, land_source, settings.output_dir, radius_km=args.radius_km,
+                                   factor=args.factor, model_path=args.model or settings.sar_model or None)
         except Exception as exc:  # one bad scene must not stop the rest
             print(f"FAILED {name}: {exc}", file=sys.stderr)
             continue
@@ -147,6 +148,7 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--scene", help="a .zip or .SAFE path (default: every scene in downloads/<case>)")
     pr.add_argument("--radius-km", type=float, default=40.0, help="analysis radius around the incident")
     pr.add_argument("--factor", type=int, help="multilook factor (default: 8 for Sentinel-1 GRDH, 4 for EOS-04 MRS, about 75 m pixels)")
+    pr.add_argument("--model", help="a trained segmentation model in ONNX form; without it the classical detector runs")
 
     args = parser.parse_args(argv)
     settings = Settings.load(Path(args.env) if args.env else None)

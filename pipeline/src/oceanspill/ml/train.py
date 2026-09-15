@@ -157,6 +157,12 @@ def main(argv: list[str] | None = None) -> int:
         torch.onnx.export(model.cpu(), torch.zeros(1, args.channels, args.crop, args.crop), str(args.out / "unet_best.onnx"),
                           input_names=["sigma0_db_norm"], output_names=["oil_logit"],
                           dynamic_axes={"sigma0_db_norm": {0: "n", 2: "h", 3: "w"}, "oil_logit": {0: "n", 2: "h", 3: "w"}})
+        # Written next to the model so the pipeline can run it without being told how it was trained.
+        (args.out / "unet_best.json").write_text(json.dumps({
+            "channels": args.channels, "threshold": 0.5, "trainedOn": str(args.images),
+            "val": history[-1]["val"] if history else {}, "bestIou": best,
+            "note": "Pixel values are dB scaled to [0, 1] between -35 and +5 dB.",
+        }, indent=1))
     print(f"best validation IoU {best:.4f}; outputs in {args.out}")
     return 0
 

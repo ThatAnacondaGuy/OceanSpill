@@ -80,6 +80,7 @@ def detect_dark_spots(
     min_contrast_db: float = 3.0,
     min_area_km2: float = 0.5,
     max_spots: int = 20,
+    dark: np.ndarray | None = None,
 ) -> tuple[list[DarkSpot], np.ndarray]:
     """Adaptive-threshold dark-spot detection on a speckle-filtered sigma0 image in dB.
 
@@ -87,10 +88,16 @@ def detect_dark_spots(
     k_sigma local standard deviations and min_contrast_db. This is the classical first stage of
     SAR oil spill detection: it finds oil and look-alikes alike, and the look-alike checks decide
     between them. It is not a trained model.
+
+    Passing `dark` uses that mask instead of the threshold — how a trained segmentation model plugs
+    in — while the measurements around each spot stay exactly the same.
     """
     background, spread, count = masked_mean_std(db, sea, window)
-    threshold = background - np.maximum(k_sigma * spread, min_contrast_db)
-    dark = sea & (count > window * window * 0.25) & (db < threshold)
+    if dark is None:
+        threshold = background - np.maximum(k_sigma * spread, min_contrast_db)
+        dark = sea & (count > window * window * 0.25) & (db < threshold)
+    else:
+        dark = sea & dark
     min_pixels = max(4, int(round(min_area_km2 / (pixel_km * pixel_km))))
     labels, n = label_components(dark, min_pixels)
 

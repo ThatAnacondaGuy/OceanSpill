@@ -150,6 +150,7 @@ def analyse_linear(
     incident: tuple[float, float],
     looks: float,
     params: dict[str, Any],
+    segmenter: Any | None = None,
 ) -> dict[str, Any]:
     """Filter, mask and detect over a calibrated multilooked window (linear backscatter)."""
     filtered = lee_filter(linear, int(params["leeWindow"]), looks)
@@ -158,9 +159,16 @@ def analyse_linear(
     buffer_px = int(round(params["coastBufferKm"] / pixel_km))
     near_land = dilate(land, buffer_px)
     sea = valid & ~near_land
+    # A trained model, when one is configured, replaces only the pixel decision; everything the
+    # record reports about each spot is measured the same way either way.
+    model_mask = None
+    if segmenter is not None:
+        from ..ml.infer import mask_to_spots
+        model_mask = mask_to_spots(segmenter.mask(db, sea), segmenter.info.threshold)
     spots, labels = detect_dark_spots(
         db, sea, pixel_km, window=int(params["detectorWindow"]), k_sigma=float(params["kSigma"]),
         min_contrast_db=float(params["minContrastDb"]), min_area_km2=float(params["minAreaKm2"]),
+        dark=model_mask,
     )
 
     out_spots = []
@@ -199,6 +207,7 @@ def process_scene(
     radius_km: float = 40.0,
     factor: int | None = None,
     params: dict[str, Any] | None = None,
+    model_path: Path | str | None = None,
 ) -> dict[str, Any]:
     # 2 km is enough with the Natural Earth coastline; the coarse fallback outlines need about 8 km.
     params = {"leeWindow": 7, "detectorWindow": 51, "kSigma": 1.5, "minContrastDb": 3.0, "minAreaKm2": 0.5,
@@ -213,7 +222,12 @@ def process_scene(
         factor = factor or 8
         scene = load_sentinel1(path, incident, radius_km, factor)
     pixel_km = scene.pixel_m / 1000.0
-    result = analyse_linear(scene.linear, scene.valid, scene.lat, scene.lon, land_source, pixel_km, incident, scene.looks, params)
+    # Without a trained model, or when one cannot be loaded, this stays None and the classical
+    # detector runs — which is what the record then says it used.
+    from ..ml.infer import segmenter as load_segmenter
+    detector = load_segmenter(model_path)
+    result = analyse_linear(scene.linear, scene.valid, scene.lat, scene.lon, land_source, pixel_km,
+                            incident, scene.looks, params, segmenter=detector)
 
     case_dir = out_dir / "sar" / case["id"]
     quicklook = write_quicklook(case_dir / f"{scene_name}.png", result["db"], result["land"], result["labels"])
@@ -226,7 +240,7 @@ def process_scene(
         "radiometry": scene.radiometry,
         "processedAt": iso(datetime.now(timezone.utc)),
         "polarisation": scene.polarisation,
-        "method": METHOD,
+        "method": detector.description if detector else METHOD,
         "landMask": land_source.source,
         "parameters": {**params, "multilookFactor": factor, "pixelSpacingM": round(scene.pixel_m, 1),
                        "equivalentLooks": scene.looks, "radiusKm": radius_km},
