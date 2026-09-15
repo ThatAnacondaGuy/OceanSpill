@@ -40,3 +40,7 @@
 }
 
 .maplibregl-canvas:focus { outline: none; }
+
+/* Horizontal scrollers without a visible scrollbar (arrows indicate overflow instead). */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

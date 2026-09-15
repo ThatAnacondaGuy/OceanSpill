@@ -89,8 +89,8 @@ export default function Dashboard() {
   const warnings = useMemo(() => world.cases.flatMap((c) => c.warnings.map((w) => ({ caseId: c.id, text: w }))), [world.cases]);
 
   return (
-    <main className="flex-1 min-h-0 p-3 grid grid-cols-12 gap-3 overflow-y-auto content-start">
-      <div className="col-span-12 grid grid-cols-2 lg:grid-cols-5 gap-3">
+    <main className="flex-1 min-h-0 p-4 grid grid-cols-12 gap-4 overflow-y-auto content-start">
+      <div className="col-span-12 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard icon={<ClipboardList className="w-6 h-6" />} title="Real cases" value={world.cases.length}
           trend={`${stats.high} high tier · replay mode`} onClick={() => navigate({ tab: 'Spill Incidents' })} />
         <StatCard icon={<Satellite className="w-6 h-6" />} title="SAR scenes catalogued" value={stats.scenes}
@@ -103,7 +103,7 @@ export default function Dashboard() {
           accent="red" trend={stats.fines ? `${fmt.inr(stats.fines)} in fines (NGT)` : 'none recorded'} onClick={() => navigate({ tab: 'Workflow', section: 'enforcement' })} />
       </div>
 
-      <div className="col-span-12 lg:col-span-8 xl:col-span-9 rounded-lg shadow-sm border border-gray-200 overflow-hidden relative bg-white" style={{ minHeight: 520 }}>
+      <div className="col-span-12 lg:col-span-8 xl:col-span-9 h-[560px] rounded-lg shadow-sm border border-gray-200 overflow-hidden relative bg-white">
         <MapView
           basemap={basemap} initialCentre={{ lat: 15, lon: 80 }} initialZoom={3.9}
           markers={markers} polygons={polygons} paths={paths} vectors={vectors}
@@ -119,7 +119,7 @@ export default function Dashboard() {
                   <Layers className="w-3.5 h-3.5" /> Layers
                 </button>
                 {layersOpen && (
-                  <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-2.5 w-56 z-30">
+                  <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-56 z-30">
                     <Toggle checked={layers.cases} onChange={(v) => setLayers({ ...layers, cases: v })} label="Real cases (analysed)" count={world.cases.length} />
                     <Toggle checked={layers.historical} onChange={(v) => setLayers({ ...layers, historical: v })} label="Historical register" count={world.historical.filter((h) => !h.activeCaseId && h.lat != null).length} />
                     <Toggle checked={layers.eez} onChange={(v) => setLayers({ ...layers, eez: v })} label="Indian EEZ (approx.)" />
@@ -133,38 +133,37 @@ export default function Dashboard() {
             </div>
           }
           legend={
-            <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded-lg p-2.5 text-[10px] shadow-lg">
+            <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded-lg p-3 text-[11px] shadow-lg">
               <h4 className="font-bold mb-1.5 text-gray-700 uppercase tracking-wide">Legend</h4>
               <LegendDot color="#dc2626" label="Case, high tier (≥250 t)" />
               <LegendDot color="#f59e0b" label="Case, medium / unknown quantity" />
               <LegendDot color="#10b981" label="Case, low tier" />
               <div className="flex items-center gap-2 mb-1"><span className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[7px] border-l-transparent border-r-transparent border-b-slate-500" /><span className="text-gray-700">Historical incident</span></div>
-              <p className="text-[9px] text-gray-400 mt-1 max-w-[170px] leading-tight">Tier from oil quantity on board or released, as reported.</p>
+              <p className="text-[10.5px] text-gray-400 mt-1 max-w-[170px] leading-snug">Tier from oil quantity on board or released, as reported.</p>
             </div>
           }
         />
       </div>
 
-      <div className="col-span-12 lg:col-span-4 xl:col-span-3 flex flex-col gap-3" style={{ minHeight: 520 }}>
         <Panel title="Cases" subtitle="Ordered by tier, then most recent"
-          actions={<button onClick={() => navigate({ tab: 'Spill Incidents' })} className="text-[11px] text-blue-600 font-semibold hover:underline flex items-center gap-1">All <ArrowRight className="w-3 h-3" /></button>}
-          className="flex-1" bodyClass="overflow-y-auto" dense>
+          actions={<button onClick={() => navigate({ tab: 'Spill Incidents' })} className="text-[12px] text-blue-600 font-semibold hover:underline flex items-center gap-1">All <ArrowRight className="w-3 h-3" /></button>}
+          className="col-span-12 lg:col-span-4 xl:col-span-3 h-[560px]" bodyClass="overflow-y-auto" dense>
           {ordered.map((c, i) => {
             const a = getAnalysis(c.id);
             return (
               <button key={c.id} onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}
-                className="w-full text-left p-2.5 border-b border-gray-100 hover:bg-blue-50/60 flex items-start gap-2.5 group">
+                className="w-full text-left px-4 py-3.5 border-b border-gray-100 hover:bg-blue-50/60 flex items-start gap-3 group">
                 <div className="font-bold text-gray-300 text-base pt-0.5 w-4 text-center flex-shrink-0">{i + 1}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start gap-2 mb-0.5">
-                    <span className="font-bold text-[11px] text-[#0a192f] group-hover:text-blue-700 leading-tight">{c.title}</span>
+                    <span className="font-bold text-[12px] text-[#0a192f] group-hover:text-blue-700 leading-snug">{c.title}</span>
                     <Tier tier={c.tier} />
                   </div>
-                  <p className="text-[10px] text-gray-500 truncate">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {c.region}</p>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  <p className="text-[11px] text-gray-500 truncate">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {c.region}</p>
+                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                     <StatusBadge status={c.status} />
                     <Badge tone="gray">{c.detection.scenes.length} SAR</Badge>
-                    {a?.ranked[0] && <span className="text-[9px] text-gray-500 truncate">top: {world.vesselsByMmsi.get(a.ranked[0].mmsi)?.name}</span>}
+                    {a?.ranked[0] && <span className="text-[10.5px] text-gray-500 truncate">top: {world.vesselsByMmsi.get(a.ranked[0].mmsi)?.name}</span>}
                   </div>
                 </div>
               </button>
@@ -172,56 +171,57 @@ export default function Dashboard() {
           })}
         </Panel>
 
-        <Panel title="Integration status" subtitle="Indian primary first, fallbacks after" dense
-          actions={<button onClick={() => navigate({ tab: 'Data Management', section: 'sources' })} className="text-[11px] text-blue-600 font-semibold hover:underline">Details</button>}>
-          <div className="p-2.5 flex flex-col gap-1.5 max-h-64 overflow-y-auto">
-            {world.dataSources.map((d) => (
-              <div key={d.id} className="flex items-center gap-2 text-[10.5px]">
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${d.status === 'Online' ? 'bg-emerald-500' : d.status === 'Interim fallback' ? 'bg-amber-500' : d.status === 'Not configured' ? 'bg-blue-400' : 'bg-slate-300'}`} />
-                <span className="font-semibold text-gray-800 truncate flex-1" title={d.message}>{d.name}</span>
-                <span className="text-[9px] text-gray-400 flex-shrink-0">{d.kind}</span>
-                <span className={`text-[9px] font-bold flex-shrink-0 ${d.sovereign ? 'text-emerald-700' : 'text-gray-400'}`}>{d.sovereign ? 'IN' : 'EXT'}</span>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </div>
-
-      <div className="col-span-12 grid grid-cols-12 gap-3">
-        <Panel title="Case record events" className="col-span-12 lg:col-span-6" dense
-          actions={<button onClick={() => navigate({ tab: 'Case Archive', section: 'audit' })} className="text-[11px] text-blue-600 font-semibold hover:underline flex items-center gap-1">Audit trail <ArrowRight className="w-3 h-3" /></button>}>
-          <table className="w-full text-[11px] text-left">
-            <thead className="text-[9.5px] text-gray-500 bg-gray-50 border-b border-gray-100 uppercase">
-              <tr><th className="px-3 py-1.5 font-bold">When (UTC)</th><th className="px-3 py-1.5 font-bold">Event</th><th className="px-3 py-1.5 font-bold">Case</th><th className="px-3 py-1.5 font-bold" /></tr>
+      <div className="col-span-12 grid grid-cols-12 gap-4">
+        <Panel title="Case record events" className="col-span-12 lg:col-span-7" dense
+          actions={<button onClick={() => navigate({ tab: 'Case Archive', section: 'audit' })} className="text-[12px] text-blue-600 font-semibold hover:underline flex items-center gap-1">Audit trail <ArrowRight className="w-3 h-3" /></button>}>
+          <table className="w-full text-[12px] text-left">
+            <thead className="text-[11px] text-gray-500 bg-gray-50 border-b border-gray-100 uppercase">
+              <tr><th className="px-4 py-2 font-bold">When (UTC)</th><th className="px-4 py-2 font-bold">Event</th><th className="px-4 py-2 font-bold">Case</th><th className="px-4 py-2 font-bold" /></tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {recordEvents.map((a) => (
                 <tr key={a.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => world.cases.some((c) => c.id === a.target) && navigate({ tab: 'Investigation', caseId: a.target })}>
-                  <td className="px-3 py-1.5 text-gray-500 font-mono whitespace-nowrap">{fmt.utcShort(a.t)}</td>
-                  <td className="px-3 py-1.5 text-gray-900">{a.action}</td>
-                  <td className="px-3 py-1.5 text-gray-600 font-mono text-[10px] truncate max-w-[150px]">{a.target}</td>
-                  <td className="px-3 py-1.5"><ProvenanceBadge p={a.provenance} /></td>
+                  <td className="px-4 py-2 text-gray-500 font-mono whitespace-nowrap">{fmt.utcShort(a.t)}</td>
+                  <td className="px-4 py-2 text-gray-900">{a.action}</td>
+                  <td className="px-4 py-2 text-gray-600 font-mono text-[11px] truncate max-w-[150px]">{a.target}</td>
+                  <td className="px-4 py-2"><ProvenanceBadge p={a.provenance} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Panel>
 
-        <Panel title="Data quality warnings" subtitle="From the pipeline build" className="col-span-12 lg:col-span-3" dense>
-          <div className="p-2.5 space-y-1.5 max-h-56 overflow-y-auto">
-            {warnings.length === 0 && <p className="text-[11px] text-gray-400">No warnings.</p>}
+        <Panel title="Data quality warnings" subtitle="From the pipeline build" className="col-span-12 lg:col-span-5" dense>
+          <div className="p-4 space-y-2.5 max-h-72 overflow-y-auto">
+            {warnings.length === 0 && <p className="text-[12px] text-gray-400">No warnings.</p>}
             {warnings.map((w, i) => (
-              <button key={i} onClick={() => navigate({ tab: 'Investigation', caseId: w.caseId })} className="w-full text-left flex gap-1.5 text-[10.5px] hover:bg-amber-50 rounded px-1 py-0.5">
+              <button key={i} onClick={() => navigate({ tab: 'Investigation', caseId: w.caseId })} className="w-full text-left flex gap-2 text-[12px] leading-normal hover:bg-amber-50 rounded px-1.5 py-1">
                 <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0 mt-0.5" />
-                <span><span className="font-mono text-[9.5px] text-gray-500">{w.caseId.slice(4)}</span> {w.text}</span>
+                <span><span className="font-mono text-[11px] text-gray-500">{w.caseId.slice(4)}</span> {w.text}</span>
               </button>
             ))}
           </div>
         </Panel>
+      </div>
 
-        <div className="col-span-12 lg:col-span-3 flex flex-col">
+      <div className="col-span-12 grid grid-cols-12 gap-4 items-start">
+        <Panel title="Integration status" subtitle="Indian primary first, fallbacks after" className="col-span-12 lg:col-span-8" dense
+          actions={<button onClick={() => navigate({ tab: 'Data Management', section: 'sources' })} className="text-[12px] text-blue-600 font-semibold hover:underline">Details</button>}>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
+            {world.dataSources.map((d) => (
+              <div key={d.id} className="flex items-center gap-2.5 text-[12px] min-w-0">
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${d.status === 'Online' ? 'bg-emerald-500' : d.status === 'Interim fallback' ? 'bg-amber-500' : d.status === 'Not configured' ? 'bg-blue-400' : 'bg-slate-300'}`} />
+                <span className="font-semibold text-gray-800 truncate flex-1" title={d.message}>{d.name}</span>
+                <span className="text-[10.5px] text-gray-400 flex-shrink-0">{d.kind}</span>
+                <span className={`text-[10.5px] font-bold flex-shrink-0 ${d.sovereign ? 'text-emerald-700' : 'text-gray-400'}`}>{d.sovereign ? 'IN' : 'EXT'}</span>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <div className="col-span-12 lg:col-span-4 flex flex-col">
           <h3 className="font-bold text-gray-800 mb-2 pl-1 text-sm">Quick actions</h3>
-          <div className="grid grid-cols-2 gap-2 mb-2">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <QuickAction icon={<FileText className="w-5 h-5 text-blue-600" />} label={'All\ncases'} onClick={() => navigate({ tab: 'Spill Incidents' })} />
             <QuickAction icon={<Search className="w-5 h-5 text-blue-600" />} label={'Open top\ncase'} onClick={() => navigate({ tab: 'Investigation', caseId: ordered[0]?.id })} />
             <QuickAction icon={<BarChart2 className="w-5 h-5 text-blue-600" />} label={'Generate\nreport'} onClick={() => navigate({ tab: 'Reports' })} />
@@ -246,9 +246,9 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 
 function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="bg-white border border-gray-200 rounded-lg p-2.5 flex flex-col items-center justify-center gap-1.5 shadow-sm hover:border-blue-400 hover:shadow-md transition-all text-center">
+    <button onClick={onClick} className="bg-white border border-gray-200 rounded-lg p-3 flex flex-col items-center justify-center gap-1.5 shadow-sm hover:border-blue-400 hover:shadow-md transition-all text-center">
       <div className="bg-blue-50/60 p-1.5 rounded-lg">{icon}</div>
-      <span className="text-[10px] font-semibold text-gray-700 whitespace-pre-line leading-tight">{label}</span>
+      <span className="text-[11px] font-semibold text-gray-700 whitespace-pre-line leading-snug">{label}</span>
     </button>
   );
 }

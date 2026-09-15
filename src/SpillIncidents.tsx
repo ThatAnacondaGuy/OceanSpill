@@ -37,22 +37,22 @@ export default function SpillIncidents() {
 
   const columns: Column<SpillCase>[] = [
     {
-      key: 'title', header: 'Case', value: (c) => c.title,
+      key: 'title', header: 'Case', width: '260px', value: (c) => c.title,
       render: (c) => (
         <div className="min-w-0">
-          <div className="font-bold text-[#0a192f] leading-tight">{c.title}</div>
-          <div className="text-[9.5px] font-mono text-gray-400">{c.id}</div>
+          <div className="font-bold text-[#0a192f] leading-snug">{c.title}</div>
+          <div className="text-[11px] font-mono text-gray-400">{c.id}</div>
         </div>
       ),
     },
     { key: 'tier', header: 'Tier', width: '64px', align: 'center', value: (c) => ({ HIGH: 0, MEDIUM: 1, LOW: 2 }[c.tier]), render: (c) => <Tier tier={c.tier} /> },
-    { key: 'region', header: 'Location', width: '170px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[10.5px]">{c.subRegion}</span> },
+    { key: 'region', header: 'Location', width: '170px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[11.5px]">{c.subRegion}</span> },
     {
       key: 'date', header: 'Incident (UTC)', width: '132px', value: (c) => c.incidentTime,
       render: (c) => (
         <div>
           <div className="font-mono text-gray-800">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</div>
-          <div className="text-[9.5px] text-gray-400">precision: {c.facts.incident.timePrecision}</div>
+          <div className="text-[11px] text-gray-400">precision: {c.facts.incident.timePrecision}</div>
         </div>
       ),
     },
@@ -66,7 +66,7 @@ export default function SpillIncidents() {
       render: (c) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-bold text-gray-800">{fmt.confidence(c)}</span>
-          <span className="text-[9px] text-gray-400">{c.confidenceBasis === 'official-report' ? 'confirmed by authority' : 'SAR model'}</span>
+          <span className="text-[10.5px] text-gray-400">{c.confidenceBasis === 'official-report' ? 'confirmed by authority' : 'SAR model'}</span>
         </div>
       ),
     },
@@ -84,7 +84,7 @@ export default function SpillIncidents() {
       render: (c) => {
         const a = getAnalysis(c.id);
         const top = a?.ranked[0];
-        if (!top) return <span className="text-gray-400 text-[10px]">No candidate</span>;
+        if (!top) return <span className="text-gray-400 text-[11px]">No candidate</span>;
         const v = world.vesselsByMmsi.get(top.mmsi);
         return (
           <div>
@@ -92,7 +92,7 @@ export default function SpillIncidents() {
               <span className="font-semibold text-gray-800 truncate max-w-[92px]" title={v?.name}>{v?.name ?? top.mmsi}</span>
               {v && <ProvenanceBadge p={v.provenance} />}
             </div>
-            <div className="text-[9.5px] text-gray-500 flex items-center gap-1">
+            <div className="text-[11px] text-gray-500 flex items-center gap-1">
               {a!.verdict.band} · {(top.total * 100).toFixed(0)}
               {world.tracks.get(top.mmsi)?.provenance !== 'real' && <span title="Track positions between real reports are interpolated">· est. track</span>}
             </div>
@@ -146,19 +146,19 @@ export default function SpillIncidents() {
   const clearAll = () => { setQuery(''); setRegion('all'); setStatus('all'); setTier('all'); setSource('all'); setYear('all'); };
 
   return (
-    <main className="flex-1 min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden">
+    <main className="flex-1 min-h-0 flex flex-col overflow-y-auto 2xl:overflow-hidden">
       <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0 flex-wrap gap-y-2">
         <div className="flex items-center gap-2.5">
           <div className="bg-amber-500 text-white p-1.5 rounded"><AlertTriangle className="w-4 h-4" /></div>
           <div>
             <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2">Spill incidents <ProvenanceBadge p="real" /></h2>
-            <p className="text-[11px] text-gray-500">{filtered.length} of {world.cases.length} real cases · {world.historical.length} incidents in the historical register</p>
+            <p className="text-[12px] text-gray-500">{filtered.length} of {world.cases.length} real cases · {world.historical.length} incidents in the historical register</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded border border-gray-300 overflow-hidden">
-            <button onClick={() => setView('table')} className={`px-2.5 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 ${view === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}><List className="w-3.5 h-3.5" /> Table</button>
-            <button onClick={() => setView('map')} className={`px-2.5 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 border-l border-gray-300 ${view === 'map' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}><MapIcon className="w-3.5 h-3.5" /> Map</button>
+            <button onClick={() => setView('table')} className={`px-2.5 py-1.5 text-[12px] font-semibold flex items-center gap-1.5 ${view === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}><List className="w-3.5 h-3.5" /> Table</button>
+            <button onClick={() => setView('map')} className={`px-2.5 py-1.5 text-[12px] font-semibold flex items-center gap-1.5 border-l border-gray-300 ${view === 'map' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}><MapIcon className="w-3.5 h-3.5" /> Map</button>
           </div>
           <Button size="sm" onClick={() => setFiltersOpen((o) => !o)} icon={<Filter className="w-3 h-3" />}>Filters{activeFilters.length > 0 && ` (${activeFilters.length})`}</Button>
           <ExportButton onExport={() => downloadCsv('oceanspill-cases.csv', columns.filter((c) => c.value), filtered)} />
@@ -167,7 +167,7 @@ export default function SpillIncidents() {
 
       {filtersOpen && (
         <div className="bg-gray-50 border-b border-gray-200 px-4 py-2.5 flex-shrink-0">
-          <div className="grid grid-cols-2 md:grid-cols-7 gap-3 items-end">
+          <div className="grid grid-cols-2 md:grid-cols-7 gap-4 items-end">
             <SearchInput value={query} onChange={setQuery} placeholder="Name, location, analyst…" className="md:col-span-2" />
             <Select label="Region" value={region} onChange={setRegion} options={[{ value: 'all', label: 'All regions' }, ...regions.map((r) => ({ value: r, label: r }))]} />
             <Select label="Status" value={status} onChange={setStatus}
@@ -179,19 +179,19 @@ export default function SpillIncidents() {
           {activeFilters.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap mt-2">
               {activeFilters.map((f) => <Badge key={f} tone="blue">{f}</Badge>)}
-              <button onClick={clearAll} className="text-[11px] text-gray-500 hover:text-red-600 font-semibold flex items-center gap-1"><X className="w-3 h-3" /> Clear</button>
+              <button onClick={clearAll} className="text-[12px] text-gray-500 hover:text-red-600 font-semibold flex items-center gap-1"><X className="w-3 h-3" /> Clear</button>
             </div>
           )}
         </div>
       )}
 
-      <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3 p-3">
-        <div className="flex-1 min-w-0 flex flex-col gap-3 h-[75vh] lg:h-auto">
+      <div className="flex-none 2xl:flex-1 2xl:min-h-0 flex flex-col 2xl:flex-row gap-4 p-4">
+        <div className="flex-1 min-w-0 flex flex-col gap-3 h-[78vh] 2xl:h-auto">
           <Panel className="flex-1" bodyClass="min-h-0">
             {view === 'table' ? (
               <DataTable columns={columns} rows={filtered} rowKey={(c) => c.id} dense onRowClick={(c) => navigate({ tab: 'Investigation', caseId: c.id })}
                 initialSort={{ key: 'date', dir: 'desc' }}
-                empty={<div className="space-y-2"><p>No cases match the current filters.</p>{activeFilters.length > 0 && <Button size="sm" onClick={clearAll}>Clear all filters</Button>}</div>} />
+                empty={<div className="space-y-3"><p>No cases match the current filters.</p>{activeFilters.length > 0 && <Button size="sm" onClick={clearAll}>Clear all filters</Button>}</div>} />
             ) : (
               <MapView initialCentre={{ lat: 15, lon: 80 }} initialZoom={3.9} markers={markers} polygons={polygons}
                 onMarkerClick={(m) => navigate({ tab: 'Investigation', caseId: m.id })}
@@ -200,26 +200,26 @@ export default function SpillIncidents() {
           </Panel>
         </div>
 
-        <div className="w-full lg:w-[260px] xl:w-[280px] flex-shrink-0 flex flex-col gap-3">
+        <div className="w-full 2xl:w-[300px] flex-shrink-0 grid grid-cols-1 md:grid-cols-3 2xl:flex 2xl:flex-col gap-4 items-start">
           <Panel title="Suggested next tasking" subtitle="Recorded incidents per planning area" dense>
             {suggestion && (
-              <div className="p-3">
+              <div className="p-4">
                 <div className="flex items-start gap-2 mb-2">
                   <Target className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-xs text-gray-900 leading-tight">{suggestion.aoi.name}</p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">{suggestion.incidents} incident{suggestion.incidents === 1 ? '' : 's'} in the historical register</p>
+                    <p className="font-bold text-xs text-gray-900 leading-snug">{suggestion.aoi.name}</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{suggestion.incidents} incident{suggestion.incidents === 1 ? '' : 's'} in the historical register</p>
                   </div>
                 </div>
-                <p className="text-[10.5px] text-gray-600 leading-snug mb-2">{suggestion.aoi.rationale}</p>
-                <p className="text-[10px] text-gray-500 mb-2">Latest catalogued scene: {suggestion.lastScene ? fmt.date(suggestion.lastScene) : 'none in current case windows'}</p>
+                <p className="text-[11.5px] text-gray-600 leading-normal mb-2">{suggestion.aoi.rationale}</p>
+                <p className="text-[11px] text-gray-500 mb-2">Latest catalogued scene: {suggestion.lastScene ? fmt.date(suggestion.lastScene) : 'none in current case windows'}</p>
                 <Button size="sm" variant="primary" className="w-full justify-center" onClick={() => navigate({ tab: 'Satellite Tasking', section: suggestion.aoi.id })} icon={<Satellite className="w-3 h-3" />}>Open tasking queue</Button>
               </div>
             )}
           </Panel>
 
-          <Panel title="Breakdown" dense className="flex-1" bodyClass="overflow-y-auto">
-            <div className="p-3 space-y-3">
+          <Panel title="Breakdown" dense className="2xl:flex-1" bodyClass="overflow-y-auto">
+            <div className="p-4 space-y-4">
               <Breakdown label="By status" items={countBy(filtered, (c) => c.status)} onPick={setStatus} />
               <Breakdown label="By region" items={countBy(filtered, (c) => c.region)} onPick={setRegion} />
               <Breakdown label="By source type" items={countBy(filtered, (c) => c.sourceType)} onPick={setSource} />
@@ -247,12 +247,12 @@ function Breakdown({ label, items, onPick }: { label: string; items: { label: st
   const max = Math.max(...items.map((i) => i.count), 1);
   return (
     <div>
-      <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5">{label}</p>
-      <div className="space-y-1">
-        {items.length === 0 && <p className="text-[10px] text-gray-400">No data</p>}
+      <p className="text-[11px] font-bold text-gray-500 uppercase mb-1.5">{label}</p>
+      <div className="space-y-1.5">
+        {items.length === 0 && <p className="text-[11px] text-gray-400">No data</p>}
         {items.map((i) => (
           <button key={i.label} onClick={() => onPick?.(i.label)} disabled={!onPick}
-            className={`w-full flex items-center gap-2 text-[10.5px] ${onPick ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'} px-1 py-0.5 rounded`}>
+            className={`w-full flex items-center gap-2 text-[11.5px] ${onPick ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'} px-1 py-0.5 rounded`}>
             <span className="flex-1 text-left text-gray-700 truncate" title={i.label}>{i.label}</span>
             <div className="w-12 h-1.5 bg-gray-200 rounded overflow-hidden flex-shrink-0"><div className="h-full bg-blue-500 rounded" style={{ width: `${(i.count / max) * 100}%` }} /></div>
             <span className="font-mono font-bold text-gray-800 w-4 text-right flex-shrink-0">{i.count}</span>

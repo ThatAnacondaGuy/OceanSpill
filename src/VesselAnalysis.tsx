@@ -148,18 +148,18 @@ export default function VesselAnalysis() {
       key: 'name', header: 'Vessel', value: (v) => v.name,
       render: (v) => (
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-gray-900 truncate">{v.name}</span>
+          <div className="flex items-center flex-wrap gap-x-1.5 gap-y-1">
+            <span className="font-bold text-gray-900 leading-snug">{v.name}</span>
             <ProvenanceBadge p={v.provenance} />
             {darkMmsis.has(v.mmsi) && <Badge tone="red">GAP</Badge>}
           </div>
-          <div className="text-[9.5px] text-gray-500 font-mono">{fmt.vesselId(v)}</div>
+          <div className="text-[11px] text-gray-500 font-mono">{fmt.vesselId(v)}</div>
         </div>
       ),
     },
-    { key: 'role', header: 'Role', width: '82px', value: (v) => v.role, render: (v) => <Badge tone={v.role === 'source' ? 'red' : v.role === 'responder' ? 'blue' : v.role === 'candidate' ? 'amber' : 'gray'}>{v.role}</Badge> },
+    { key: 'role', header: 'Role', width: '76px', value: (v) => v.role, render: (v) => <Badge tone={v.role === 'source' ? 'red' : v.role === 'responder' ? 'blue' : v.role === 'candidate' ? 'amber' : 'gray'}>{v.role}</Badge> },
     {
-      key: 'rank', header: 'Rank', width: '56px', align: 'center', value: (v) => rankOf.get(v.mmsi)?.rank ?? 999,
+      key: 'rank', header: 'Rank', width: '48px', align: 'center', value: (v) => rankOf.get(v.mmsi)?.rank ?? 999,
       render: (v) => rankOf.get(v.mmsi) ? <span className="font-mono font-bold text-gray-800">{rankOf.get(v.mmsi)!.rank}</span> : <span className="text-gray-300">—</span>,
     },
   ];
@@ -175,14 +175,14 @@ export default function VesselAnalysis() {
 
   return (
     <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
-      <aside className="w-full lg:w-[280px] xl:w-[330px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
+      <aside className="w-full lg:w-[300px] xl:w-[360px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Anchor className="w-4 h-4 text-blue-600" /> Vessel traffic</h2>
-          <p className="text-[10px] text-gray-500 mt-0.5">
+          <p className="text-[11px] text-gray-500 mt-0.5">
             {caseVessels.filter((v) => v.provenance === 'real').length} real · {caseVessels.filter((v) => v.provenance === 'synthetic').length} synthetic · {darkMmsis.size} with AIS gaps
           </p>
         </div>
-        <div className="p-2 space-y-2 border-b border-gray-200">
+        <div className="p-2 space-y-3 border-b border-gray-200">
           <Select value={caseId} onChange={setCase} options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
           <SearchInput value={query} onChange={setQuery} placeholder="Name, MMSI, IMO, operator…" />
           <div className="grid grid-cols-3 gap-2">
@@ -201,7 +201,7 @@ export default function VesselAnalysis() {
             initialSort={{ key: 'rank', dir: 'asc' }} />
         </div>
         <div className="p-2 border-t border-gray-200 flex items-center justify-between gap-2">
-          <span className="text-[9.5px] text-gray-500">AIS: {activeCase?.aisProvider}</span>
+          <span className="text-[11px] text-gray-500">AIS: {activeCase?.aisProvider}</span>
           <ExportButton onExport={() => downloadCsv(`oceanspill-vessels-${caseId}.csv`, columns.filter((c) => c.value), filtered)} />
         </div>
       </aside>
@@ -229,7 +229,7 @@ export default function VesselAnalysis() {
                     <Layers className="w-3.5 h-3.5" /> Layers
                   </button>
                   {layersOpen && (
-                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-2.5 w-56 z-30">
+                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-56 z-30">
                       <Toggle checked={layers.vessels} onChange={(v) => setLayers({ ...layers, vessels: v })} label="Vessel positions" />
                       <Toggle checked={layers.tracks} onChange={(v) => setLayers({ ...layers, tracks: v })} label="AIS tracks" />
                       <Toggle checked={layers.gaps} onChange={(v) => setLayers({ ...layers, gaps: v })} label="Transmission gaps" count={darkMmsis.size} />
@@ -242,14 +242,14 @@ export default function VesselAnalysis() {
               </div>
             }
             legend={
-              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2.5 text-[10px] shadow-lg max-w-[220px]">
+              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[11px] shadow-lg max-w-[220px]">
                 <h4 className="font-bold mb-1.5 text-gray-700 uppercase">Traffic</h4>
                 <Dot color="#22d3ee" label="Selected vessel" />
                 <Dot color="#f59e0b" label="Real vessel (synthetic track)" />
                 <Dot color="#ef4444" label="AIS gap in window" />
                 <Dot color="#94a3b8" label="Synthetic background traffic" />
                 <Dot color="#10b981" label="Reported real position" />
-                <p className="text-[9px] text-gray-500 mt-1.5 leading-snug">Tracks are synthetic, passing through reported real positions where available.</p>
+                <p className="text-[10.5px] text-gray-500 mt-1.5 leading-normal">Tracks are synthetic, passing through reported real positions where available.</p>
               </div>
             }
           />
@@ -275,7 +275,7 @@ export default function VesselAnalysis() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="font-bold text-gray-900 text-sm truncate">{selected.name}</h3>
-                  <p className="text-[10px] text-gray-500 font-mono">{fmt.vesselId(selected)}</p>
+                  <p className="text-[11px] text-gray-500 font-mono">{fmt.vesselId(selected)}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   <ProvenanceBadge p={selected.provenance} />
@@ -294,13 +294,13 @@ export default function VesselAnalysis() {
               </div>
             </div>
 
-            <Tabs active={tab} onChange={setTab} tabs={[
+            <Tabs fill active={tab} onChange={setTab} tabs={[
               { id: 'particulars', label: 'Record' },
               { id: 'behaviour', label: 'Behaviour' },
               { id: 'cases', label: 'Scoring' },
             ]} />
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {tab === 'particulars' && (
                 <>
                   <KeyValue cols={2} items={[
@@ -308,7 +308,7 @@ export default function VesselAnalysis() {
                     ['Flag', selected.flag ?? '—'], ['Operator', selected.operator ?? 'Not published'],
                     ['Role in case', selected.role], ['Facility', selected.isFacility ? 'Yes' : 'No'],
                   ]} />
-                  {selected.note && <p className="text-[10px] text-gray-600 leading-snug">{selected.note}</p>}
+                  {selected.note && <p className="text-[11px] text-gray-600 leading-normal">{selected.note}</p>}
 
                   {selected.provenance === 'synthetic' && (
                     <InfoBanner tone="amber" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
@@ -319,17 +319,17 @@ export default function VesselAnalysis() {
 
                   {selected.anchors.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Reported positions</p>
-                      <div className="space-y-1">
+                      <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Reported positions</p>
+                      <div className="space-y-1.5">
                         {selected.anchors.map((a, i) => (
                           <button key={i} onClick={() => playback.setValue(Math.max(windowBounds.min, Math.min(windowBounds.max, Date.parse(a.time))))}
                             className="w-full text-left bg-emerald-50/60 border border-emerald-200 rounded px-2 py-1.5 hover:border-emerald-400">
                             <div className="flex justify-between gap-2">
-                              <span className="text-[10.5px] font-bold text-gray-900">{a.event}</span>
+                              <span className="text-[11.5px] font-bold text-gray-900">{a.event}</span>
                               <ProvenanceBadge p="real" />
                             </div>
-                            <p className="text-[9.5px] font-mono text-gray-600">{fmt.utcShort(Date.parse(a.time))} · {a.lat.toFixed(3)}, {a.lon.toFixed(3)} ± {a.positionPrecisionKm} km</p>
-                            <p className="text-[9px] text-gray-500">{a.source}{a.after ? ` · then ${a.after}` : ''}</p>
+                            <p className="text-[11px] font-mono text-gray-600">{fmt.utcShort(Date.parse(a.time))} · {a.lat.toFixed(3)}, {a.lon.toFixed(3)} ± {a.positionPrecisionKm} km</p>
+                            <p className="text-[10.5px] text-gray-500">{a.source}{a.after ? ` · then ${a.after}` : ''}</p>
                           </button>
                         ))}
                       </div>
@@ -337,17 +337,17 @@ export default function VesselAnalysis() {
                   )}
 
                   {selectedTrack && (
-                    <div className="bg-gray-50 border border-gray-200 rounded p-2.5">
-                      <p className="text-[10px] font-bold text-gray-700 uppercase mb-1 flex items-center gap-1.5">AIS track <ProvenanceBadge p={selectedTrack.provenance} /></p>
+                    <div className="bg-gray-50 border border-gray-200 rounded p-3">
+                      <p className="text-[11px] font-bold text-gray-700 uppercase mb-1 flex items-center gap-1.5">AIS track <ProvenanceBadge p={selectedTrack.provenance} /></p>
                       <ul className="space-y-0.5">
-                        {selectedTrack.notes.map((n) => <li key={n} className="text-[10px] text-gray-600 leading-snug">• {n}</li>)}
+                        {selectedTrack.notes.map((n) => <li key={n} className="text-[11px] text-gray-600 leading-normal">• {n}</li>)}
                       </ul>
                     </div>
                   )}
 
                   {!selected.isFacility && (
-                    <div className="rounded border p-2.5 bg-gray-50 border-gray-200">
-                      <p className="text-[10px] font-bold text-gray-700 uppercase mb-1.5 flex items-center gap-1.5"><Shield className="w-3 h-3" /> Registry and sanctions</p>
+                    <div className="rounded border p-3 bg-gray-50 border-gray-200">
+                      <p className="text-[11px] font-bold text-gray-700 uppercase mb-1.5 flex items-center gap-1.5"><Shield className="w-3 h-3" /> Registry and sanctions</p>
                       <KeyValue cols={2} items={[
                         ['Registry', selected.provenance === 'synthetic' ? 'Synthetic' : selected.registryVerified ? 'Verified' : 'Not verified'],
                         ['Sanctions', selected.sanctionsChecked ? (selected.sanctioned ? 'Listed' : 'Not listed (UNSC, IMO match)') : selected.sanctioned ? 'Synthetic listing' : 'Not checked'],
@@ -361,7 +361,7 @@ export default function VesselAnalysis() {
                           ])} />
                         </div>
                       )}
-                      {selected.registrySource && <p className="text-[9.5px] text-gray-500 mt-1">{selected.registrySource}</p>}
+                      {selected.registrySource && <p className="text-[11px] text-gray-500 mt-1">{selected.registrySource}</p>}
                     </div>
                   )}
                   {selected.sanctioned && (
@@ -385,35 +385,35 @@ export default function VesselAnalysis() {
                     Behaviour is computed from the {selectedTrack.provenance} track. It demonstrates the method; it is not evidence about the real vessel.
                   </InfoBanner>
 
-                  <div className={`rounded border p-2.5 ${behaviour.score > 0.5 ? 'bg-red-50 border-red-200' : behaviour.score > 0.2 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                  <div className={`rounded border p-3 ${behaviour.score > 0.5 ? 'bg-red-50 border-red-200' : behaviour.score > 0.2 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-[10px] font-bold uppercase text-gray-700">Anomaly score</span>
+                      <span className="text-[11px] font-bold uppercase text-gray-700">Anomaly score</span>
                       <span className="text-base font-black text-gray-900">{(behaviour.score * 100).toFixed(0)}</span>
                     </div>
-                    <ul className="space-y-1 mt-1.5">
+                    <ul className="space-y-1.5 mt-1.5">
                       {behaviour.flags.map((f, i) => (
-                        <li key={i} className="text-[10px] text-gray-700 flex gap-1.5 leading-snug"><span className="text-gray-400">•</span><span>{f}</span></li>
+                        <li key={i} className="text-[11px] text-gray-700 flex gap-1.5 leading-normal"><span className="text-gray-400">•</span><span>{f}</span></li>
                       ))}
                     </ul>
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-bold text-gray-600 uppercase mb-1">Speed over ground</p>
+                    <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Speed over ground</p>
                     <LineChart height={110} series={[{ name: 'sog', color: '#2563eb', points: speedSeries }]} yFormat={(v) => `${v.toFixed(0)} kn`} showArea />
                   </div>
 
                   {selectedTrack.gaps.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-bold text-red-700 uppercase mb-1.5 flex items-center gap-1.5"><EyeOff className="w-3 h-3" /> Transmission gaps</p>
-                      <div className="space-y-1.5">
+                      <p className="text-[11px] font-bold text-red-700 uppercase mb-1.5 flex items-center gap-1.5"><EyeOff className="w-3 h-3" /> Transmission gaps</p>
+                      <div className="space-y-2">
                         {selectedTrack.gaps.map((g, i) => (
                           <button key={i} onClick={() => playback.setValue(g.start)} className="w-full text-left bg-red-50 border border-red-200 rounded p-2 hover:border-red-400">
-                            <div className="flex justify-between text-[10px]">
+                            <div className="flex justify-between text-[11px]">
                               <span className="font-bold text-red-900">{g.minutes} min silent</span>
                               <span className="font-mono text-red-700">{g.distanceKm} km</span>
                             </div>
-                            <p className="text-[9.5px] text-red-700 mt-0.5 font-mono">{fmt.utcShort(g.start)} → {fmt.utcShort(g.end)}</p>
-                            <p className="text-[9.5px] text-red-600 mt-0.5">
+                            <p className="text-[11px] text-red-700 mt-0.5 font-mono">{fmt.utcShort(g.start)} → {fmt.utcShort(g.end)}</p>
+                            <p className="text-[11px] text-red-600 mt-0.5">
                               Implied speed {g.impliedSpeedKn} kn{g.impliedSpeedKn > 22 && ' — implausible, suggests a position jump'}
                             </p>
                           </button>
@@ -437,36 +437,36 @@ export default function VesselAnalysis() {
                 return (
                   <>
                     <button onClick={() => navigate({ tab: 'Investigation', caseId: activeCase.id })}
-                      className="w-full text-left border border-gray-200 rounded p-2.5 hover:border-blue-400 hover:bg-blue-50/40">
+                      className="w-full text-left border border-gray-200 rounded p-3 hover:border-blue-400 hover:bg-blue-50/40">
                       <div className="flex justify-between items-start gap-2">
                         <div className="min-w-0">
-                          <p className="font-bold text-[11px] text-gray-900">{activeCase.title}</p>
-                          <p className="text-[10px] text-gray-600 truncate">{activeCase.subRegion}</p>
-                          <p className="text-[9.5px] text-gray-400 mt-0.5">{fmt.precise(activeCase.incidentTime, activeCase.facts.incident.timePrecision)}</p>
+                          <p className="font-bold text-[12px] text-gray-900">{activeCase.title}</p>
+                          <p className="text-[11px] text-gray-600 truncate">{activeCase.subRegion}</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5">{fmt.precise(activeCase.incidentTime, activeCase.facts.incident.timePrecision)}</p>
                         </div>
                         {score && (
                           <div className="text-right flex-shrink-0">
                             <div className={`text-base font-black leading-none ${score.rank === 1 ? 'text-rose-600' : 'text-gray-600'}`}>{(score.total * 100).toFixed(0)}</div>
-                            <div className="text-[9px] text-gray-400">rank {score.rank}</div>
+                            <div className="text-[10.5px] text-gray-400">rank {score.rank}</div>
                           </div>
                         )}
                       </div>
                       {score && (
-                        <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex gap-3 text-[9.5px] text-gray-600">
+                        <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex gap-3 text-[11px] text-gray-600">
                           <span>CPA {score.cpaKm.toFixed(1)} km</span>
                           <span>Δt {score.deltaTimeMin.toFixed(0)} min</span>
                           {score.darkDuringWindow && <Badge tone="red">DARK</Badge>}
                         </div>
                       )}
-                      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-blue-600 font-semibold">Open investigation <ArrowRight className="w-3 h-3" /></div>
+                      <div className="mt-1.5 flex items-center gap-1 text-[11px] text-blue-600 font-semibold">Open investigation <ArrowRight className="w-3 h-3" /></div>
                     </button>
                     {score && (
-                      <ul className="space-y-1">
-                        {score.reasons.map((r, i) => <li key={i} className="text-[10px] text-gray-700 leading-snug flex gap-1.5"><span className="text-gray-400">•</span>{r}</li>)}
+                      <ul className="space-y-1.5">
+                        {score.reasons.map((r, i) => <li key={i} className="text-[11px] text-gray-700 leading-normal flex gap-1.5"><span className="text-gray-400">•</span>{r}</li>)}
                       </ul>
                     )}
-                    {excluded && <p className="text-[10.5px] text-gray-600">Excluded from scoring: {excluded.reason}</p>}
-                    {!score && !excluded && <p className="text-[10.5px] text-gray-500">Not evaluated for this case.</p>}
+                    {excluded && <p className="text-[11.5px] text-gray-600">Excluded from scoring: {excluded.reason}</p>}
+                    {!score && !excluded && <p className="text-[11.5px] text-gray-500">Not evaluated for this case.</p>}
                     {selected.provenance === 'real' && (
                       <Button size="sm" className="w-full justify-center" onClick={() => navigate({ tab: 'Offender Registry', mmsi: selected.mmsi })} icon={<Shield className="w-3 h-3" />}>
                         Liability register

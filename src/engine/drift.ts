@@ -93,18 +93,24 @@ export function runDrift(
   const totalMinutes = Math.abs(hours) * 60;
   const steps = Math.max(1, Math.round(totalMinutes / p.stepMinutes));
   const dtSec = p.stepMinutes * 60 * (backward ? -1 : 1);
+  const land = sampler.land;
+  const toWater = (q: LatLon): LatLon => (land && land.isLand(q) ? land.nearestWater(q) ?? q : q);
 
-  // Seed the cloud in a disc around the start position.
+  // Seed the cloud in a disc around the start position; oil starts on the water, never inland.
+  const seedCentre = toWater(start);
   let cloud: LatLon[] = [];
   for (let i = 0; i < p.particles; i++) {
     const r = initialRadiusKm * Math.sqrt(rng());
     const th = rng() * 2 * Math.PI;
-    cloud.push(offsetKm(start, r * Math.cos(th), r * Math.sin(th)));
+    let q = offsetKm(seedCentre, r * Math.cos(th), r * Math.sin(th));
+    if (land?.isLand(q)) q = seedCentre;
+    cloud.push(q);
   }
 
   const out: DriftStep[] = [];
   const record = (time: number, particles: LatLon[]) => {
-    const c = centroid(particles);
+    // The centre of a cloud hugging a curved coast can fall inland; keep the reported centre on the water.
+    const c = toWater(centroid(particles));
     const dists = particles.map((q) => haversineKm(c, q)).sort((a, b) => a - b);
     const spreadKm = dists[Math.floor(dists.length * 0.68)] ?? 0;
     out.push({ time, particles: particles.map((q) => ({ ...q })), centroid: c, spreadKm });
@@ -128,7 +134,10 @@ export function runDrift(
       const sigmaM = Math.sqrt(2 * p.diffusivity * Math.abs(dtSec));
       const dxKm = (u * dtSec + sigmaM * gauss(rng)) / 1000;
       const dyKm = (v * dtSec + sigmaM * gauss(rng)) / 1000;
-      next.push(offsetKm(q, dxKm, dyKm));
+      const moved = offsetKm(q, dxKm, dyKm);
+      // A step that would carry the particle onto land leaves it beached on the shore for this step;
+      // it refloats as soon as the forcing carries it back offshore.
+      next.push(land?.isLand(moved) ? q : moved);
     }
     cloud = next;
     t += dtSec * 1000;
@@ -195,7 +204,8 @@ export function hindcast(
   }
 
   const origins = ensemble.map((e) => e.origin);
-  const meanOrigin = centroid([...origins, base.origin]);
+  const mean = centroid([...origins, base.origin]);
+  const meanOrigin = sampler.land?.isLand(mean) ? sampler.land.nearestWater(mean) ?? mean : mean;
   const spread = origins.map((o) => haversineKm(meanOrigin, o)).sort((a, b) => a - b);
   const p90 = spread[Math.floor(spread.length * 0.9)] ?? base.finalSpreadKm;
   const uncertaintyRadiusKm = Math.max(base.finalSpreadKm, p90);

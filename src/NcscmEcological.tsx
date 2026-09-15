@@ -175,8 +175,8 @@ export default function NcscmEcological() {
       <aside className="w-full lg:w-[290px] xl:w-[340px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Leaf className="w-4 h-4 text-emerald-600" /> Ecological sensitivity</h2>
-          <p className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1.5">{ECOLOGICAL_AREAS.length} sites · approximate outlines <ProvenanceBadge p="modelled" /></p>
-          <p className="text-[9.5px] text-gray-400 mt-0.5 leading-snug">Official NCSCM shapefiles pending; outlines are hand-drawn from published maps.</p>
+          <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5">{ECOLOGICAL_AREAS.length} sites · approximate outlines <ProvenanceBadge p="modelled" /></p>
+          <p className="text-[11px] text-gray-400 mt-0.5 leading-normal">Official NCSCM shapefiles pending; outlines are hand-drawn from published maps.</p>
         </div>
 
         <div className="p-2 border-b border-gray-200">
@@ -184,7 +184,7 @@ export default function NcscmEcological() {
             options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
         </div>
 
-        <Tabs active={tab} onChange={setTab} tabs={[
+        <Tabs fill active={tab} onChange={setTab} tabs={[
           { id: 'priority', label: 'Response priority', count: priority.filter((p) => p.distanceKm < 250).length },
           { id: 'register', label: 'Area register', count: areas.length },
         ]} />
@@ -198,8 +198,8 @@ export default function NcscmEcological() {
                 body="No designated sensitive area lies within 250 km of the forecast envelope for this case." />
             ) : (
               <>
-                <div className="p-2.5 border-b border-gray-200">
-                  <p className="text-[9.5px] text-gray-500 leading-snug">
+                <div className="p-3 border-b border-gray-200">
+                  <p className="text-[11px] text-gray-500 leading-normal">
                     Ranked by habitat sensitivity, distance to the forecast envelope, and time until the
                     envelope arrives. Distances are to the spread boundary, not the centre line.
                   </p>
@@ -210,15 +210,15 @@ export default function NcscmEcological() {
                       p.id === selectedArea ? 'bg-blue-50' : 'hover:bg-gray-50'
                     } ${p.hoursToImpact !== null ? 'border-l-[3px] border-l-red-500' : p.distanceKm < 60 ? 'border-l-[3px] border-l-amber-500' : 'border-l-[3px] border-l-transparent'}`}>
                     <div className="flex items-start gap-2">
-                      <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black flex-shrink-0 ${
+                      <div className={`w-5 h-5 rounded flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
                         i === 0 ? 'bg-red-600 text-white' : i < 3 ? 'bg-amber-500 text-white' : 'bg-gray-300 text-gray-700'}`}>{i + 1}</div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-bold text-gray-900 leading-tight">{p.name}</p>
+                        <p className="text-[12px] font-bold text-gray-900 leading-snug">{p.name}</p>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <Badge tone={p.sensitivity >= 5 ? 'red' : p.sensitivity >= 4 ? 'amber' : 'green'}>S{p.sensitivity}/5</Badge>
-                          <span className="text-[9.5px] text-gray-500">{p.category}</span>
+                          <span className="text-[11px] text-gray-500">{p.category}</span>
                         </div>
-                        <div className="flex gap-3 mt-1 text-[9.5px]">
+                        <div className="flex gap-3 mt-1 text-[11px]">
                           <span className="text-gray-600">Distance <b className="font-mono text-gray-900">{p.distanceKm.toFixed(1)} km</b></span>
                           {p.hoursToImpact !== null && (
                             <span className="text-red-700 font-bold flex items-center gap-1">
@@ -226,12 +226,12 @@ export default function NcscmEcological() {
                             </span>
                           )}
                         </div>
-                        <p className={`text-[10px] mt-1 leading-snug ${p.hoursToImpact !== null ? 'text-red-700 font-semibold' : 'text-gray-600'}`}>
+                        <p className={`text-[11px] mt-1 leading-normal ${p.hoursToImpact !== null ? 'text-red-700 font-semibold' : 'text-gray-600'}`}>
                           {p.action}
                         </p>
                         {p.id === selectedArea && (
-                          <div className="mt-2 space-y-1.5">
-                            <p className="text-[10px] text-gray-600 leading-snug">{p.area.notes}</p>
+                          <div className="mt-2 space-y-2">
+                            <p className="text-[11px] text-gray-600 leading-normal">{p.area.notes}</p>
                             <KeyValue cols={2} items={[
                               ['Extent', `${fmt.num(p.area.areaKm2)} km²`],
                               ['State', p.state],
@@ -251,7 +251,7 @@ export default function NcscmEcological() {
 
         {tab === 'register' && (
           <div className="flex-1 min-h-0 flex flex-col">
-            <div className="p-2 space-y-2 border-b border-gray-200">
+            <div className="p-2 space-y-3 border-b border-gray-200">
               <SearchInput value={query} onChange={setQuery} placeholder="Name, state or category…" />
               <div className="grid grid-cols-2 gap-2">
                 <Select value={category} onChange={setCategory}
@@ -266,14 +266,14 @@ export default function NcscmEcological() {
                   className={`w-full text-left px-2.5 py-2 border-b border-gray-100 ${a.id === selectedArea ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-gray-900 leading-tight">{a.name}</p>
-                      <p className="text-[9.5px] text-gray-500">{a.category} · {a.state}</p>
+                      <p className="text-[12px] font-bold text-gray-900 leading-snug">{a.name}</p>
+                      <p className="text-[11px] text-gray-500">{a.category} · {a.state}</p>
                     </div>
                     <Badge tone={a.sensitivity >= 5 ? 'red' : a.sensitivity >= 4 ? 'amber' : 'green'}>S{a.sensitivity}</Badge>
                   </div>
                   {a.id === selectedArea && (
                     <div className="mt-1.5">
-                      <p className="text-[10px] text-gray-600 leading-snug">{a.notes}</p>
+                      <p className="text-[11px] text-gray-600 leading-normal">{a.notes}</p>
                       <KeyValue cols={2} items={[['Extent', `${fmt.num(a.areaKm2)} km²`], ['Peak season', a.peakSeason]]} />
                     </div>
                   )}
@@ -320,7 +320,7 @@ export default function NcscmEcological() {
                     <Layers className="w-3.5 h-3.5" /> Layers
                   </button>
                   {layersOpen && (
-                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-2.5 w-52 z-30">
+                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-52 z-30">
                       <Toggle checked={layers.areas} onChange={(v) => setLayers({ ...layers, areas: v })} label="Protected areas" count={areas.length} />
                       <Toggle checked={layers.slick} onChange={(v) => setLayers({ ...layers, slick: v })} label="Reported slick / location" />
                       <Toggle checked={layers.forecast} onChange={(v) => setLayers({ ...layers, forecast: v })} label="Forecast envelope" />
@@ -331,7 +331,7 @@ export default function NcscmEcological() {
               </div>
             }
             legend={
-              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2.5 text-[10px] shadow-lg">
+              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[11px] shadow-lg">
                 <h4 className="font-bold mb-1.5 text-gray-700 uppercase">Exposure</h4>
                 <Sw color="#dc2626" label="Inside forecast envelope" />
                 <Sw color="#f59e0b" label="Within 60 km" />

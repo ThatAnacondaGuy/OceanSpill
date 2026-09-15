@@ -30,6 +30,9 @@ class CachedHttp:
         raw = json.dumps([method, url, params, body], sort_keys=True, default=str)
         return self.cache_dir / f"{hashlib.sha256(raw.encode()).hexdigest()}.json"
 
+    def has_cached(self, method: str, url: str, *, params: dict | None = None, json_body: Any = None, data: dict | None = None) -> bool:
+        return self._key(method, url, params, json_body if data is None else {"form": data}).exists()
+
     def request_json(
         self,
         method: str,
@@ -44,7 +47,8 @@ class CachedHttp:
         timeout: float = 60,
         retries: int = 3,
     ) -> Any:
-        path = self._key(method, url, params, json_body)
+        # Form bodies join the cache key only when present, so existing cached responses keep their keys.
+        path = self._key(method, url, params, json_body if data is None else {"form": data})
         if cache and path.exists():
             if max_age_s is None or time.time() - path.stat().st_mtime < max_age_s:
                 return json.loads(path.read_text())

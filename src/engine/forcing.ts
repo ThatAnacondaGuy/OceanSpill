@@ -1,6 +1,7 @@
 import type { LatLon } from '../lib/geo';
 import type { ForcingArtifact } from '../data/types';
 import { currentAt, vector, windAt, type VectorSample } from './ocean';
+import type { LandMask } from './land';
 
 export type FieldOrigin = 'observed' | 'model';
 
@@ -19,6 +20,8 @@ export interface FieldSampler {
   wind(p: LatLon, t: number): SampledVector;
   current(p: LatLon, t: number): SampledVector;
   waveHeight(p: LatLon, t: number): number | null;
+  /** Coastline for the case; without it particles are free to cross land. */
+  land?: LandMask;
 }
 
 export const MODEL_SAMPLER: FieldSampler = {

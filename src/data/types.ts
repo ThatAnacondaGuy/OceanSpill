@@ -208,6 +208,8 @@ export interface CaseArtifact {
   tracks: TrackArtifact[];
   sanctions: { key: string; name: string; imo: string | null; listed: boolean; list: string; reference: string | null; checkedAt: string }[];
   sarMeasurements?: SarMeasurement[];
+  /** Detailed coastline over the drift box, used to keep slicks and particles off land. */
+  coast?: { file: string; source: string; rings: number; vertices: number; bbox: CoastBBox } | null;
   windCatalog?: {
     provider: string;
     collection: string;
@@ -216,6 +218,17 @@ export interface CaseArtifact {
     online: number;
   } | null;
   warnings: string[];
+}
+
+export interface CoastBBox { west: number; south: number; east: number; north: number }
+
+/** Land polygons from the OpenStreetMap coastline: rings of [lon, lat], combined even-odd. */
+export interface CoastArtifact {
+  source: string;
+  license: string;
+  bbox: CoastBBox;
+  simplifiedToleranceM: number;
+  rings: [number, number][][];
 }
 
 export interface ForcingArtifact {

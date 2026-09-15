@@ -199,7 +199,7 @@ export default function AnalyticsReporting() {
           <div className="bg-blue-600 text-white p-1.5 rounded"><BarChart2 className="w-4 h-4" /></div>
           <div>
             <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2">Analytics &amp; reporting <ProvenanceBadge p="real" /></h2>
-            <p className="text-[11px] text-gray-500">Computed from the historical register and the analysed cases; no invented metrics</p>
+            <p className="text-[12px] text-gray-500">Computed from the historical register and the analysed cases; no invented metrics</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -216,8 +216,8 @@ export default function AnalyticsReporting() {
       ]} />
 
       {tab === 'overview' && (
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             <StatCard icon={<Activity className="w-5 h-5" />} title="Recorded incidents" value={stats.incidents} trend={period === 'all' ? 'register since 1970' : `in the ${period}s`} />
             <StatCard icon={<AlertTriangle className="w-5 h-5" />} title="Published tonnage" value={`${fmt.num(stats.tonnes)} t`}
               trend={`${stats.tonnesKnown} of ${stats.incidents} report a quantity`} accent="amber" />
@@ -226,51 +226,51 @@ export default function AnalyticsReporting() {
             <StatCard icon={<Database className="w-5 h-5" />} title="SAR scenes found" value={stats.sarScenes} trend="catalogue hits for those cases" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Panel title="Recorded incidents by decade" dense>
-              <div className="p-3">
+              <div className="p-4">
                 <BarChart data={byDecade} height={150} />
-                <p className="text-[10px] text-gray-500 mt-2 leading-snug">
+                <p className="text-[11px] text-gray-500 mt-2 leading-normal">
                   Reflects what was reported and published, not the true spill rate. Small spills before satellite
                   monitoring were rarely recorded.
                 </p>
               </div>
             </Panel>
             <Panel title="By coast" dense>
-              <div className="p-3"><BarChart horizontal data={byCoast} /></div>
+              <div className="p-4"><BarChart horizontal data={byCoast} /></div>
             </Panel>
             <Panel title="By source" dense>
-              <div className="p-3">
+              <div className="p-4">
                 <BarChart horizontal data={bySource} />
-                <p className="text-[10px] text-gray-500 mt-2 leading-snug">Classified from the recorded cause text.</p>
+                <p className="text-[11px] text-gray-500 mt-2 leading-normal">Classified from the recorded cause text.</p>
               </div>
             </Panel>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Panel title="Largest published quantities (t)" dense>
-              <div className="p-3">
-                {largest.length ? <BarChart horizontal data={largest} valueFormat={(v) => fmt.num(v)} /> : <p className="text-[11px] text-gray-500">No quantities published in this period.</p>}
+              <div className="p-4">
+                {largest.length ? <BarChart horizontal data={largest} valueFormat={(v) => fmt.num(v)} /> : <p className="text-[12px] text-gray-500">No quantities published in this period.</p>}
               </div>
             </Panel>
             <Panel title="Analysed cases: incident → first report" dense>
-              <div className="p-3 space-y-1.5">
+              <div className="p-4 space-y-2">
                 {timelines.map(({ c, toObservationH, spanDays, events }) => (
                   <button key={c.id} onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}
-                    className="w-full text-left flex items-center gap-2 text-[10.5px] hover:bg-gray-50 rounded px-1 py-0.5">
+                    className="w-full text-left flex items-center gap-2 text-[11.5px] hover:bg-gray-50 rounded px-1 py-0.5">
                     <span className="flex-1 truncate font-semibold text-gray-800" title={c.title}>{c.title}</span>
                     <span className="font-mono text-gray-700 w-16 text-right">{toObservationH != null && ['minute', 'hour'].includes(c.facts.incident.timePrecision) ? `${toObservationH.toFixed(1)} h` : 'n/a'}</span>
                     <span className="font-mono text-gray-400 w-20 text-right">{spanDays != null ? `${spanDays.toFixed(1)} d · ${events} ev` : '—'}</span>
                   </button>
                 ))}
-                <p className="text-[10px] text-gray-500 pt-1 leading-snug">
+                <p className="text-[11px] text-gray-500 pt-1 leading-normal">
                   Hours from incident to the first published observation (only where the incident time is known to the hour),
                   then the span of the published timeline.
                 </p>
               </div>
             </Panel>
             <Panel title="What the analyses had to work with" dense>
-              <div className="p-3 space-y-2">
+              <div className="p-4 space-y-3">
                 <Coverage label="SAR scene in catalogue" value={completeness.filter((x) => x.sar).length} total={completeness.length} color="#3b82f6" />
                 <Coverage label="Scene covering the incident" value={completeness.filter((x) => x.sarCovers).length} total={completeness.length} color="#6366f1" />
                 <Coverage label="Reanalysis wind" value={completeness.filter((x) => x.wind).length} total={completeness.length} color="#0891b2" />
@@ -278,7 +278,7 @@ export default function AnalyticsReporting() {
                 <Coverage label="Slick extent reported" value={completeness.filter((x) => x.extent).length} total={completeness.length} color="#f59e0b" />
                 <Coverage label="Released quantity published" value={completeness.filter((x) => x.quantity).length} total={completeness.length} color="#ea580c" />
                 <Coverage label="Real AIS data (GFW / DGLL)" value={completeness.filter((x) => x.realAis).length} total={completeness.length} color="#dc2626" />
-                <p className="text-[10px] text-gray-500 mt-1 leading-snug">
+                <p className="text-[11px] text-gray-500 mt-1 leading-normal">
                   Real AIS is the largest gap. Without it, attribution ranks synthetic tracks anchored to reported positions.
                 </p>
               </div>
@@ -291,18 +291,18 @@ export default function AnalyticsReporting() {
         <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row">
           <aside className="w-full lg:w-[280px] xl:w-[330px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
             <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
-              <h3 className="text-[11px] font-bold text-gray-700">Incidents near shipping routes</h3>
-              <p className="text-[9.5px] text-gray-500 mt-0.5">Register incidents within 150 km of an indicative route</p>
+              <h3 className="text-[12px] font-bold text-gray-700">Incidents near shipping routes</h3>
+              <p className="text-[11px] text-gray-500 mt-0.5">Register incidents within 150 km of an indicative route</p>
             </div>
             <div className="flex-1 overflow-y-auto">
               {hotspots.map((h, i) => (
                 <div key={h.corridor.id} className="px-2.5 py-2 border-b border-gray-100">
                   <div className="flex items-start gap-2">
-                    <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black flex-shrink-0 ${
+                    <div className={`w-5 h-5 rounded flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
                       i === 0 && h.count ? 'bg-red-600 text-white' : i < 3 && h.count ? 'bg-amber-500 text-white' : 'bg-gray-300 text-gray-700'}`}>{i + 1}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-gray-900 leading-tight">{h.corridor.name}</p>
-                      <div className="flex gap-3 mt-1 text-[9.5px] text-gray-600">
+                      <p className="text-[12px] font-bold text-gray-900 leading-snug">{h.corridor.name}</p>
+                      <div className="flex gap-3 mt-1 text-[11px] text-gray-600">
                         <span>{h.count} incident{h.count === 1 ? '' : 's'}</span>
                         <span>{fmt.num(h.tonnes)} t published</span>
                       </div>
@@ -310,7 +310,7 @@ export default function AnalyticsReporting() {
                         <div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (h.count / Math.max(1, hotspots[0].count)) * 100)}%` }} />
                       </div>
                       {h.incidents.length > 0 && (
-                        <p className="text-[9.5px] text-gray-500 mt-1 leading-snug">{h.incidents.map((x) => `${x.name.split(' (')[0]} ${x.date.slice(0, 4)}`).join(' · ')}</p>
+                        <p className="text-[11px] text-gray-500 mt-1 leading-normal">{h.incidents.map((x) => `${x.name.split(' (')[0]} ${x.date.slice(0, 4)}`).join(' · ')}</p>
                       )}
                     </div>
                   </div>
@@ -334,12 +334,12 @@ export default function AnalyticsReporting() {
               }}
               overlay={<div className="absolute top-3 left-3 z-20"><BasemapSwitch value={basemap} onChange={setBasemap} /></div>}
               legend={
-                <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2.5 text-[10px] shadow-lg">
+                <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[11px] shadow-lg">
                   <h4 className="font-bold mb-1.5 text-gray-700 uppercase">Historical register</h4>
                   <div className="flex items-center gap-2 mb-1"><div className="w-3 h-3 rounded-full bg-blue-500" /><span className="text-gray-700">Analysed case</span></div>
                   <div className="flex items-center gap-2 mb-1"><div className="w-3 h-3 rounded-full bg-amber-500" /><span className="text-gray-700">Register only</span></div>
                   <div className="flex items-center gap-2"><div className="w-4 border-t-2 border-dashed border-amber-500" /><span className="text-gray-700">Indicative route</span></div>
-                  <p className="text-[9px] text-gray-400 mt-1.5 max-w-[160px]">Marker size scales with published tonnage. Dotted rings show position uncertainty.</p>
+                  <p className="text-[10.5px] text-gray-400 mt-1.5 max-w-[160px]">Marker size scales with published tonnage. Dotted rings show position uncertainty.</p>
                 </div>
               }
             />
@@ -348,15 +348,15 @@ export default function AnalyticsReporting() {
       )}
 
       {tab === 'performance' && (
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <InfoBanner tone="amber" icon={<Info className="w-3.5 h-3.5" />}>
             <b>No accuracy figures are shown.</b> {MODEL_STATUS.note}
           </InfoBanner>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Panel title="Segmentation model" subtitle="Status and evaluation plan" dense>
-              <div className="p-3 space-y-3">
-                <div className="flex items-center gap-2"><ProvenanceBadge p="pending" /><span className="text-[11px] font-semibold text-gray-700">Not trained</span></div>
+              <div className="p-4 space-y-4">
+                <div className="flex items-center gap-2"><ProvenanceBadge p="pending" /><span className="text-[12px] font-semibold text-gray-700">Not trained</span></div>
                 <KeyValue cols={1} items={[
                   ['Architecture', MODEL_STATUS.plannedArchitecture],
                   ['Training', MODEL_STATUS.plannedTraining],
@@ -364,21 +364,21 @@ export default function AnalyticsReporting() {
                   ['Public dataset', <a href={MODEL_STATUS.datasetUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{MODEL_STATUS.datasetUrl}</a>],
                 ]} />
                 <div>
-                  <p className="text-[10px] font-bold text-gray-600 uppercase mb-1">Metrics to report once trained</p>
+                  <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Metrics to report once trained</p>
                   <ul className="space-y-0.5">
-                    {MODEL_STATUS.evaluation.map((e) => <li key={e} className="text-[10.5px] text-gray-700 flex gap-1.5"><span className="text-gray-400">•</span>{e}</li>)}
+                    {MODEL_STATUS.evaluation.map((e) => <li key={e} className="text-[11.5px] text-gray-700 flex gap-1.5"><span className="text-gray-400">•</span>{e}</li>)}
                   </ul>
                 </div>
               </div>
             </Panel>
 
             <Panel title="Drift model check against reported observations" subtitle="Forecast from the first oil observation vs a later one" dense>
-              <div className="p-3 space-y-2">
-                {driftChecks.length === 0 && <p className="text-[11px] text-gray-500">No case has two positioned oil observations inside its forecast window.</p>}
+              <div className="p-4 space-y-3">
+                {driftChecks.length === 0 && <p className="text-[12px] text-gray-500">No case has two positioned oil observations inside its forecast window.</p>}
                 {driftChecks.map((d) => (
                   <div key={`${d.caseId}-${d.to.time}`} className="border border-gray-200 rounded p-2">
                     <div className="flex items-center justify-between gap-2">
-                      <button onClick={() => navigate({ tab: 'Investigation', caseId: d.caseId })} className="text-[11px] font-bold text-blue-700 hover:underline text-left">{d.title}</button>
+                      <button onClick={() => navigate({ tab: 'Investigation', caseId: d.caseId })} className="text-[12px] font-bold text-blue-700 hover:underline text-left">{d.title}</button>
                       <Badge tone={d.errorKm <= Math.max(10, d.precisionKm) ? 'green' : 'amber'}><Crosshair className="w-2.5 h-2.5" /> {d.errorKm.toFixed(1)} km</Badge>
                     </div>
                     <KeyValue cols={2} items={[
@@ -391,7 +391,7 @@ export default function AnalyticsReporting() {
                     ]} />
                   </div>
                 ))}
-                <p className="text-[10px] text-gray-500 leading-snug">
+                <p className="text-[11px] text-gray-500 leading-normal">
                   Sample size is tiny and reported positions are approximate, so this is a sanity check, not a skill score.
                   Proper validation needs SAR-derived slick outlines at two times.
                 </p>
@@ -400,11 +400,11 @@ export default function AnalyticsReporting() {
           </div>
 
           <Panel title="Detection basis per analysed case" dense>
-            <div className="p-3 space-y-1.5">
+            <div className="p-4 space-y-2">
               {completeness.map(({ c, sar, sarCovers, current, realAis, precise }) => (
                 <button key={c.id} onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}
                   className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded border border-gray-200 hover:border-blue-400 hover:bg-blue-50/40">
-                  <span className="text-[10.5px] font-bold text-gray-900 w-[220px] flex-shrink-0 truncate" title={c.title}>{c.title}</span>
+                  <span className="text-[11.5px] font-bold text-gray-900 w-[220px] flex-shrink-0 truncate" title={c.title}>{c.title}</span>
                   <Badge tone={c.confidenceBasis === 'official-report' ? 'blue' : 'violet'} className="w-[84px] justify-center flex-shrink-0">{fmt.confidence(c)}</Badge>
                   <div className="flex-1 flex gap-1 flex-wrap">
                     <Badge tone={sar ? (sarCovers ? 'green' : 'teal') : 'gray'}>{sar ? (sarCovers ? 'SAR covers' : 'SAR nearby') : 'No SAR'}</Badge>
@@ -429,7 +429,7 @@ function Coverage({ label, value, total, color }: { label: string; value: number
   const pct = total ? (value / total) * 100 : 0;
   return (
     <div>
-      <div className="flex justify-between text-[10.5px] mb-0.5">
+      <div className="flex justify-between text-[11.5px] mb-0.5">
         <span className="text-gray-700">{label}</span>
         <span className="font-mono font-bold text-gray-900">{value}/{total}</span>
       </div>
@@ -540,13 +540,13 @@ function ReportModal({ open, onClose, period, stats, byCoast, bySource, hotspots
           }} icon={<Download className="w-3 h-3" />}>Generate</Button>
         </>
       }>
-      <div className="space-y-3">
+      <div className="space-y-4">
         <Field label="Report title">
           <input value={title} onChange={(e) => setTitle(e.target.value)}
             className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" />
         </Field>
         <div>
-          <p className="text-[10px] font-bold text-gray-600 uppercase mb-1">Sections to include</p>
+          <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Sections to include</p>
           <Toggle checked={sections.summary} onChange={(v) => setSections({ ...sections, summary: v })} label="Summary" />
           <Toggle checked={sections.distribution} onChange={(v) => setSections({ ...sections, distribution: v })} label="Distribution by coast and source" />
           <Toggle checked={sections.routes} onChange={(v) => setSections({ ...sections, routes: v })} label="Incidents near shipping routes" />

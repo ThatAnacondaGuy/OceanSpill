@@ -1,7 +1,7 @@
 import { analysePolygon } from '../lib/geo';
 import { observedSampler } from '../engine/forcing';
 import type {
-  AreaOfInterest, AuditEntry, CaseArtifact, CommunityAlert, DataSource, EnforcementAction, ForcingArtifact,
+  AreaOfInterest, AuditEntry, CaseArtifact, CoastArtifact, CommunityAlert, DataSource, EnforcementAction, ForcingArtifact,
   HistoricalIncident, IndexArtifact, RiskTier, SarMeasurement, SarSpot, SatellitePass, SightingReport, SpillCase,
   SystemUser, Vessel, VesselTrack,
 } from './types';
@@ -13,6 +13,7 @@ export interface World {
   index: IndexArtifact;
   artifacts: Map<string, CaseArtifact>;
   forcing: Map<string, ForcingArtifact>;
+  coast: Map<string, CoastArtifact>;
   cases: SpillCase[];
   vessels: Vessel[];
   vesselsByMmsi: Map<string, Vessel>;
@@ -40,7 +41,17 @@ export async function loadWorld(): Promise<World> {
   const forcingEntries = await Promise.all(
     artifacts.filter((a) => a.forcing).map(async (a) => [a.case.id, await getJson<ForcingArtifact>(a.forcing!.file)] as const)
   );
-  return buildWorld(index, artifacts, new Map(forcingEntries));
+  // A coastline that fails to load only costs land awareness in the drift model, so it is not fatal.
+  const coastEntries = await Promise.all(
+    artifacts.filter((a) => a.coast).map(async (a) => {
+      try {
+        return [[a.case.id, await getJson<CoastArtifact>(a.coast!.file)] as const];
+      } catch {
+        return [];
+      }
+    })
+  );
+  return buildWorld(index, artifacts, new Map(forcingEntries), new Map(coastEntries.flat()));
 }
 
 const ms = (iso: string) => new Date(iso).getTime();
@@ -80,7 +91,9 @@ const SEVERITY: Record<string, SightingReport['severity']> = {
   'containers-ashore': 'Debris / Containers', fire: 'Fire',
 };
 
-export function buildWorld(index: IndexArtifact, artifacts: CaseArtifact[], forcing: Map<string, ForcingArtifact>): World {
+export function buildWorld(
+  index: IndexArtifact, artifacts: CaseArtifact[], forcing: Map<string, ForcingArtifact>, coast: Map<string, CoastArtifact> = new Map()
+): World {
   const vessels: Vessel[] = [];
   const tracks = new Map<string, VesselTrack>();
   const cases: SpillCase[] = [];
@@ -312,6 +325,7 @@ export function buildWorld(index: IndexArtifact, artifacts: CaseArtifact[], forc
     index,
     artifacts: new Map(artifacts.map((a) => [a.case.id, a])),
     forcing,
+    coast,
     cases: cases.sort((x, y) => y.incidentTime - x.incidentTime),
     vessels,
     vesselsByMmsi: new Map(vessels.map((v) => [v.mmsi, v])),

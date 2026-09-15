@@ -5,6 +5,7 @@ import { assessDetection, type DetectionAssessment } from '../engine/detection';
 import { attributionVerdict, scoreCandidates, searchRadiusKm, DEFAULT_WEIGHTS, type ScoringWeights } from '../engine/attribution';
 import { seaStateAt, type SeaState } from '../engine/ocean';
 import { MODEL_SAMPLER, observedSampler, type FieldSampler, type SampledVector } from '../engine/forcing';
+import { LandGrid } from '../engine/land';
 import { loadWorld, type World } from '../data/world';
 import { ECOLOGICAL_AREAS } from '../data/geography';
 import type { AuditEntry, CaseStatus, CommunityAlert, EnforcementAction, SightingReport, SpillCase, SystemUser, WorkflowStage } from '../data/types';
@@ -178,7 +179,9 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
     const cached = samplers.current.get(caseId);
     if (cached) return cached;
     const f = world.forcing.get(caseId);
-    const s = f ? observedSampler(f) : MODEL_SAMPLER;
+    const coast = world.coast.get(caseId);
+    const base = f ? observedSampler(f) : MODEL_SAMPLER;
+    const s: FieldSampler = coast ? { ...base, land: new LandGrid(coast) } : base;
     samplers.current.set(caseId, s);
     return s;
   }, [world]);

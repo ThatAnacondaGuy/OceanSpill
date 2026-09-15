@@ -6,7 +6,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .build import build, load_cases, load_reference
+from .build import build, load_cases, load_reference, update_coast
 from .config import PIPELINE_DIR, Settings
 from .http import CachedHttp
 from .providers import Providers, ProviderConfigError
@@ -34,6 +34,18 @@ def cmd_build(settings: Settings, args: argparse.Namespace) -> int:
         print(f"FAILED {f['id']}: {f['error']}", file=sys.stderr)
         print(f["trace"], file=sys.stderr)
     return 1 if result["failures"] else 0
+
+
+def cmd_coast(settings: Settings, args: argparse.Namespace) -> int:
+    from .providers.ais_synthetic import LandMask
+
+    land_json, _, _ = load_reference()
+    http = CachedHttp(settings.cache_dir, offline=args.offline)
+    for case in load_cases(args.case or None):
+        art = update_coast(case, http, LandMask(land_json), settings.output_dir)
+        geom = art["reportedGeometry"]
+        print(f"coast {case['id']:<32} rings={art['coast']['rings']:<4} vertices={art['coast']['vertices']:<6} geometry={geom['basis']}")
+    return 0
 
 
 def cmd_download(settings: Settings, args: argparse.Namespace) -> int:
@@ -120,6 +132,10 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--case", action="append", help="case id (repeatable); default all")
     b.add_argument("--offline", action="store_true", help="use cached provider responses only")
 
+    c = sub.add_parser("coast", help="fetch the OSM coastline for built cases and refresh their reported geometry")
+    c.add_argument("--case", action="append", help="case id (repeatable); default all")
+    c.add_argument("--offline", action="store_true", help="use cached coastline responses only")
+
     d = sub.add_parser("download", help="download SAR scenes for a built case (needs credentials)")
     d.add_argument("--case", required=True)
     d.add_argument("--provider", choices=["cdse", "bhoonidhi"])
@@ -135,7 +151,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     settings = Settings.load(Path(args.env) if args.env else None)
     try:
-        handler = {"providers": cmd_providers, "build": cmd_build, "download": cmd_download, "process": cmd_process}[args.command]
+        handler = {"providers": cmd_providers, "build": cmd_build, "coast": cmd_coast, "download": cmd_download, "process": cmd_process}[args.command]
         return handler(settings, args)
     except ProviderConfigError as exc:
         print(f"configuration error: {exc}", file=sys.stderr)

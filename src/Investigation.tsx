@@ -242,7 +242,7 @@ export default function Investigation() {
   return (
     <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
       {/* Case rail */}
-      <aside className="w-full lg:w-[200px] xl:w-[220px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
+      <aside className="w-full lg:w-[230px] xl:w-[260px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="p-2 border-b border-gray-200">
           <SearchInput value={query} onChange={setQuery} placeholder="Filter cases…" />
         </div>
@@ -251,20 +251,20 @@ export default function Investigation() {
             const a = getAnalysis(c.id);
             return (
               <button key={c.id} onClick={() => { setSelectedCaseId(c.id); setFocusMmsi(null); }}
-                className={`w-full text-left px-2.5 py-2 border-b border-gray-100 ${
+                className={`w-full text-left px-3 py-3 border-b border-gray-100 ${
                   c.id === active.id ? 'bg-blue-50 border-l-[3px] border-l-blue-600' : 'hover:bg-gray-50 border-l-[3px] border-l-transparent'
                 }`}>
-                <div className="flex items-center justify-between gap-1 mb-0.5">
-                  <span className="font-bold text-[11px] text-gray-900 truncate" title={c.title}>{c.title}</span>
-                  <Tier tier={c.tier} />
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <span className="font-bold text-[12.5px] text-gray-900 leading-snug line-clamp-2" title={c.title}>{c.title}</span>
+                  <span className="flex-shrink-0 mt-0.5"><Tier tier={c.tier} /></span>
                 </div>
-                <p className="text-[9.5px] font-mono text-gray-400 truncate">{c.id}</p>
-                <p className="text-[10px] text-gray-600 truncate">{c.subRegion}</p>
-                <div className="flex items-center gap-1 mt-1">
+                <p className="text-[11px] font-mono text-gray-400 truncate">{c.id}</p>
+                <p className="text-[11.5px] text-gray-600 truncate mt-0.5" title={c.subRegion}>{c.subRegion}</p>
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                   <StatusBadge status={c.status} />
                   {a?.ranked.some((r) => r.darkDuringWindow) && <Badge tone="red">DARK</Badge>}
                 </div>
-                <p className="text-[9px] text-gray-400 mt-0.5">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {fmt.ago(c.incidentTime, now)}</p>
+                <p className="text-[11px] text-gray-400 mt-1.5">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {fmt.ago(c.incidentTime, now)}</p>
               </button>
             );
           })}
@@ -276,10 +276,10 @@ export default function Investigation() {
         <div className="bg-white border-b border-gray-200 px-3 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 flex-shrink-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="font-bold text-sm text-gray-900 truncate" title={active.title}>{active.title}</span>
-            <span className="hidden 2xl:inline text-[10px] text-gray-400 font-mono flex-shrink-0">{active.id}</span>
+            <span className="hidden 2xl:inline text-[11px] text-gray-400 font-mono flex-shrink-0">{active.id}</span>
             <span className="flex-shrink-0"><Tier tier={active.tier} /></span>
             <span className="hidden sm:inline flex-shrink-0"><StatusBadge status={active.status} /></span>
-            <span className="hidden 2xl:inline text-[11px] text-gray-500 truncate">{active.subRegion}</span>
+            <span className="hidden 2xl:inline text-[12px] text-gray-500 truncate">{active.subRegion}</span>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <Button size="sm" title="Scoring weights" onClick={() => setWeightsOpen(true)} icon={<Sliders className="w-3 h-3" />}><span className="hidden 2xl:inline">Scoring weights</span></Button>
@@ -314,8 +314,8 @@ export default function Investigation() {
                     <Layers className="w-3.5 h-3.5" /> Layers
                   </button>
                   {layersOpen && (
-                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-2.5 w-56 z-30">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase mb-1.5">Analysis layers</p>
+                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-56 z-30">
+                      <p className="text-[11px] font-bold text-gray-500 uppercase mb-1.5">Analysis layers</p>
                       <Toggle checked={layers.slick} onChange={(v) => setLayers({ ...layers, slick: v })} label="Detected slick polygon" />
                       <Toggle checked={layers.hindcast} onChange={(v) => setLayers({ ...layers, hindcast: v })} label="Hindcast trajectory" />
                       <Toggle checked={layers.ensemble} onChange={(v) => setLayers({ ...layers, ensemble: v })} label="Hindcast ensemble (12)" />
@@ -327,7 +327,7 @@ export default function Investigation() {
                       <Toggle checked={layers.sar} onChange={(v) => setLayers({ ...layers, sar: v })} label="SAR dark spots (processed)"
                         count={active.detection.sarMeasurements.reduce((n, m) => n + m.spots.length, 0)} />
                       {focusMmsi && (
-                        <button onClick={() => setFocusMmsi(null)} className="mt-2 w-full text-[10px] font-semibold text-blue-600 hover:underline">
+                        <button onClick={() => setFocusMmsi(null)} className="mt-2 w-full text-[11px] font-semibold text-blue-600 hover:underline">
                           Clear vessel focus
                         </button>
                       )}
@@ -337,7 +337,7 @@ export default function Investigation() {
               </div>
             }
             legend={
-              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2.5 text-[10px] shadow-lg">
+              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[11px] shadow-lg">
                 <h4 className="font-bold mb-1.5 text-gray-700 uppercase tracking-wide">Analysis legend</h4>
                 <LegendLine color="#8b6b9e" fill="radial-gradient(circle, #1a130d 40%, #5a3d22 70%, #9c8fb8 100%)" label={active.detection.extentReported ? 'Reported slick extent' : 'Reported location'} swatch />
                 <LegendLine color="#f59e0b" label="Hindcast (backward)" dash />
@@ -346,7 +346,7 @@ export default function Investigation() {
                 <LegendLine color="#f43f5e" label="Leading suspect track" />
                 <LegendLine color="#dc2626" label="AIS gap (inferred)" dash />
                 <LegendLine color="#64748b" label="Other candidate traffic" />
-                <p className="text-[9px] text-gray-500 mt-1.5 max-w-[190px] leading-snug">AIS: {active.aisProvider}. Drift forcing: {analysis.sampler.label}.</p>
+                <p className="text-[10.5px] text-gray-500 mt-1.5 max-w-[190px] leading-normal">AIS: {active.aisProvider}. Drift forcing: {analysis.sampler.label}.</p>
               </div>
             }
           />
@@ -367,8 +367,9 @@ export default function Investigation() {
       </section>
 
       {/* Inspector */}
-      <aside className="w-full lg:w-[330px] xl:w-[390px] bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col flex-shrink-0 h-[82vh] lg:h-auto">
+      <aside className="w-full lg:w-[340px] xl:w-[400px] 2xl:w-[440px] bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col flex-shrink-0 h-[82vh] lg:h-auto">
         <Tabs
+          fill
           active={tab} onChange={setTab}
           tabs={[
             { id: 'record', label: 'Record' },
@@ -392,24 +393,24 @@ export default function Investigation() {
           {tab === 'impact' && <ImpactTab active={active} analysis={analysis} navigate={navigate} />}
         </div>
 
-        <div className="border-t border-gray-200 p-2.5 bg-gray-50 flex-shrink-0">
+        <div className="border-t border-gray-200 p-3 bg-gray-50 flex-shrink-0">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-gray-600 uppercase">Overall assessment</span>
+            <span className="text-[11px] font-bold text-gray-600 uppercase">Overall assessment</span>
             <Badge tone={analysis.verdict.band === 'Strong' ? 'red' : analysis.verdict.band === 'Moderate' ? 'amber' : 'gray'}>
               {analysis.verdict.band}
             </Badge>
           </div>
-          <p className="text-[10px] text-gray-600 leading-snug mb-2">{analysis.verdict.detail}</p>
+          <p className="text-[11px] text-gray-600 leading-normal mb-2">{analysis.verdict.detail}</p>
           {topVessel && topScore && (
             <div className="bg-white border border-gray-200 rounded p-2 flex items-center gap-2">
               <Ship className="w-4 h-4 text-rose-600 flex-shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold text-gray-900 truncate">{topVessel.name}</p>
-                <p className="text-[9.5px] text-gray-500 flex items-center gap-1">{topVessel.flag ?? 'Flag n/a'} · {fmt.vesselId(topVessel)} <ProvenanceBadge p={topVessel.provenance} /></p>
+                <p className="text-[12px] font-bold text-gray-900 truncate">{topVessel.name}</p>
+                <p className="text-[11px] text-gray-500 flex items-center gap-1">{topVessel.flag ?? 'Flag n/a'} · {fmt.vesselId(topVessel)} <ProvenanceBadge p={topVessel.provenance} /></p>
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="text-base font-black text-rose-600 leading-none">{(topScore.total * 100).toFixed(0)}</div>
-                <div className="text-[9px] text-gray-400">score</div>
+                <div className="text-[10.5px] text-gray-400">score</div>
               </div>
             </div>
           )}
@@ -440,8 +441,8 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
   const pendingCount = a.checks.filter((c) => c.status === 'pending').length;
   const w = analysis.weathering;
   return (
-    <div className="p-3 space-y-3">
-      <div className={`rounded border p-2.5 ${
+    <div className="p-4 space-y-4">
+      <div className={`rounded border p-3 ${
         a.verdict === 'Officially confirmed' || a.verdict === 'Confirmed oil' ? 'bg-red-50 border-red-200'
         : a.verdict === 'Probable oil' ? 'bg-amber-50 border-amber-200'
         : a.verdict === 'Ambiguous' ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50 border-slate-200'}`}>
@@ -450,29 +451,29 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
           <span className="text-lg font-black text-gray-900">{a.confidenceBasis === 'official-report' ? 'Official' : fmt.pct(a.confidence, 0)}</span>
         </div>
         {a.confidenceBasis === 'official-report' ? (
-          <p className="text-[10px] text-gray-700 leading-snug">
+          <p className="text-[11px] text-gray-700 leading-normal">
             The spill was confirmed by an authority ({det.observationSource}). This is a report, not a model output:
             SAR checks that need a processed scene are shown as pending below.
           </p>
         ) : a.rawModelConfidence != null ? (
-          <p className="text-[10px] text-gray-700 leading-snug">
+          <p className="text-[11px] text-gray-700 leading-normal">
             Raw segmentation output was {fmt.pct(a.rawModelConfidence)}; the cross-checks below moved it to {fmt.pct(a.confidence)}.
           </p>
         ) : (
-          <p className="text-[10px] text-gray-700 leading-snug">Not officially confirmed and no SAR model output yet.</p>
+          <p className="text-[11px] text-gray-700 leading-normal">Not officially confirmed and no SAR model output yet.</p>
         )}
         {a.lookalikeHypothesis && (
-          <p className="text-[10px] font-semibold text-slate-700 mt-1.5 pt-1.5 border-t border-slate-200">
+          <p className="text-[11px] font-semibold text-slate-700 mt-1.5 pt-1.5 border-t border-slate-200">
             Most likely natural alternative: {a.lookalikeHypothesis}
           </p>
         )}
       </div>
 
       <Section title="Look-alike discrimination" icon={<FlaskConical className="w-3.5 h-3.5" />}>
-        <p className="text-[10px] text-gray-500 mb-2 leading-snug">
+        <p className="text-[11px] text-gray-500 mb-2 leading-normal">
           Separating oil from wind shadows, algal films and current shear. {pendingCount > 0 && `${pendingCount} check${pendingCount === 1 ? '' : 's'} need a downloaded and segmented SAR scene.`}
         </p>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {a.checks.map((c) => (
             <div key={c.name} className={`rounded border p-2 ${
               c.status === 'passed' ? 'bg-emerald-50/60 border-emerald-200' : c.status === 'failed' ? 'bg-red-50/60 border-red-200' : 'bg-gray-50 border-gray-200 border-dashed'}`}>
@@ -482,10 +483,10 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
                   : <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />}
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10.5px] font-bold text-gray-900">{c.name}</span>
-                    {c.status === 'pending' ? <ProvenanceBadge p="pending" /> : <span className="text-[9px] text-gray-400">weight {c.weight.toFixed(2)}</span>}
+                    <span className="text-[11.5px] font-bold text-gray-900">{c.name}</span>
+                    {c.status === 'pending' ? <ProvenanceBadge p="pending" /> : <span className="text-[10.5px] text-gray-400">weight {c.weight.toFixed(2)}</span>}
                   </div>
-                  <p className="text-[10px] text-gray-600 leading-snug mt-0.5">{c.detail}</p>
+                  <p className="text-[11px] text-gray-600 leading-normal mt-0.5">{c.detail}</p>
                 </div>
               </div>
             </div>
@@ -508,12 +509,12 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
         ]} />
         {det.geometryAssumptions.length > 0 && (
           <ul className="mt-1.5 space-y-0.5">
-            {det.geometryAssumptions.map((s) => <li key={s} className="text-[9.5px] text-gray-500 leading-snug flex gap-1"><span>•</span><span>{s}</span></li>)}
+            {det.geometryAssumptions.map((s) => <li key={s} className="text-[11px] text-gray-500 leading-normal flex gap-1"><span>•</span><span>{s}</span></li>)}
           </ul>
         )}
         <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2">
-          <p className="text-[10px] font-bold text-blue-900 mb-0.5">Source</p>
-          <p className="text-[10px] text-blue-800 leading-snug">{a.sourceInference}</p>
+          <p className="text-[11px] font-bold text-blue-900 mb-0.5">Source</p>
+          <p className="text-[11px] text-blue-800 leading-normal">{a.sourceInference}</p>
         </div>
       </Section>
 
@@ -526,7 +527,7 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
         ]} />
         {w ? (
           <>
-            <p className="text-[10px] text-gray-500 my-1.5 leading-snug flex items-center gap-1.5">
+            <p className="text-[11px] text-gray-500 my-1.5 leading-normal flex items-center gap-1.5">
               <ProvenanceBadge p="modelled" /> Weathering state from the empirical model at the known age, using the observed wind.
             </p>
             <KeyValue cols={2} items={[
@@ -539,9 +540,9 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
             ]} />
           </>
         ) : (
-          <p className="text-[10px] text-gray-500 mt-1.5">Weathering is not modelled because the release time is only known to the {active.facts.incident.timePrecision}.</p>
+          <p className="text-[11px] text-gray-500 mt-1.5">Weathering is not modelled because the release time is only known to the {active.facts.incident.timePrecision}.</p>
         )}
-        {active.facts.oil.spilledNote && <p className="text-[9.5px] text-gray-500 mt-1.5 leading-snug">{active.facts.oil.spilledNote}</p>}
+        {active.facts.oil.spilledNote && <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">{active.facts.oil.spilledNote}</p>}
       </Section>
 
       <Section title="Conditions at the observation" icon={<Wind className="w-3.5 h-3.5" />}>
@@ -557,9 +558,9 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
       </Section>
 
       <Section title={`SAR catalogue (${det.scenes.length})`} icon={<Layers className="w-3.5 h-3.5" />}>
-        <div className="space-y-1 mb-2">
+        <div className="space-y-1.5 mb-2">
           {det.sarProviders.map((p) => (
-            <div key={p.name} className="flex items-center gap-1.5 text-[10px]">
+            <div key={p.name} className="flex items-center gap-1.5 text-[11px]">
               <Badge tone={p.sovereign ? 'green' : 'gray'}>{p.sovereign ? 'IN' : 'EXT'}</Badge>
               <span className="font-semibold text-gray-800">{p.name}</span>
               <span className={`ml-auto ${p.ok ? 'text-emerald-700' : 'text-amber-700'}`}>{p.ok ? `${p.count} found` : 'not searched'}</span>
@@ -567,17 +568,17 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
           ))}
         </div>
         {det.scenes.length === 0 ? (
-          <p className="text-[10px] text-gray-500">No scene in the search window.</p>
+          <p className="text-[11px] text-gray-500">No scene in the search window.</p>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {det.scenes.map((s) => (
               <div key={s.id} className="bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold text-gray-800">{s.platform} {s.mode} {s.productType}</span>
+                  <span className="text-[11px] font-bold text-gray-800">{s.platform} {s.mode} {s.productType}</span>
                   <ProvenanceBadge p="real" />
                 </div>
-                <p className="text-[9.5px] text-gray-500">{fmt.utc(s.start)} · {s.orbitDirection ?? 'orbit n/a'} · {s.coversIncident ? 'covers incident' : 'near incident'}</p>
-                <p className="text-[9px] text-gray-400 font-mono break-all">{s.name}</p>
+                <p className="text-[11px] text-gray-500">{fmt.utc(s.start)} · {s.orbitDirection ?? 'orbit n/a'} · {s.coversIncident ? 'covers incident' : 'near incident'}</p>
+                <p className="text-[10.5px] text-gray-400 font-mono break-all">{s.name}</p>
               </div>
             ))}
           </div>
@@ -589,12 +590,12 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
           {det.sarMeasurements.map((m) => (
             <div key={m.scene} className="border border-gray-200 rounded p-2 mb-2">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-[10px] font-bold text-gray-800 truncate" title={m.scene}>{m.scene}</span>
+                <span className="text-[11px] font-bold text-gray-800 truncate" title={m.scene}>{m.scene}</span>
                 <ProvenanceBadge p="observed" />
               </div>
               <img src={dataUrl(m.quicklook)} alt={`Calibrated ${m.polarisation} sigma0 quicklook with detected dark spots outlined`}
                 className="w-full rounded border border-gray-200 bg-gray-900" />
-              <p className="text-[9.5px] text-gray-500 mt-1 leading-snug">{m.method}</p>
+              <p className="text-[11px] text-gray-500 mt-1 leading-normal">{m.method}</p>
               <KeyValue cols={2} items={[
                 ['Product', m.product ?? 'Sentinel-1 GRD'],
                 ['Radiometry', m.radiometry ?? 'Sigma0'],
@@ -603,10 +604,10 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
                 ['Sea background', m.sea.meanDb != null ? `${m.sea.meanDb} dB` : '—'],
                 ['Incidence', `${m.incidenceDeg}°`],
               ]} />
-              <div className="mt-1.5 space-y-1">
-                {m.spots.length === 0 && <p className="text-[10px] text-gray-500">No dark spot above the thresholds.</p>}
+              <div className="mt-1.5 space-y-1.5">
+                {m.spots.length === 0 && <p className="text-[11px] text-gray-500">No dark spot above the thresholds.</p>}
                 {m.spots.slice(0, 5).map((spot, i) => (
-                  <div key={i} className="flex items-center gap-2 text-[10px]">
+                  <div key={i} className="flex items-center gap-2 text-[11px]">
                     <span className="w-14 font-mono text-gray-700">{spot.distanceKm.toFixed(1)} km</span>
                     <span className="flex-1 text-gray-600">{spot.areaKm2.toFixed(2)} km² · {spot.elongation.toFixed(1)}:1 · {spot.orientationDeg.toFixed(0)}°</span>
                     <span className="font-mono font-bold text-gray-900">{spot.contrastDb.toFixed(1)} dB</span>
@@ -614,7 +615,7 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
                 ))}
               </div>
               <ul className="mt-1.5 space-y-0.5">
-                {m.limitations.map((l) => <li key={l} className="text-[9px] text-gray-400 leading-snug">• {l}</li>)}
+                {m.limitations.map((l) => <li key={l} className="text-[10.5px] text-gray-400 leading-normal">• {l}</li>)}
               </ul>
             </div>
           ))}
@@ -622,13 +623,13 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
       )}
 
       <Section title="Segmentation model" icon={<Layers className="w-3.5 h-3.5" />}>
-        <div className="flex items-center gap-1.5 mb-1.5"><ProvenanceBadge p="pending" /><span className="text-[10px] text-gray-600">Not trained</span></div>
+        <div className="flex items-center gap-1.5 mb-1.5"><ProvenanceBadge p="pending" /><span className="text-[11px] text-gray-600">Not trained</span></div>
         <KeyValue cols={1} items={[
           ['Architecture', MODEL_STATUS.plannedArchitecture],
           ['Training plan', MODEL_STATUS.plannedTraining],
           ['Loss', MODEL_STATUS.plannedLoss],
         ]} />
-        <p className="text-[9.5px] text-gray-500 mt-1.5 leading-snug">{MODEL_STATUS.note}</p>
+        <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">{MODEL_STATUS.note}</p>
       </Section>
 
       {active.lookalikeReason && (
@@ -643,13 +644,13 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
 function RecordTab({ active }: { active: SpillCase }) {
   const f = active.facts;
   return (
-    <div className="p-3 space-y-3">
-      <div className="bg-slate-50 border border-slate-200 rounded p-2.5">
+    <div className="p-4 space-y-4">
+      <div className="bg-slate-50 border border-slate-200 rounded p-3">
         <div className="flex items-center justify-between gap-2 mb-1">
           <p className="text-xs font-bold text-gray-900">{f.title}</p>
           <ProvenanceBadge p="real" />
         </div>
-        <p className="text-[10px] text-gray-600 leading-snug">{f.officialFindings}</p>
+        <p className="text-[11px] text-gray-600 leading-normal">{f.officialFindings}</p>
       </div>
 
       <Section title="Incident" icon={<Info className="w-3.5 h-3.5" />}>
@@ -661,18 +662,18 @@ function RecordTab({ active }: { active: SpillCase }) {
           ['Source type', f.sourceType],
           ['Position source', f.incident.positionSource],
         ]} />
-        {f.incident.timeNote && <p className="text-[9.5px] text-gray-500 mt-1">{f.incident.timeNote}</p>}
+        {f.incident.timeNote && <p className="text-[11px] text-gray-500 mt-1">{f.incident.timeNote}</p>}
       </Section>
 
       <Section title="Oil" icon={<Beaker className="w-3.5 h-3.5" />}>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {f.oil.onboard.map((o) => (
-            <div key={o.product} className="flex justify-between gap-2 text-[10.5px]">
+            <div key={o.product} className="flex justify-between gap-2 text-[11.5px]">
               <span className="text-gray-700">{o.product}{o.note && <span className="text-gray-400"> · {o.note}</span>}</span>
               <span className="font-mono font-bold text-gray-900 flex-shrink-0">{o.tonnes != null ? `${fmt.num(o.tonnes, o.tonnes % 1 ? 1 : 0)} t` : o.cubicMetres != null ? `${fmt.num(o.cubicMetres)} m³` : 'n/r'}</span>
             </div>
           ))}
-          <div className="flex justify-between gap-2 text-[10.5px] pt-1 border-t border-gray-200">
+          <div className="flex justify-between gap-2 text-[11.5px] pt-1 border-t border-gray-200">
             <span className="text-gray-700 font-semibold">Released</span>
             <span className="font-mono font-bold text-gray-900">{f.oil.spilledTonnes != null ? `${fmt.num(f.oil.spilledTonnes)} t` : 'Not published'}</span>
           </div>
@@ -680,27 +681,27 @@ function RecordTab({ active }: { active: SpillCase }) {
       </Section>
 
       <Section title="Observations" icon={<Crosshair className="w-3.5 h-3.5" />}>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {f.observations.map((o) => (
             <div key={`${o.time}-${o.type}`} className="bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
               <div className="flex justify-between gap-2">
-                <span className="text-[10px] font-bold text-gray-800">{o.type}</span>
-                <span className="text-[9.5px] font-mono text-gray-500">{fmt.utcShort(Date.parse(o.time))}</span>
+                <span className="text-[11px] font-bold text-gray-800">{o.type}</span>
+                <span className="text-[11px] font-mono text-gray-500">{fmt.utcShort(Date.parse(o.time))}</span>
               </div>
-              <p className="text-[10px] text-gray-600 leading-snug">{o.description}</p>
-              <p className="text-[9px] text-gray-400">{o.source}{o.extentKm2 != null ? ` · ${o.extentKm2} km²` : ''}</p>
+              <p className="text-[11px] text-gray-600 leading-normal">{o.description}</p>
+              <p className="text-[10.5px] text-gray-400">{o.source}{o.extentKm2 != null ? ` · ${o.extentKm2} km²` : ''}</p>
             </div>
           ))}
         </div>
       </Section>
 
       <Section title="Timeline" icon={<Clock className="w-3.5 h-3.5" />}>
-        <ol className="relative border-l border-gray-300 ml-1.5 space-y-2">
+        <ol className="relative border-l border-gray-300 ml-1.5 space-y-3">
           {f.timeline.map((e) => (
             <li key={`${e.time}-${e.event}`} className="ml-3">
               <span className="absolute -left-[4.5px] w-2 h-2 rounded-full bg-blue-500 mt-1" />
-              <p className="text-[9.5px] font-mono text-gray-500">{fmt.precise(Date.parse(e.time), e.timePrecision ?? 'minute')}</p>
-              <p className="text-[10.5px] text-gray-800 leading-snug">{e.event}</p>
+              <p className="text-[11px] font-mono text-gray-500">{fmt.precise(Date.parse(e.time), e.timePrecision ?? 'minute')}</p>
+              <p className="text-[11.5px] text-gray-800 leading-normal">{e.event}</p>
             </li>
           ))}
         </ol>
@@ -722,9 +723,9 @@ function RecordTab({ active }: { active: SpillCase }) {
         <Section title="Legal outcome" icon={<Scale className="w-3.5 h-3.5" />}>
           {f.legal.map((l) => (
             <div key={`${l.authority}-${l.action}`} className="bg-amber-50 border border-amber-200 rounded p-2 mb-1">
-              <p className="text-[10.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
-              <p className="text-[10px] text-amber-800">{l.authority} → {l.party}</p>
-              {l.note && <p className="text-[9.5px] text-amber-700 mt-0.5">{l.note}</p>}
+              <p className="text-[11.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
+              <p className="text-[11px] text-amber-800">{l.authority} → {l.party}</p>
+              {l.note && <p className="text-[11px] text-amber-700 mt-0.5">{l.note}</p>}
             </div>
           ))}
         </Section>
@@ -732,17 +733,17 @@ function RecordTab({ active }: { active: SpillCase }) {
 
       {active.warnings.length > 0 && (
         <Section title="Data warnings" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
-          <ul className="space-y-1">
-            {active.warnings.map((w) => <li key={w} className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 leading-snug">{w}</li>)}
+          <ul className="space-y-1.5">
+            {active.warnings.map((w) => <li key={w} className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 leading-normal">{w}</li>)}
           </ul>
         </Section>
       )}
 
       <Section title={`Sources (${f.sources.length})`} icon={<Info className="w-3.5 h-3.5" />}>
-        <ul className="space-y-1">
+        <ul className="space-y-1.5">
           {f.sources.map((s) => (
             <li key={s.url}>
-              <a href={s.url} target="_blank" rel="noreferrer" className="text-[10.5px] text-blue-700 hover:underline leading-snug break-words">{s.title}</a>
+              <a href={s.url} target="_blank" rel="noreferrer" className="text-[11.5px] text-blue-700 hover:underline leading-normal break-words">{s.title}</a>
             </li>
           ))}
         </ul>
@@ -755,26 +756,26 @@ function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnaly
   const hc = analysis.hindcast;
   const fc = analysis.forecast;
   return (
-    <div className="p-3 space-y-3">
+    <div className="p-4 space-y-4">
       <Section title="Hindcast — where it came from" icon={<Clock className="w-3.5 h-3.5" />}>
-        <p className="text-[10px] text-gray-500 mb-2 leading-snug">
+        <p className="text-[11px] text-gray-500 mb-2 leading-normal">
           A particle cloud is integrated backward from the reported observation under current + Stokes drift +
           3% windage. Twelve ensemble members with perturbed windage and diffusivity give the uncertainty.
         </p>
-        <div className="bg-amber-50 border border-amber-200 rounded p-2.5 mb-2">
-          <p className="text-[10px] font-bold text-amber-900 uppercase mb-1">Estimated release</p>
+        <div className="bg-amber-50 border border-amber-200 rounded p-3 mb-2">
+          <p className="text-[11px] font-bold text-amber-900 uppercase mb-1">Estimated release</p>
           <p className="font-mono text-xs font-bold text-amber-900">
             {Math.abs(hc.estimatedOrigin.lat).toFixed(4)}° N &nbsp; {Math.abs(hc.estimatedOrigin.lon).toFixed(4)}° E
           </p>
-          <p className="text-[11px] text-amber-800 mt-1">{fmt.utc(hc.estimatedTime)}</p>
+          <p className="text-[12px] text-amber-800 mt-1">{fmt.utc(hc.estimatedTime)}</p>
           <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-amber-200">
             <div>
-              <p className="text-[9px] text-amber-700 uppercase font-bold">Spatial</p>
-              <p className="text-[11px] font-bold text-amber-900">± {hc.uncertaintyRadiusKm.toFixed(1)} km</p>
+              <p className="text-[10.5px] text-amber-700 uppercase font-bold">Spatial</p>
+              <p className="text-[12px] font-bold text-amber-900">± {hc.uncertaintyRadiusKm.toFixed(1)} km</p>
             </div>
             <div>
-              <p className="text-[9px] text-amber-700 uppercase font-bold">Temporal</p>
-              <p className="text-[11px] font-bold text-amber-900">± {hc.timeWindowHours.toFixed(1)} h</p>
+              <p className="text-[10.5px] text-amber-700 uppercase font-bold">Temporal</p>
+              <p className="text-[12px] font-bold text-amber-900">± {hc.timeWindowHours.toFixed(1)} h</p>
             </div>
           </div>
         </div>
@@ -792,24 +793,24 @@ function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnaly
       </Section>
 
       <Section title="Forecast — where it is going" icon={<Waves className="w-3.5 h-3.5" />}>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {fc.horizons.map((h) => (
             <div key={h.hours} className="flex items-center gap-2 bg-cyan-50 border border-cyan-200 rounded px-2 py-1.5">
-              <div className="w-10 text-[11px] font-black text-cyan-800 flex-shrink-0">+{h.hours} h</div>
+              <div className="w-10 text-[12px] font-black text-cyan-800 flex-shrink-0">+{h.hours} h</div>
               <div className="flex-1 min-w-0">
-                <p className="font-mono text-[10px] text-cyan-900 truncate">
+                <p className="font-mono text-[11px] text-cyan-900 truncate">
                   {h.centroid.lat.toFixed(3)}° N  {h.centroid.lon.toFixed(3)}° E
                 </p>
-                <p className="text-[9.5px] text-cyan-700">{fmt.utc(h.time)}</p>
+                <p className="text-[11px] text-cyan-700">{fmt.utc(h.time)}</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-[10px] font-bold text-cyan-900">± {h.spreadKm.toFixed(1)} km</p>
-                <p className="text-[9px] text-cyan-600">spread</p>
+                <p className="text-[11px] font-bold text-cyan-900">± {h.spreadKm.toFixed(1)} km</p>
+                <p className="text-[10.5px] text-cyan-600">spread</p>
               </div>
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-gray-500 mt-2 leading-snug">
+        <p className="text-[11px] text-gray-500 mt-2 leading-normal">
           The spread radius grows with time because turbulent diffusion and forcing uncertainty compound.
           A single predicted point would be misleading past about 24 hours.
         </p>
@@ -824,7 +825,7 @@ function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnaly
           [<span className="flex items-center gap-1">SST <ProvenanceBadge p="modelled" /></span>, `${analysis.conditions.sea.seaSurfaceTempC} °C`],
           ['Wave height', `${analysis.conditions.sea.significantWaveHeightM} m`],
         ]} />
-        <div className="mt-2 space-y-0.5 text-[9.5px] text-gray-500">
+        <div className="mt-2 space-y-0.5 text-[11px] text-gray-500">
           <p><b>Wind:</b> {analysis.sampler.sources.wind}</p>
           <p><b>Current:</b> {analysis.sampler.sources.current}</p>
           {active.forcingCoverage && (
@@ -857,36 +858,36 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
   // Where authorities named the source, the case doubles as a check on the method.
   const reportedSources = world.vessels.filter((v: any) => v.caseId === analysis.caseId && v.role === 'source' && !v.isFacility);
   return (
-    <div className="p-3 space-y-3">
+    <div className="p-4 space-y-4">
       {reportedSources.map((v: any) => {
         const score = analysis.ranked.find((r: any) => r.mmsi === v.mmsi);
         const excluded = analysis.excluded.find((e: any) => e.mmsi === v.mmsi);
         const trackKind = world.tracks.get(v.mmsi)?.provenance;
         return (
-          <div key={v.mmsi} className={`rounded border p-2.5 ${score?.rank === 1 ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'}`}>
-            <p className="text-[10px] font-bold uppercase text-gray-600">Method check against the official record</p>
-            <p className="text-[11px] text-gray-900 mt-0.5">
+          <div key={v.mmsi} className={`rounded border p-3 ${score?.rank === 1 ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'}`}>
+            <p className="text-[11px] font-bold uppercase text-gray-600">Method check against the official record</p>
+            <p className="text-[12px] text-gray-900 mt-0.5">
               Reported source: <b>{v.name}</b>{' '}
               {score ? <>— ranked <b>#{score.rank} of {analysis.ranked.length}</b> ({(score.total * 100).toFixed(0)})</> : <>— not ranked{excluded ? `: ${excluded.reason}` : ''}</>}
             </p>
-            <p className="text-[9.5px] text-gray-500 mt-0.5">
+            <p className="text-[11px] text-gray-500 mt-0.5">
               Track: {trackKind === 'real' ? 'real AIS' : 'interpolated'}. A known-source case shows how the ranking behaves; it does not change who the authorities identified.
             </p>
           </div>
         );
       })}
-      <div className={`rounded border p-2.5 ${
+      <div className={`rounded border p-3 ${
         analysis.verdict.band === 'Strong' ? 'bg-red-50 border-red-200'
         : analysis.verdict.band === 'Moderate' ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
         <p className="text-xs font-bold text-gray-900 mb-1">{analysis.verdict.label}</p>
-        <p className="text-[10px] text-gray-700 leading-snug">{analysis.verdict.detail}</p>
-        <div className="flex gap-4 mt-2 pt-2 border-t border-gray-200/70 text-[10px]">
+        <p className="text-[11px] text-gray-700 leading-normal">{analysis.verdict.detail}</p>
+        <div className="flex gap-4 mt-2 pt-2 border-t border-gray-200/70 text-[11px]">
           <span className="text-gray-600">Separation from #2: <b className="text-gray-900">{(analysis.verdict.separation * 100).toFixed(1)}</b></span>
           <span className="text-gray-600">Search radius: <b className="text-gray-900">{analysis.searchRadiusKm.toFixed(0)} km</b></span>
         </div>
       </div>
 
-      <div className="bg-gray-50 border border-gray-200 rounded p-2 text-[10px] text-gray-600">
+      <div className="bg-gray-50 border border-gray-200 rounded p-2 text-[11px] text-gray-600">
         <p className="font-bold text-gray-700 mb-0.5">Scored against</p>
         <p className="mb-1">
           {analysis.originBasis === 'reported'
@@ -929,23 +930,23 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
               s.darkDuringWindow ? 'border-red-400 border-2 bg-red-50/40'
               : open ? 'border-blue-400 border-2 bg-blue-50/30'
               : s.rank === 1 ? 'border-rose-300 bg-rose-50/30' : 'border-gray-200 bg-white'}`}>
-            <button onClick={() => setFocusMmsi(open ? null : s.mmsi)} className="w-full text-left p-2.5">
+            <button onClick={() => setFocusMmsi(open ? null : s.mmsi)} className="w-full text-left p-3">
               <div className="flex items-start gap-2">
-                <div className={`w-6 h-6 rounded flex items-center justify-center font-black text-[11px] flex-shrink-0 ${
+                <div className={`w-6 h-6 rounded flex items-center justify-center font-black text-[12px] flex-shrink-0 ${
                   s.rank === 1 ? 'bg-rose-600 text-white' : s.rank <= 3 ? 'bg-orange-500 text-white' : 'bg-gray-300 text-gray-700'}`}>
                   {s.rank}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-[11.5px] text-gray-900 truncate">{v.name}</span>
+                    <span className="font-bold text-[12.5px] text-gray-900 truncate">{v.name}</span>
                     {s.darkDuringWindow && <Badge tone="red">DARK VESSEL</Badge>}
                     {v.sanctioned && <Badge tone="slate">SANCTIONED</Badge>}
                     <ProvenanceBadge p={v.provenance} />
                   </div>
-                  <p className="text-[9.5px] text-gray-500 mt-0.5">
+                  <p className="text-[11px] text-gray-500 mt-0.5">
                     {v.type} · {v.flag ?? 'flag n/a'} · {fmt.vesselId(v)}
                   </p>
-                  <div className="flex gap-3 mt-1 text-[9.5px] text-gray-600">
+                  <div className="flex gap-3 mt-1 text-[11px] text-gray-600">
                     <span>CPA <b className="font-mono">{s.cpaKm.toFixed(1)} km</b></span>
                     <span>Δt <b className="font-mono">{s.deltaTimeMin >= 0 ? '+' : ''}{s.deltaTimeMin.toFixed(0)} min</b></span>
                     <span>Δθ <b className="font-mono">{s.courseAlignmentDeg.toFixed(0)}°</b></span>
@@ -962,7 +963,7 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
 
             {open && (
               <div className="px-2.5 pb-2.5 space-y-2.5 border-t border-gray-200 pt-2.5">
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <ScoreBar label={`Proximity (w ${DEFAULT_WEIGHTS.proximity})`} value={s.proximity} tone="blue" />
                   <ScoreBar label={`Temporality (w ${DEFAULT_WEIGHTS.temporality})`} value={s.temporality} tone="violet" />
                   <ScoreBar label={`Trajectory parity (w ${DEFAULT_WEIGHTS.trajectory})`} value={s.trajectory} tone="teal" />
@@ -971,10 +972,10 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-bold text-gray-600 uppercase mb-1">Why this ranking</p>
-                  <ul className="space-y-1">
+                  <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Why this ranking</p>
+                  <ul className="space-y-1.5">
                     {s.reasons.map((r: string, i: number) => (
-                      <li key={i} className="text-[10px] text-gray-700 leading-snug flex gap-1.5">
+                      <li key={i} className="text-[11px] text-gray-700 leading-normal flex gap-1.5">
                         <span className="text-gray-400 flex-shrink-0">•</span><span>{r}</span>
                       </li>
                     ))}
@@ -983,10 +984,10 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
 
                 {s.flags.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded p-2">
-                    <p className="text-[10px] font-bold text-red-900 uppercase mb-1">Registry flags</p>
+                    <p className="text-[11px] font-bold text-red-900 uppercase mb-1">Registry flags</p>
                     <ul className="space-y-0.5">
                       {s.flags.map((f: string, i: number) => (
-                        <li key={i} className="text-[10px] text-red-800 flex gap-1.5">
+                        <li key={i} className="text-[11px] text-red-800 flex gap-1.5">
                           <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" /><span>{f}</span>
                         </li>
                       ))}
@@ -1000,11 +1001,11 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
                   ['Sanctions', v.sanctionsChecked ? (v.sanctioned ? `Listed (${v.sanctionsList ?? 'UNSC'})` : 'Not listed (UNSC)') : 'Not checked'],
                   ['PSC detentions', v.pscDetentions != null ? String(v.pscDetentions) : 'Needs Equasis'],
                 ]} />
-                {v.note && <p className="text-[9.5px] text-gray-500 leading-snug">{v.note}</p>}
+                {v.note && <p className="text-[11px] text-gray-500 leading-normal">{v.note}</p>}
                 {(() => {
                   const t = world.tracks.get(v.mmsi);
                   return t ? (
-                    <p className="text-[9.5px] text-gray-500 leading-snug flex items-start gap-1">
+                    <p className="text-[11px] text-gray-500 leading-normal flex items-start gap-1">
                       <ProvenanceBadge p={t.provenance} /> <span>{t.notes[0] ?? ''}</span>
                     </p>
                   ) : null;
@@ -1023,25 +1024,25 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
       {analysis.excluded.length > 0 && (
         <div>
           <button onClick={() => setShowExcluded((o) => !o)}
-            className="w-full text-left text-[10px] font-bold text-gray-500 uppercase hover:text-gray-800 flex items-center gap-1.5 py-1">
+            className="w-full text-left text-[11px] font-bold text-gray-500 uppercase hover:text-gray-800 flex items-center gap-1.5 py-1">
             <ChevronRight className={`w-3 h-3 transition-transform ${showExcluded ? 'rotate-90' : ''}`} />
             Filtered out ({analysis.excluded.length})
           </button>
           {showExcluded && (
-            <div className="space-y-1 mt-1">
-              <p className="text-[10px] text-gray-500 leading-snug mb-1.5">
+            <div className="space-y-1.5 mt-1">
+              <p className="text-[11px] text-gray-500 leading-normal mb-1.5">
                 Traffic that was evaluated and rejected. The exclusion list matters as much as the ranking
                 when an attribution has to be defended.
               </p>
               {analysis.excluded.map((e: any) => (
                 <div key={e.mmsi} className="bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
                   <div className="flex justify-between gap-2">
-                    <span className="text-[10px] font-semibold text-gray-700 truncate">{e.name}</span>
-                    <span className="text-[9.5px] font-mono text-gray-500 flex-shrink-0">
+                    <span className="text-[11px] font-semibold text-gray-700 truncate">{e.name}</span>
+                    <span className="text-[11px] font-mono text-gray-500 flex-shrink-0">
                       {Number.isFinite(e.cpaKm) ? `${e.cpaKm.toFixed(0)} km` : '—'}
                     </span>
                   </div>
-                  <p className="text-[9.5px] text-gray-500 leading-snug">{e.reason}</p>
+                  <p className="text-[11px] text-gray-500 leading-normal">{e.reason}</p>
                 </div>
               ))}
             </div>
@@ -1060,26 +1061,26 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
 function ImpactTab({ active, analysis, navigate }: any) {
   const threatened = analysis.threatenedAreas.filter((t: any) => t.distanceKm < 250);
   return (
-    <div className="p-3 space-y-3">
+    <div className="p-4 space-y-4">
       <Section title="Ecological exposure" icon={<Leaf className="w-3.5 h-3.5" />}>
         {threatened.length === 0 ? (
-          <p className="text-[11px] text-gray-500">No designated sensitive area lies within 250 km of the forecast envelope.</p>
+          <p className="text-[12px] text-gray-500">No designated sensitive area lies within 250 km of the forecast envelope.</p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {threatened.map((t: any) => (
               <div key={t.id} className={`rounded border p-2 ${t.hoursToImpact !== null ? 'bg-red-50 border-red-300' : t.distanceKm < 60 ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-gray-900 leading-tight">{t.name}</p>
-                    <p className="text-[9.5px] text-gray-500">{t.category} · {t.state}</p>
+                    <p className="text-[12px] font-bold text-gray-900 leading-snug">{t.name}</p>
+                    <p className="text-[11px] text-gray-500">{t.category} · {t.state}</p>
                   </div>
                   <div className="flex flex-col items-end flex-shrink-0">
                     <Badge tone={t.sensitivity >= 5 ? 'red' : t.sensitivity >= 4 ? 'amber' : 'gray'}>S{t.sensitivity}</Badge>
-                    <span className="text-[10px] font-mono font-bold text-gray-700 mt-0.5">{t.distanceKm.toFixed(1)} km</span>
+                    <span className="text-[11px] font-mono font-bold text-gray-700 mt-0.5">{t.distanceKm.toFixed(1)} km</span>
                   </div>
                 </div>
                 {t.hoursToImpact !== null && (
-                  <p className="text-[10px] font-bold text-red-700 mt-1 flex items-center gap-1">
+                  <p className="text-[11px] font-bold text-red-700 mt-1 flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" /> Forecast envelope reaches this area within {t.hoursToImpact} h
                   </p>
                 )}
@@ -1104,7 +1105,7 @@ function ImpactTab({ active, analysis, navigate }: any) {
       </Section>
 
       <Section title="Case notes">
-        <p className="text-[11px] text-gray-700 leading-relaxed">{active.notes}</p>
+        <p className="text-[12px] text-gray-700 leading-relaxed">{active.notes}</p>
       </Section>
     </div>
   );
@@ -1113,7 +1114,7 @@ function ImpactTab({ active, analysis, navigate }: any) {
 function Section({ title, icon, children }: { title: string; icon?: any; children: any }) {
   return (
     <div>
-      <h4 className="text-[10px] font-bold text-gray-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+      <h4 className="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
         {icon}{title}
       </h4>
       {children}
@@ -1142,10 +1143,10 @@ function WeightsModal({ open, onClose, weights, setWeights, reset }: any) {
           <div key={key}>
             <Slider label={label} value={weights[key]} min={0} max={0.6} step={0.01}
               onChange={(v) => setWeights({ ...weights, [key]: v })} format={(v) => v.toFixed(2)} />
-            <p className="text-[10px] text-gray-500 mt-0.5 leading-snug">{help}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5 leading-normal">{help}</p>
           </div>
         ))}
-        <div className={`rounded border p-2 text-[11px] ${Math.abs(total - 1) < 0.02 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+        <div className={`rounded border p-2 text-[12px] ${Math.abs(total - 1) < 0.02 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
           Weights sum to <b>{total.toFixed(2)}</b>.{Math.abs(total - 1) >= 0.02 && ' Scores remain comparable within a case but are no longer on a 0–1 scale.'}
         </div>
       </div>
@@ -1166,7 +1167,7 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
     <Modal open={open} onClose={onClose} title={`Case actions — ${caseId}`} subtitle="Every action is timestamped into the audit trail."
       footer={<Button onClick={onClose}>Close</Button>}>
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Case status">
             <Select value={status} onChange={(v) => setStatus(v as any)}
               options={['New', 'Under Analysis', 'Attributed', 'Verification Dispatched', 'Verified', 'Enforcement', 'Closed'].map((s) => ({ value: s, label: s }))} />
@@ -1187,8 +1188,8 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
           }}>Apply changes</Button>
         </div>
 
-        <div className="border-t border-gray-200 pt-4 space-y-2">
-          <p className="text-[10px] font-bold text-gray-600 uppercase">Dispatch and hand-off</p>
+        <div className="border-t border-gray-200 pt-4 space-y-3">
+          <p className="text-[11px] font-bold text-gray-600 uppercase">Dispatch and hand-off</p>
           <div className="grid grid-cols-2 gap-2">
             <Button icon={<Send className="w-3 h-3" />} onClick={() => { setWorkflowStage(caseId, 'Patrol En Route'); onClose(); }}>
               Dispatch ICG verification
@@ -1251,7 +1252,7 @@ function LookalikeModal({ open, onClose, caseId }: { open: boolean; onClose: () 
           }}>Reclassify</Button>
         </>
       }>
-      <div className="space-y-3">
+      <div className="space-y-4">
         <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
           Reclassified detections are never deleted. They stay in the archive with the reasoning attached, so
           the false-positive rate can be measured honestly rather than hidden.

@@ -69,7 +69,7 @@ export default function SystemAdministration() {
       render: (u) => (
         <div>
           <div className="font-bold text-gray-900">{u.name}</div>
-          <div className="text-[9.5px] text-gray-500">{u.email}</div>
+          <div className="text-[11px] text-gray-500">{u.email}</div>
         </div>
       ),
     },
@@ -91,7 +91,7 @@ export default function SystemAdministration() {
     },
     {
       key: 'login', header: 'Last sign-in', width: '130px', value: (u) => u.lastLogin,
-      render: (u) => u.lastLogin ? <div><div className="font-mono text-gray-700">{fmt.utcShort(u.lastLogin)}</div><div className="text-[9px] text-gray-400">{fmt.ago(u.lastLogin, now)}</div></div> : <span className="text-gray-300">Never</span>,
+      render: (u) => u.lastLogin ? <div><div className="font-mono text-gray-700">{fmt.utcShort(u.lastLogin)}</div><div className="text-[10.5px] text-gray-400">{fmt.ago(u.lastLogin, now)}</div></div> : <span className="text-gray-300">Never</span>,
     },
     {
       key: 'actions', header: '', width: '150px', sortable: false,
@@ -121,14 +121,14 @@ export default function SystemAdministration() {
       <aside className="w-full lg:w-[210px] xl:w-[250px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2.5 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Settings className="w-4 h-4 text-blue-600" /> System administration</h2>
-          <p className="text-[10px] text-gray-500 mt-0.5">Users, sources, infrastructure</p>
+          <p className="text-[11px] text-gray-500 mt-0.5">Users, sources, infrastructure</p>
         </div>
         <nav className="flex-1 overflow-y-auto py-1">
           {SECTIONS.map((s) => {
             const Icon = s.icon;
             return (
               <button key={s.id} onClick={() => setSection(s.id)}
-                className={`w-full text-left px-3 py-2 text-[11.5px] font-semibold flex items-center gap-2.5 border-l-[3px] ${
+                className={`w-full text-left px-3 py-2 text-[12.5px] font-semibold flex items-center gap-2.5 border-l-[3px] ${
                   section === s.id ? 'bg-blue-50 text-blue-700 border-l-blue-600' : 'text-gray-600 hover:bg-gray-50 border-l-transparent'
                 }`}>
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />{s.label}
@@ -136,11 +136,11 @@ export default function SystemAdministration() {
             );
           })}
         </nav>
-        <div className="p-2.5 border-t border-gray-200">
+        <div className="p-3 border-t border-gray-200">
           <div className="bg-gray-50 border border-gray-200 rounded p-2">
-            <p className="text-[9.5px] font-bold text-gray-600 uppercase mb-1">Signed in as</p>
-            <p className="text-[11px] font-bold text-gray-900">{currentUser.name}</p>
-            <p className="text-[10px] text-gray-500">{currentUser.role} · {currentUser.clearance}</p>
+            <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Signed in as</p>
+            <p className="text-[12px] font-bold text-gray-900">{currentUser.name}</p>
+            <p className="text-[11px] text-gray-500">{currentUser.role} · {currentUser.clearance}</p>
           </div>
         </div>
       </aside>
@@ -156,12 +156,12 @@ export default function SystemAdministration() {
         )}
 
         {section === 'users' && (
-          <div className="flex-1 min-h-0 flex flex-col p-3 gap-3">
+          <div className="flex-1 min-h-0 flex flex-col p-4 gap-4">
             <InfoBanner tone="amber" icon={<Info className="w-3.5 h-3.5" />}>
               These are <b>demo accounts</b> for showing role-based access. There is no authentication in the prototype;
               a deployment would federate sign-in through the agency identity provider (e.g. Keycloak / Parichay).
             </InfoBanner>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard icon={<Users className="w-5 h-5" />} title="Total users" value={world.users.length} trend={`${world.users.filter((u) => u.status === 'Active').length} active`} />
               <StatCard icon={<Shield className="w-5 h-5" />} title="MFA enrolled" value={world.users.filter((u) => u.mfa).length}
                 trend={`${world.users.filter((u) => !u.mfa).length} without MFA`} accent={world.users.some((u) => !u.mfa) ? 'amber' : 'green'} />
@@ -193,19 +193,19 @@ export default function SystemAdministration() {
         )}
 
         {section === 'roles' && (
-          <div className="flex-1 overflow-auto p-3 space-y-3">
+          <div className="flex-1 overflow-auto p-4 space-y-4">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-                <h3 className="text-[11px] font-bold text-gray-700">Role permission matrix</h3>
-                <p className="text-[9.5px] text-gray-500">What each role can reach. Navigation adapts automatically when a role is switched.</p>
+                <h3 className="text-[12px] font-bold text-gray-700">Role permission matrix</h3>
+                <p className="text-[11px] text-gray-500">What each role can reach. Navigation adapts automatically when a role is switched.</p>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-[10.5px]">
+                <table className="w-full text-[11.5px]">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="text-left px-3 py-2 font-bold text-gray-600 uppercase text-[9.5px] sticky left-0 bg-gray-50">Module</th>
+                      <th className="text-left px-3 py-2 font-bold text-gray-600 uppercase text-[11px] sticky left-0 bg-gray-50">Module</th>
                       {Object.keys(ROLE_MATRIX).map((r) => (
-                        <th key={r} className="px-2 py-2 font-bold text-gray-600 text-[9.5px] whitespace-nowrap">{r}</th>
+                        <th key={r} className="px-2 py-2 font-bold text-gray-600 text-[11px] whitespace-nowrap">{r}</th>
                       ))}
                     </tr>
                   </thead>
@@ -218,7 +218,7 @@ export default function SystemAdministration() {
                           return (
                             <td key={r} className="px-2 py-1.5 text-center">
                               {lvl === 'full' ? <Check className="w-3.5 h-3.5 text-emerald-600 mx-auto" strokeWidth={3} />
-                                : lvl === 'read' ? <span className="text-[9px] font-bold text-amber-600">READ</span>
+                                : lvl === 'read' ? <span className="text-[10.5px] font-bold text-amber-600">READ</span>
                                 : <span className="text-gray-200">—</span>}
                             </td>
                           );
@@ -238,7 +238,7 @@ export default function SystemAdministration() {
         )}
 
         {section === 'sources' && (
-          <div className="flex-1 overflow-auto p-3 space-y-2">
+          <div className="flex-1 overflow-auto p-4 space-y-3">
             <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
               Providers are switched in <code className="bg-white px-1 rounded">pipeline/.env</code> (<code className="bg-white px-1 rounded">SAR_PROVIDERS</code>,{' '}
               <code className="bg-white px-1 rounded">METOCEAN_PROVIDER</code>, <code className="bg-white px-1 rounded">AIS_PROVIDER</code>,{' '}
@@ -246,13 +246,13 @@ export default function SystemAdministration() {
             </InfoBanner>
             {(['SAR', 'Metocean', 'AIS', 'Registry', 'Sanctions', 'Alerting', 'Operating picture'] as const).map((kind) => (
               <div key={kind}>
-                <p className="text-[10px] font-bold text-gray-500 uppercase mt-2 mb-1">{kind}</p>
+                <p className="text-[11px] font-bold text-gray-500 uppercase mt-2 mb-1">{kind}</p>
                 {world.dataSources.filter((d) => d.kind === kind).map((d) => (
-                  <div key={d.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-2">
+                  <div key={d.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-2">
                     <div className="flex justify-between items-start gap-3 mb-1">
                       <div className="min-w-0">
                         <h4 className="text-[12px] font-bold text-gray-900">{d.name}</h4>
-                        <p className="text-[10px] text-gray-500">{d.agency} · adapter id <code>{d.id}</code></p>
+                        <p className="text-[11px] text-gray-500">{d.agency} · adapter id <code>{d.id}</code></p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Badge tone={d.sovereign ? 'green' : 'gray'}>{d.sovereign ? 'Indian' : 'Foreign'}</Badge>
@@ -260,8 +260,8 @@ export default function SystemAdministration() {
                         <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Interim fallback' ? 'teal' : d.status === 'Not configured' ? 'amber' : 'gray'}>{d.status}</Badge>
                       </div>
                     </div>
-                    <p className="text-[10.5px] text-gray-600 leading-snug">{d.message}</p>
-                    <p className="text-[9.5px] text-gray-400 mt-1">{d.lastSync != null ? `Used in pipeline build ${fmt.ago(d.lastSync, now)}` : 'Not used in the current build'}</p>
+                    <p className="text-[11.5px] text-gray-600 leading-normal">{d.message}</p>
+                    <p className="text-[11px] text-gray-400 mt-1">{d.lastSync != null ? `Used in pipeline build ${fmt.ago(d.lastSync, now)}` : 'Not used in the current build'}</p>
                   </div>
                 ))}
               </div>
@@ -270,10 +270,10 @@ export default function SystemAdministration() {
         )}
 
         {section === 'infra' && (
-          <div className="flex-1 overflow-auto p-3 space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-                <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Prototype (running now) <ProvenanceBadge p="real" /></h4>
+          <div className="flex-1 overflow-auto p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <h4 className="text-[12px] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Prototype (running now) <ProvenanceBadge p="real" /></h4>
                 <KeyValue cols={1} items={[
                   ['Frontend', 'React 18 + TypeScript + Vite, static build'],
                   ['Data pipeline', 'Python 3.12 (uv), provider adapters, disk cache'],
@@ -284,8 +284,8 @@ export default function SystemAdministration() {
                   ['Authentication', 'None (demo role switcher)'],
                 ]} />
               </div>
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-                <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Target deployment <ProvenanceBadge p="pending" /></h4>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <h4 className="text-[12px] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Target deployment <ProvenanceBadge p="pending" /></h4>
                 <KeyValue cols={1} items={[
                   ['Hosting', 'MeghRaj / NIC government cloud (not provisioned)'],
                   ['Data residency', 'India only'],
@@ -305,12 +305,12 @@ export default function SystemAdministration() {
         )}
 
         {section === 'models' && (
-          <div className="flex-1 overflow-auto p-3 space-y-3">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+          <div className="flex-1 overflow-auto p-4 space-y-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h4 className="text-[12px] font-bold text-gray-900">Segmentation model</h4>
-                  <p className="text-[10px] text-gray-500">{MODEL_STATUS.version ?? 'No version'}</p>
+                  <p className="text-[11px] text-gray-500">{MODEL_STATUS.version ?? 'No version'}</p>
                 </div>
                 <Badge tone="gray">Not trained</Badge>
               </div>
@@ -320,10 +320,10 @@ export default function SystemAdministration() {
                 ['Loss', MODEL_STATUS.plannedLoss],
                 ['Evaluation', MODEL_STATUS.evaluation.join('; ')],
               ]} />
-              <p className="text-[10px] text-gray-500 mt-1.5">{MODEL_STATUS.note}</p>
+              <p className="text-[11px] text-gray-500 mt-1.5">{MODEL_STATUS.note}</p>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h4 className="text-[12px] font-bold text-gray-900 mb-2">Drift model</h4>
               <KeyValue cols={2} items={[
                 ['Method', 'Lagrangian particle tracking'],
@@ -339,7 +339,7 @@ export default function SystemAdministration() {
               ]} />
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h4 className="text-[12px] font-bold text-gray-900 mb-2">Attribution scoring</h4>
               <KeyValue cols={2} items={[
                 ['Form', 'Transparent weighted sum (not a learned ranker)'],
@@ -359,23 +359,23 @@ export default function SystemAdministration() {
         )}
 
         {section === 'audit' && (
-          <div className="flex-1 min-h-0 flex flex-col p-3 gap-2">
+          <div className="flex-1 min-h-0 flex flex-col p-4 gap-2">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 min-h-0 flex flex-col">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg flex justify-between items-center">
-                <h3 className="text-[11px] font-bold text-gray-700">Access and system log</h3>
-                <span className="text-[10px] text-gray-500">{accessLog.length} entries</span>
+                <h3 className="text-[12px] font-bold text-gray-700">Access and system log</h3>
+                <span className="text-[11px] text-gray-500">{accessLog.length} entries</span>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto">
                 {accessLog.map((e) => (
                   <div key={e.id} className="px-3 py-2 border-b border-gray-100 hover:bg-gray-50 flex gap-3">
-                    <span className="font-mono text-[10px] text-gray-400 w-32 flex-shrink-0">{fmt.utc(e.t)}</span>
+                    <span className="font-mono text-[11px] text-gray-400 w-32 flex-shrink-0">{fmt.utc(e.t)}</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-semibold text-gray-900">{e.action}</span>
+                        <span className="text-[12px] font-semibold text-gray-900">{e.action}</span>
                         <Badge tone={e.category === 'Access' ? 'violet' : 'gray'}>{e.category}</Badge>
                       </div>
-                      <p className="text-[10px] text-gray-600">{e.detail}</p>
-                      <p className="text-[9.5px] text-gray-400">{e.actor} · {e.role} · target {e.target}</p>
+                      <p className="text-[11px] text-gray-600">{e.detail}</p>
+                      <p className="text-[11px] text-gray-400">{e.actor} · {e.role} · target {e.target}</p>
                     </div>
                   </div>
                 ))}
@@ -385,43 +385,43 @@ export default function SystemAdministration() {
         )}
 
         {section === 'health' && (
-          <div className="flex-1 overflow-auto p-3 space-y-3">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="flex-1 overflow-auto p-4 space-y-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard icon={<Activity className="w-5 h-5" />} title="Sources working"
                 value={`${world.dataSources.filter((d) => d.status === 'Online' || d.status === 'Interim fallback').length}/${world.dataSources.length}`} trend="online or interim fallback" accent="green" />
               <StatCard icon={<Database className="w-5 h-5" />} title="Cases loaded" value={world.cases.length} trend={`${world.index.failures.length} build failures`} accent={world.index.failures.length ? 'amber' : 'green'} />
               <StatCard icon={<Cpu className="w-5 h-5" />} title="Engine runtime" value={`${meanRuntime.toFixed(0)} ms`} trend="mean per case, measured here" />
               <StatCard icon={<Key className="w-5 h-5" />} title="Pending access" value={world.dataSources.filter((d) => d.status === 'Pending access' || d.status === 'Not configured').length} trend="integrations waiting on credentials" accent="amber" />
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-              <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2">Analysis engine, measured in this browser</h4>
-              <div className="space-y-1">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h4 className="text-[12px] font-bold text-gray-700 uppercase mb-2">Analysis engine, measured in this browser</h4>
+              <div className="space-y-1.5">
                 {runtimes.map(({ c, ms }) => (
                   <div key={c.id} className="flex items-center gap-3 py-1 border-b border-gray-100 last:border-0">
-                    <span className="text-[11px] font-semibold text-gray-800 w-64 flex-shrink-0 truncate" title={c.title}>{c.title}</span>
+                    <span className="text-[12px] font-semibold text-gray-800 w-64 flex-shrink-0 truncate" title={c.title}>{c.title}</span>
                     <div className="flex-1 h-1.5 bg-gray-200 rounded overflow-hidden">
                       <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, ((ms ?? 0) / Math.max(1, ...runtimes.map((r) => r.ms ?? 0))) * 100)}%` }} />
                     </div>
-                    <span className="text-[10px] font-mono text-gray-700 w-16 text-right">{ms != null ? `${ms.toFixed(0)} ms` : '—'}</span>
+                    <span className="text-[11px] font-mono text-gray-700 w-16 text-right">{ms != null ? `${ms.toFixed(0)} ms` : '—'}</span>
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] text-gray-500 mt-2">12-member hindcast, forecast, look-alike checks and candidate scoring. Cached until the weights change.</p>
+              <p className="text-[11px] text-gray-500 mt-2">12-member hindcast, forecast, look-alike checks and candidate scoring. Cached until the weights change.</p>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-              <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2">Pipeline build</h4>
-              <div className="space-y-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h4 className="text-[12px] font-bold text-gray-700 uppercase mb-2">Pipeline build</h4>
+              <div className="space-y-3">
                 {world.index.providers.map((p) => (
                   <div key={`${p.kind}-${p.name}`} className="flex items-center gap-3 py-1.5 border-b border-gray-100 last:border-0">
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${p.available ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                    <span className="text-[11px] font-semibold text-gray-800 w-52 flex-shrink-0">{p.agency}</span>
-                    <span className="text-[10px] text-gray-500 flex-1">{p.message}</span>
+                    <span className="text-[12px] font-semibold text-gray-800 w-52 flex-shrink-0">{p.agency}</span>
+                    <span className="text-[11px] text-gray-500 flex-1">{p.message}</span>
                     <Badge tone="gray">{p.kind}</Badge>
                     <Badge tone={p.available ? 'green' : 'amber'}>{p.available ? 'Available' : 'Unavailable'}</Badge>
                   </div>
                 ))}
                 {world.index.failures.map((f) => (
-                  <div key={f.id} className="flex items-center gap-3 py-1.5 text-[10px] text-red-700"><AlertTriangle className="w-3 h-3" /> {f.id}: {f.error}</div>
+                  <div key={f.id} className="flex items-center gap-3 py-1.5 text-[11px] text-red-700"><AlertTriangle className="w-3 h-3" /> {f.id}: {f.error}</div>
                 ))}
               </div>
             </div>
@@ -451,12 +451,12 @@ function AddUserModal({ open, onClose, onAdd }: { open: boolean; onClose: () => 
   return (
     <Modal open={open} onClose={onClose} title="Add user" subtitle="The account is created in a pending state until first sign-in."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim() || !email.trim()} onClick={submit}>Create account</Button></>}>
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Full name"><TextInput value={name} onChange={setName} placeholder="e.g. Cdr. A. Kulkarni" /></Field>
           <Field label="Official email"><TextInput value={email} onChange={setEmail} placeholder="name@agency.gov.in" /></Field>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Role">
             <Select value={role} onChange={(v) => setRole(v as SystemUser['role'])}
               options={['NTRO Admin', 'NTRO Reviewer', 'Analyst', 'Regulator', 'Liaison', 'Data Operator', 'Viewer'].map((r) => ({ value: r, label: r }))} />

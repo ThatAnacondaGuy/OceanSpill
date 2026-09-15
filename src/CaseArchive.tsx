@@ -64,10 +64,10 @@ export default function CaseArchive() {
   const caseColumns: Column<SpillCase>[] = [
     {
       key: 'id', header: 'Case', value: (c) => c.title,
-      render: (c) => <div><div className="font-bold text-gray-900">{c.title}</div><div className="text-[9.5px] font-mono text-gray-400">{c.id}</div></div>,
+      render: (c) => <div><div className="font-bold text-gray-900">{c.title}</div><div className="text-[11px] font-mono text-gray-400">{c.id}</div></div>,
     },
     { key: 'tier', header: 'Tier', width: '62px', align: 'center', value: (c) => ({ HIGH: 0, MEDIUM: 1, LOW: 2 }[c.tier]), render: (c) => <Tier tier={c.tier} /> },
-    { key: 'loc', header: 'Location', width: '200px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[10.5px]">{c.subRegion}</span> },
+    { key: 'loc', header: 'Location', width: '200px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[11.5px]">{c.subRegion}</span> },
     {
       key: 'detected', header: 'Incident', width: '130px', value: (c) => c.incidentTime,
       render: (c) => <span className="font-mono text-gray-700">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</span>,
@@ -85,19 +85,19 @@ export default function CaseArchive() {
   const auditColumns: Column<AuditEntry>[] = [
     {
       key: 't', header: 'Timestamp (UTC)', width: '140px', value: (e) => e.t,
-      render: (e) => <div><div className="font-mono text-gray-800">{fmt.utc(e.t)}</div><div className="text-[9px] text-gray-400">{fmt.ago(e.t, now)}</div></div>,
+      render: (e) => <div><div className="font-mono text-gray-800">{fmt.utc(e.t)}</div><div className="text-[10.5px] text-gray-400">{fmt.ago(e.t, now)}</div></div>,
     },
     { key: 'prov', header: 'Record', width: '84px', value: (e) => e.provenance, render: (e) => <ProvenanceBadge p={e.provenance} /> },
     {
       key: 'actor', header: 'Actor', width: '160px', value: (e) => e.actor,
-      render: (e) => <div><div className="font-semibold text-gray-900">{e.actor}</div><div className="text-[9.5px] text-gray-500">{e.role}</div></div>,
+      render: (e) => <div><div className="font-semibold text-gray-900">{e.actor}</div><div className="text-[11px] text-gray-500">{e.role}</div></div>,
     },
     { key: 'action', header: 'Action', width: '190px', value: (e) => e.action, render: (e) => <span className="font-semibold text-gray-800">{e.action}</span> },
     {
       key: 'target', header: 'Target', width: '150px', value: (e) => e.target,
       render: (e) => world.cases.some((c) => c.id === e.target)
         ? <button onClick={() => navigate({ tab: 'Investigation', caseId: e.target })} className="font-mono text-blue-600 hover:underline">{e.target}</button>
-        : <span className="font-mono text-gray-600 text-[10px]">{e.target}</span>,
+        : <span className="font-mono text-gray-600 text-[11px]">{e.target}</span>,
     },
     { key: 'detail', header: 'Detail', value: (e) => e.detail, render: (e) => <span className="text-gray-600">{e.detail}</span> },
     {
@@ -223,13 +223,13 @@ export default function CaseArchive() {
           <div className="bg-slate-700 text-white p-1.5 rounded"><Archive className="w-4 h-4" /></div>
           <div>
             <h2 className="font-bold text-gray-900 text-sm">Case archive &amp; audit trail</h2>
-            <p className="text-[11px] text-gray-500">Real case records, the historical incident register and the audit trail</p>
+            <p className="text-[12px] text-gray-500">Real case records, the historical incident register and the audit trail</p>
           </div>
         </div>
         <Badge tone="slate"><Lock className="w-2.5 h-2.5" /> Immutable record</Badge>
       </div>
 
-      <div className="bg-white border-b border-gray-200 px-3 py-2 grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
+      <div className="bg-white border-b border-gray-200 px-3 py-2 grid grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
         <StatCard icon={<Archive className="w-5 h-5" />} title="Analysed cases" value={stats.total} trend="real incidents with artifacts" />
         <StatCard icon={<BookOpen className="w-5 h-5" />} title="Historical register" value={stats.historical} trend="Indian incidents since 1970" onClick={() => setTab('historical')} accent="amber" />
         <StatCard icon={<Scale className="w-5 h-5" />} title="With legal outcome" value={stats.legal} trend="published court or regulator action" accent="red" />
@@ -243,7 +243,7 @@ export default function CaseArchive() {
       ]} />
 
       {tab === 'archive' && (
-        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3 p-3">
+        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-4 p-4">
           <div className="flex-1 min-w-0 flex flex-col gap-2 h-[70vh] lg:h-auto">
             <div className="flex gap-2">
               <SearchInput value={query} onChange={setQuery} placeholder="Case ID, location, analyst…" className="flex-1" />
@@ -270,13 +270,13 @@ export default function CaseArchive() {
                   <div className="flex justify-between items-start gap-2">
                     <div>
                       <h3 className="font-bold text-gray-900 text-sm">{active.title}</h3>
-                      <p className="text-[9.5px] font-mono text-gray-400">{active.id}</p>
-                      <p className="text-[10px] text-gray-500">{active.subRegion}</p>
+                      <p className="text-[11px] font-mono text-gray-400">{active.id}</p>
+                      <p className="text-[11px] text-gray-500">{active.subRegion}</p>
                     </div>
                     <Tier tier={active.tier} />
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   <KeyValue cols={2} items={[
                     ['Outcome', active.status],
                     ['Workflow', active.workflowStage],
@@ -287,11 +287,11 @@ export default function CaseArchive() {
                     ['SAR scenes', String(active.detection.scenes.length)],
                     ['Segmentation', active.detection.modelVersion ?? 'Not run'],
                   ]} />
-                  <p className="text-[10px] text-gray-600 leading-snug">{active.facts.officialFindings}</p>
+                  <p className="text-[11px] text-gray-600 leading-normal">{active.facts.officialFindings}</p>
                   {active.facts.legal?.map((l) => (
                     <div key={l.action + l.authority} className="bg-amber-50 border border-amber-200 rounded p-2">
-                      <p className="text-[10.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
-                      <p className="text-[10px] text-amber-800">{l.authority} → {l.party}</p>
+                      <p className="text-[11.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
+                      <p className="text-[11px] text-amber-800">{l.authority} → {l.party}</p>
                     </div>
                   ))}
 
@@ -302,15 +302,15 @@ export default function CaseArchive() {
                   )}
 
                   <div>
-                    <p className="text-[10px] font-bold text-gray-600 uppercase mb-1.5">Attribution as recorded</p>
+                    <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5">Attribution as recorded</p>
                     {activeAnalysis.ranked.length === 0 ? (
-                      <p className="text-[10.5px] text-gray-500">No candidate vessel — suspected dark-vessel event.</p>
+                      <p className="text-[11.5px] text-gray-500">No candidate vessel — suspected dark-vessel event.</p>
                     ) : (
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         {activeAnalysis.ranked.slice(0, 4).map((s) => {
                           const v = world.vesselsByMmsi.get(s.mmsi);
                           return (
-                            <div key={s.mmsi} className="flex items-center gap-2 text-[10.5px] border-b border-gray-100 pb-1">
+                            <div key={s.mmsi} className="flex items-center gap-2 text-[11.5px] border-b border-gray-100 pb-1">
                               <span className="w-4 font-black text-gray-400">{s.rank}</span>
                               <span className="flex-1 font-semibold text-gray-800 truncate">{v?.name ?? s.mmsi}</span>
                               {v && <ProvenanceBadge p={v.provenance} />}
@@ -321,28 +321,28 @@ export default function CaseArchive() {
                         })}
                       </div>
                     )}
-                    <p className="text-[9.5px] text-gray-500 mt-1.5">
+                    <p className="text-[11px] text-gray-500 mt-1.5">
                       Verdict: <b>{activeAnalysis.verdict.band}</b> — {activeAnalysis.verdict.label}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
+                    <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
                       <Clock className="w-3 h-3" /> Decision trail
                     </p>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {world.audit.filter((e) => e.target === active.id).sort((x, y) => x.t - y.t).map((e) => (
                         <div key={e.id} className="border-l-2 border-gray-200 pl-2">
-                          <p className="text-[9.5px] font-mono text-gray-400 flex items-center gap-1">{fmt.utc(e.t)} <ProvenanceBadge p={e.provenance} /></p>
-                          <p className="text-[10.5px] font-semibold text-gray-900">{e.action}</p>
-                          <p className="text-[10px] text-gray-600 leading-snug">{e.detail}</p>
-                          <p className="text-[9px] text-gray-400">{e.actor} · {e.role}</p>
+                          <p className="text-[11px] font-mono text-gray-400 flex items-center gap-1">{fmt.utc(e.t)} <ProvenanceBadge p={e.provenance} /></p>
+                          <p className="text-[11.5px] font-semibold text-gray-900">{e.action}</p>
+                          <p className="text-[11px] text-gray-600 leading-normal">{e.detail}</p>
+                          <p className="text-[10.5px] text-gray-400">{e.actor} · {e.role}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
-                <div className="p-2.5 border-t border-gray-200 flex gap-2">
+                <div className="p-3 border-t border-gray-200 flex gap-2">
                   <Button size="sm" className="flex-1 justify-center" onClick={() => navigate({ tab: 'Investigation', caseId: active.id })}>
                     Reopen in workspace
                   </Button>
@@ -359,7 +359,7 @@ export default function CaseArchive() {
       {tab === 'historical' && <HistoricalRegister />}
 
       {tab === 'audit' && (
-        <div className="h-[85vh] flex-none lg:h-auto lg:flex-1 lg:min-h-0 flex flex-col p-3 gap-2">
+        <div className="h-[85vh] flex-none lg:h-auto lg:flex-1 lg:min-h-0 flex flex-col p-4 gap-2">
           <div className="flex gap-2">
             <SearchInput value={auditQuery} onChange={setAuditQuery} placeholder="Action, target, actor or detail…" className="flex-1" />
             <Select value={auditCategory} onChange={setAuditCategory}
@@ -406,16 +406,16 @@ function HistoricalRegister() {
       render: (h) => (
         <div>
           <div className="font-bold text-gray-900 flex items-center gap-1.5">{h.name}{h.activeCaseId && <Badge tone="blue">Analysed</Badge>}</div>
-          <div className="text-[9.5px] text-gray-500">{h.location}</div>
+          <div className="text-[11px] text-gray-500">{h.location}</div>
         </div>
       ),
     },
-    { key: 'oil', header: 'Oil', width: '140px', value: (h) => h.oil ?? '', render: (h) => <span className="text-gray-700 text-[10.5px]">{h.oil ?? 'Not reported'}</span> },
+    { key: 'oil', header: 'Oil', width: '140px', value: (h) => h.oil ?? '', render: (h) => <span className="text-gray-700 text-[11.5px]">{h.oil ?? 'Not reported'}</span> },
     {
       key: 'tonnes', header: 'Tonnes', width: '84px', align: 'right', value: (h) => h.tonnes ?? -1,
       render: (h) => h.tonnes != null ? <span className="font-mono font-bold text-gray-900">{fmt.num(h.tonnes)}</span> : <span className="text-gray-300">n/r</span>,
     },
-    { key: 'cause', header: 'Cause', width: '140px', value: (h) => h.cause ?? '', render: (h) => <span className="text-gray-600 text-[10.5px]">{h.cause ?? '—'}</span> },
+    { key: 'cause', header: 'Cause', width: '140px', value: (h) => h.cause ?? '', render: (h) => <span className="text-gray-600 text-[11.5px]">{h.cause ?? '—'}</span> },
     { key: 'legal', header: 'Legal', width: '60px', align: 'center', value: (h) => h.legal?.length ?? 0, render: (h) => h.legal?.length ? <Scale className="w-3.5 h-3.5 text-amber-600 mx-auto" /> : <span className="text-gray-300">—</span> },
   ];
 
@@ -429,7 +429,7 @@ function HistoricalRegister() {
   const active = world.historical.find((h) => h.id === selected) ?? null;
 
   return (
-    <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3 p-3">
+    <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-4 p-4">
       <div className="flex-1 min-w-0 flex flex-col gap-2 h-[70vh] lg:h-auto">
         <div className="flex gap-2">
           <SearchInput value={query} onChange={setQuery} placeholder="Vessel, location, oil, cause…" className="flex-1" />
@@ -453,11 +453,11 @@ function HistoricalRegister() {
           {!active ? (
             <EmptyState icon={<BookOpen className="w-10 h-10" />} title="Select an incident" body="Every entry cites its public source." />
           ) : (
-            <div className="p-3 space-y-2.5">
+            <div className="p-4 space-y-2.5">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="font-bold text-gray-900 text-sm">{active.name}</h3>
-                  <p className="text-[10px] text-gray-500">{active.date} · {active.location}</p>
+                  <p className="text-[11px] text-gray-500">{active.date} · {active.location}</p>
                 </div>
                 <ProvenanceBadge p="real" />
               </div>
@@ -467,16 +467,16 @@ function HistoricalRegister() {
                 ['Cause', active.cause ?? '—'],
                 ['Position ±', active.positionPrecisionKm != null ? `${active.positionPrecisionKm} km` : 'Unknown'],
               ]} />
-              {active.tonnesNote && <p className="text-[10px] text-gray-500 leading-snug">{active.tonnesNote}</p>}
+              {active.tonnesNote && <p className="text-[11px] text-gray-500 leading-normal">{active.tonnesNote}</p>}
               {active.legal?.map((l) => (
                 <div key={l.action + l.authority} className="bg-amber-50 border border-amber-200 rounded p-2">
-                  <p className="text-[10.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
-                  <p className="text-[10px] text-amber-800">{l.authority} → {l.party}</p>
-                  {l.note && <p className="text-[9.5px] text-amber-700 mt-0.5">{l.note}</p>}
+                  <p className="text-[11.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
+                  <p className="text-[11px] text-amber-800">{l.authority} → {l.party}</p>
+                  {l.note && <p className="text-[11px] text-amber-700 mt-0.5">{l.note}</p>}
                 </div>
               ))}
               <div className="flex gap-2">
-                <a href={active.source} target="_blank" rel="noreferrer" className="text-[10.5px] text-blue-600 hover:underline flex items-center gap-1">
+                <a href={active.source} target="_blank" rel="noreferrer" className="text-[11.5px] text-blue-600 hover:underline flex items-center gap-1">
                   <ExternalLink className="w-3 h-3" /> Source
                 </a>
                 {active.activeCaseId && (

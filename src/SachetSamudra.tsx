@@ -203,7 +203,7 @@ export default function SachetSamudra() {
       key: 'received', header: 'Time (UTC)', width: '110px', value: (s) => s.receivedAt,
       render: (s) => (
         <div><div className="font-mono text-gray-800">{fmt.utcShort(s.receivedAt)}</div>
-        <div className="text-[9px] text-gray-400">{fmt.ago(s.receivedAt, now)}</div></div>
+        <div className="text-[10.5px] text-gray-400">{fmt.ago(s.receivedAt, now)}</div></div>
       ),
     },
     {
@@ -211,7 +211,7 @@ export default function SachetSamudra() {
       render: (s) => (
         <div className="min-w-0">
           <div className="font-semibold text-gray-900 flex items-center gap-1">{s.reporter} <ProvenanceBadge p={s.provenance} /></div>
-          <div className="text-[9.5px] text-gray-500 truncate" title={s.description}>{s.description}</div>
+          <div className="text-[11px] text-gray-500 truncate" title={s.description}>{s.description}</div>
         </div>
       ),
     },
@@ -248,16 +248,16 @@ export default function SachetSamudra() {
       <aside className="w-full lg:w-[320px] xl:w-[380px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Megaphone className="w-4 h-4 text-amber-600" /> SACHET / SAMUDRA</h2>
-          <p className="text-[10px] text-gray-500 mt-0.5">Draft CAP alerts and field observation reports</p>
+          <p className="text-[11px] text-gray-500 mt-0.5">Draft CAP alerts and field observation reports</p>
         </div>
 
-        <Tabs active={tab} onChange={setTab} tabs={[
+        <Tabs fill active={tab} onChange={setTab} tabs={[
           { id: 'compose', label: 'Compose' },
           { id: 'log', label: 'Alert log', count: world.alerts.length },
         ]} />
 
         {tab === 'compose' && (
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <Field label="Case">
               <Select value={activeCase?.id ?? ''} onChange={setSelectedCaseId}
                 options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
@@ -276,7 +276,7 @@ export default function SachetSamudra() {
             </Field>
 
             <div>
-              <p className="text-[10px] font-bold text-gray-600 uppercase mb-1">Channels requested</p>
+              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Channels requested</p>
               <div className="grid grid-cols-2 gap-x-2">
                 {CHANNELS.map((ch) => (
                   <Toggle key={ch} checked={channels.includes(ch)}
@@ -287,11 +287,11 @@ export default function SachetSamudra() {
             </div>
 
             <div>
-              <p className="text-[10px] font-bold text-gray-600 uppercase mb-1 flex items-center gap-1.5"><Languages className="w-3 h-3" /> Languages</p>
+              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1 flex items-center gap-1.5"><Languages className="w-3 h-3" /> Languages</p>
               <div className="flex flex-wrap gap-1">
                 {LANGUAGES.map((l) => (
                   <button key={l} onClick={() => setLanguages(languages.includes(l) ? languages.filter((x) => x !== l) : [...languages, l])}
-                    className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${
+                    className={`text-[11px] px-1.5 py-0.5 rounded border font-semibold ${
                       languages.includes(l) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
                     {l}
                   </button>
@@ -300,21 +300,21 @@ export default function SachetSamudra() {
             </div>
 
             <div>
-              <p className="text-[10px] font-bold text-gray-600 uppercase mb-1">Coastal districts</p>
+              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Coastal districts</p>
               <div className="flex flex-wrap gap-1">
                 {(activeCase ? districtsNear(activeCase.facts.incident.position).slice(0, 8) : []).map((d) => (
                   <button key={d} onClick={() => setDistricts(districts.includes(d) ? districts.filter((x) => x !== d) : [...districts, d])}
-                    className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${
+                    className={`text-[11px] px-1.5 py-0.5 rounded border font-semibold ${
                       districts.includes(d) ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-300 hover:border-emerald-400'}`}>
                     {d}
                   </button>
                 ))}
               </div>
-              {districts.length === 0 && <p className="text-[10px] text-amber-700 mt-1">Select at least one district.</p>}
+              {districts.length === 0 && <p className="text-[11px] text-amber-700 mt-1">Select at least one district.</p>}
             </div>
 
             <Slider label="No-go radius" value={radius} onChange={setRadius} min={3} max={60} step={1} format={(v) => `${v} km`} />
-            <p className="text-[9.5px] text-gray-500 -mt-1 leading-snug">
+            <p className="text-[11px] text-gray-500 -mt-1 leading-normal">
               Pre-filled from the official restriction when one exists, otherwise from the 24-hour forecast spread.
             </p>
             <Slider label="Valid for" value={validHours} onChange={setValidHours} min={6} max={96} step={6} format={(v) => `${v} h`} />
@@ -338,15 +338,15 @@ export default function SachetSamudra() {
               <div key={a.id} className="px-3 py-2.5 border-b border-gray-100">
                 <div className="flex justify-between items-start gap-2 mb-1">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-gray-900">{a.headline}</p>
-                    <p className="text-[9.5px] text-gray-500 font-mono">{a.id} · {a.caseId}</p>
+                    <p className="text-[12px] font-bold text-gray-900">{a.headline}</p>
+                    <p className="text-[11px] text-gray-500 font-mono">{a.id} · {a.caseId}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <Badge tone={a.status === 'Issued (official)' ? 'blue' : a.status === 'Draft' ? 'amber' : 'gray'}>{a.status}</Badge>
                     <ProvenanceBadge p={a.provenance} />
                   </div>
                 </div>
-                <p className="text-[10px] text-gray-600 leading-snug line-clamp-2">{a.body}</p>
+                <p className="text-[11px] text-gray-600 leading-normal line-clamp-2">{a.body}</p>
                 <div className="mt-1.5">
                   <KeyValue cols={2} items={[
                     [a.status === 'Draft' ? 'Drafted' : 'Issued', a.status === 'Draft' ? fmt.utcShort(a.issuedAt) : fmt.date(a.issuedAt)],
@@ -358,7 +358,7 @@ export default function SachetSamudra() {
                   ]} />
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
-                  {a.source && <a href={a.source} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 hover:underline">Source</a>}
+                  {a.source && <a href={a.source} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">Source</a>}
                   {a.status === 'Draft' && (
                     <Button size="sm" onClick={() => triggerDownload(`${a.id}.cap.xml`, capXml(a), 'application/xml')} icon={<FileDown className="w-3 h-3" />}>
                       CAP XML
@@ -401,7 +401,7 @@ export default function SachetSamudra() {
                     <Layers className="w-3.5 h-3.5" /> Layers
                   </button>
                   {layersOpen && (
-                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-2.5 w-52 z-30">
+                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-52 z-30">
                       <Toggle checked={layers.sightings} onChange={(v) => setLayers({ ...layers, sightings: v })} label="Field reports" count={sightings.length} />
                       <Toggle checked={layers.zones} onChange={(v) => setLayers({ ...layers, zones: v })} label="Draft zone" />
                       <Toggle checked={layers.slicks} onChange={(v) => setLayers({ ...layers, slicks: v })} label="Reported slicks" />
@@ -411,7 +411,7 @@ export default function SachetSamudra() {
               </div>
             }
             legend={
-              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2.5 text-[10px] shadow-lg">
+              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[11px] shadow-lg">
                 <h4 className="font-bold mb-1.5 text-gray-700 uppercase">Report type</h4>
                 {Object.entries(SEVERITY_COLOR).map(([l, c]) => (
                   <div key={l} className="flex items-center gap-2 mb-1">
@@ -429,7 +429,7 @@ export default function SachetSamudra() {
 
         <div className="h-[250px] border-t border-gray-200 bg-white flex-shrink-0 flex flex-col">
           <div className="px-3 py-1.5 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-3">
-            <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1.5">
+            <span className="text-[12px] font-bold text-gray-700 flex items-center gap-1.5">
               <MessageSquare className="w-3.5 h-3.5" /> Field observation reports — {sightings.length}
             </span>
             <div className="flex gap-2">
@@ -487,8 +487,8 @@ function ReportModal({ open, onClose }: { open: boolean; onClose: () => void }) 
         setReporter(''); setDescription('');
         onClose();
       }}>Log report</Button></>}>
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Reported by"><TextInput value={reporter} onChange={setReporter} placeholder="Name, boat or station" /></Field>
           <Field label="District">
             <Select value={district} onChange={setDistrict}
@@ -531,31 +531,31 @@ function LinkModal({ open, onClose, sightingId, onLink }: { open: boolean; onClo
     <Modal open={open} onClose={onClose} title={`Link ${s.id} to a case`}
       subtitle="Attaches the report as corroborating evidence on the case record."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!pick} onClick={() => onLink(pick)}>Link report</Button></>}>
-      <div className="space-y-3">
-        <div className="bg-gray-50 border border-gray-200 rounded p-2.5">
+      <div className="space-y-4">
+        <div className="bg-gray-50 border border-gray-200 rounded p-3">
           <div className="flex items-center gap-2 mb-1">
             <MapPin className="w-3.5 h-3.5 text-gray-500" />
-            <span className="text-[11px] font-bold text-gray-900">{s.reporter} — {s.district}</span>
+            <span className="text-[12px] font-bold text-gray-900">{s.reporter} — {s.district}</span>
             <Badge tone={s.severity === 'Heavy Oil' ? 'red' : 'amber'}>{s.severity}</Badge>
           </div>
-          <p className="text-[11px] text-gray-700 leading-relaxed italic">"{s.description}"</p>
-          <p className="text-[10px] text-gray-500 mt-1.5 font-mono">
+          <p className="text-[12px] text-gray-700 leading-relaxed italic">"{s.description}"</p>
+          <p className="text-[11px] text-gray-500 mt-1.5 font-mono">
             {s.position.lat.toFixed(3)}° N  {s.position.lon.toFixed(3)}° E · {fmt.utc(s.receivedAt)}
           </p>
         </div>
         <Field label="Candidate cases (nearest first)">
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {ranked.slice(0, 5).map(({ c, d }) => (
               <button key={c.id} onClick={() => setPick(c.id)}
                 className={`w-full text-left px-2 py-1.5 rounded border ${pick === c.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-400'}`}>
                 <div className="flex justify-between items-center gap-2">
                   <div className="min-w-0">
-                    <span className="text-[11px] font-bold text-gray-900">{c.title}</span>
-                    <span className="text-[10px] text-gray-600 ml-2 truncate">{c.subRegion}</span>
+                    <span className="text-[12px] font-bold text-gray-900">{c.title}</span>
+                    <span className="text-[11px] text-gray-600 ml-2 truncate">{c.subRegion}</span>
                   </div>
-                  <span className="text-[10px] font-mono text-gray-500 flex-shrink-0">{d.toFixed(0)} km</span>
+                  <span className="text-[11px] font-mono text-gray-500 flex-shrink-0">{d.toFixed(0)} km</span>
                 </div>
-                <p className="text-[9.5px] text-gray-400 mt-0.5">Incident {fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">Incident {fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</p>
               </button>
             ))}
           </div>

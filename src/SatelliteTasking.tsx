@@ -131,7 +131,7 @@ export default function SatelliteTasking() {
   const passColumns: Column<SatellitePass>[] = [
     {
       key: 'start', header: 'Acquired (UTC)', width: '124px', value: (p) => p.start,
-      render: (p) => <div><div className="font-mono text-gray-800">{fmt.utcShort(p.start)}</div><div className="text-[9px] text-gray-400">{fmt.ago(p.start, now)}</div></div>,
+      render: (p) => <div><div className="font-mono text-gray-800">{fmt.utcShort(p.start)}</div><div className="text-[10.5px] text-gray-400">{fmt.ago(p.start, now)}</div></div>,
     },
     {
       key: 'sensor', header: 'Platform', width: '118px', value: (p) => p.sensor,
@@ -143,7 +143,7 @@ export default function SatelliteTasking() {
         </div>
       ),
     },
-    { key: 'product', header: 'Product', width: '96px', value: (p) => p.productType, render: (p) => <span className="font-mono text-gray-600 text-[10px]">{p.productType}</span> },
+    { key: 'product', header: 'Product', width: '96px', value: (p) => p.productType, render: (p) => <span className="font-mono text-gray-600 text-[11px]">{p.productType}</span> },
     { key: 'orbit', header: 'Pass', width: '96px', value: (p) => p.orbitDirection ?? '', render: (p) => <span className="text-gray-600">{p.orbitDirection ?? '—'}</span> },
     {
       key: 'cases', header: 'Case', value: (p) => p.caseIds.join(', '),
@@ -180,21 +180,21 @@ export default function SatelliteTasking() {
       <aside className="w-full lg:w-[290px] xl:w-[350px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Satellite className="w-4 h-4 text-blue-600" /> SAR coverage &amp; tasking</h2>
-          <p className="text-[10px] text-gray-500 mt-0.5">{stats.scenes} real catalogue scenes for {world.cases.length} cases</p>
+          <p className="text-[11px] text-gray-500 mt-0.5">{stats.scenes} real catalogue scenes for {world.cases.length} cases</p>
         </div>
 
-        <Tabs active={tab} onChange={setTab} tabs={[
+        <Tabs fill active={tab} onChange={setTab} tabs={[
           { id: 'queue', label: 'Planning areas', count: world.aois.length },
           { id: 'feeds', label: 'SAR providers', count: sarSources.length },
         ]} />
 
         {tab === 'queue' && (
           <div className="flex-1 overflow-y-auto">
-            <div className="p-2.5 border-b border-gray-200 space-y-1.5">
+            <div className="p-3 border-b border-gray-200 space-y-2">
               <Button size="sm" variant="primary" className="w-full justify-center" onClick={() => setRequestOpen(true)} icon={<Plus className="w-3 h-3" />}>
                 Add planning area
               </Button>
-              <p className="text-[9.5px] text-gray-500 leading-snug">
+              <p className="text-[11px] text-gray-500 leading-normal">
                 Areas are ordered by analyst priority. Each shows how many register incidents fall inside it and the most recent
                 catalogued scene. Tasking a satellite needs NRSC access, so this page builds catalogue searches instead.
               </p>
@@ -210,30 +210,30 @@ export default function SatelliteTasking() {
                     <button onClick={(e) => { e.stopPropagation(); reorderAoi(aoi.id, -1); }} disabled={i === 0} className="text-gray-400 hover:text-blue-600 disabled:opacity-25" title="Raise priority">
                       <ChevronUp className="w-3 h-3" />
                     </button>
-                    <span className="text-[10px] font-black text-gray-700">{aoi.priority}</span>
+                    <span className="text-[11px] font-black text-gray-700">{aoi.priority}</span>
                     <button onClick={(e) => { e.stopPropagation(); reorderAoi(aoi.id, 1); }} disabled={i === aois.length - 1} className="text-gray-400 hover:text-blue-600 disabled:opacity-25" title="Lower priority">
                       <ChevronDown className="w-3 h-3" />
                     </button>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-1.5">
-                      <p className="text-[11px] font-bold text-gray-900 leading-tight">{aoi.name}</p>
+                      <p className="text-[12px] font-bold text-gray-900 leading-snug">{aoi.name}</p>
                       <button onClick={(e) => { e.stopPropagation(); toggleAoiPin(aoi.id); }}
                         className={`flex-shrink-0 ${aoi.pinned ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`}
                         title={aoi.pinned ? 'Unpin' : 'Pin to the top of the queue'}>
                         {aoi.pinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
                       </button>
                     </div>
-                    <div className="flex gap-2 mt-1 text-[9.5px] text-gray-500 flex-wrap">
+                    <div className="flex gap-2 mt-1 text-[11px] text-gray-500 flex-wrap">
                       <span><b className="text-gray-800">{incidents.length}</b> register incidents</span>
                       <span><b className="text-gray-800">{scenes.length}</b> scenes</span>
                       <span>latest {latestScene ? fmt.date(latestScene) : 'none'}</span>
                     </div>
                     {aoi.id === selectedAoi && (
-                      <div className="mt-2 space-y-1.5" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-[10px] text-gray-600 leading-snug">{aoi.rationale}</p>
+                      <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        <p className="text-[11px] text-gray-600 leading-normal">{aoi.rationale}</p>
                         {incidents.length > 0 && (
-                          <p className="text-[9.5px] text-gray-500 leading-snug">{incidents.map((h) => `${h.name.split(' (')[0]} (${h.date.slice(0, 4)})`).join(' · ')}</p>
+                          <p className="text-[11px] text-gray-500 leading-normal">{incidents.map((h) => `${h.name.split(' (')[0]} (${h.date.slice(0, 4)})`).join(' · ')}</p>
                         )}
                         <KeyValue cols={2} items={[
                           ['Requested by', aoi.requestedBy],
@@ -241,7 +241,7 @@ export default function SatelliteTasking() {
                         ]} />
                         <Slider label="Search window" value={searchDays} onChange={setSearchDays} min={3} max={90} step={1} format={(v) => `last ${v} days`} />
                         <a href={cdseQueryUrl(aoi.bounds, new Date(now - searchDays * 86400_000), new Date(now))} target="_blank" rel="noreferrer"
-                          className="w-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700">
+                          className="w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700">
                           <ExternalLink className="w-3 h-3" /> Sentinel-1 catalogue (public)
                         </a>
                         <Button size="sm" className="w-full justify-center" icon={<FileDown className="w-3 h-3" />} onClick={() => {
@@ -265,26 +265,26 @@ export default function SatelliteTasking() {
         )}
 
         {tab === 'feeds' && (
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {sarSources.map((d) => (
-              <div key={d.id} className="border border-gray-200 rounded p-2.5">
+              <div key={d.id} className="border border-gray-200 rounded p-3">
                 <div className="flex justify-between items-start gap-2 mb-1">
                   <div className="min-w-0">
-                    <span className="text-[11px] font-bold text-gray-900">{d.name}</span>
-                    <p className="text-[10px] text-gray-500">{d.agency}</p>
+                    <span className="text-[12px] font-bold text-gray-900">{d.name}</span>
+                    <p className="text-[11px] text-gray-500">{d.agency}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Interim fallback' ? 'teal' : d.status === 'Not configured' ? 'amber' : 'gray'}>{d.status}</Badge>
                     <Badge tone={d.sovereign ? 'green' : 'gray'}>{d.sovereign ? 'Indian' : 'Foreign'} · {d.role}</Badge>
                   </div>
                 </div>
-                <p className="text-[10px] text-gray-600 leading-snug">{d.message}</p>
+                <p className="text-[11px] text-gray-600 leading-normal">{d.message}</p>
               </div>
             ))}
             <div>
-              <p className="text-[10px] font-bold text-gray-600 uppercase mt-2 mb-1">Search results per case</p>
+              <p className="text-[11px] font-bold text-gray-600 uppercase mt-2 mb-1">Search results per case</p>
               {world.cases.map((c) => (
-                <div key={c.id} className="flex items-center gap-2 text-[10px] py-1 border-b border-gray-100">
+                <div key={c.id} className="flex items-center gap-2 text-[11px] py-1 border-b border-gray-100">
                   <span className="flex-1 truncate font-semibold text-gray-800" title={c.title}>{c.title}</span>
                   {c.detection.sarProviders.map((p) => (
                     <Badge key={p.name} tone={p.ok ? (p.count ? 'green' : 'gray') : 'amber'}>{p.name}: {p.ok ? p.count : 'n/a'}</Badge>
@@ -325,7 +325,7 @@ export default function SatelliteTasking() {
                     <Layers className="w-3.5 h-3.5" /> Layers
                   </button>
                   {layersOpen && (
-                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-2.5 w-56 z-30">
+                    <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-56 z-30">
                       <Toggle checked={layers.footprints} onChange={(v) => setLayers({ ...layers, footprints: v })} label="Scene footprints" count={passes.length} />
                       <Toggle checked={layers.aois} onChange={(v) => setLayers({ ...layers, aois: v })} label="Planning areas" count={world.aois.length} />
                       <Toggle checked={layers.cases} onChange={(v) => setLayers({ ...layers, cases: v })} label="Analysed cases" count={world.cases.length} />
@@ -336,14 +336,14 @@ export default function SatelliteTasking() {
               </div>
             }
             legend={
-              <div className="absolute bottom-4 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2.5 text-[10px] shadow-lg">
+              <div className="absolute bottom-4 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[11px] shadow-lg">
                 <h4 className="font-bold mb-1.5 text-gray-700 uppercase">Platforms</h4>
                 {platforms.map((s) => (
                   <div key={s} className="flex items-center gap-2 mb-1">
                     <div className="w-3 h-2 rounded-sm" style={{ background: PLATFORM_COLORS[s] ?? '#2563eb' }} /><span className="text-gray-700">{s}</span>
                   </div>
                 ))}
-                <p className="text-[9px] text-gray-400 mt-1">Footprints from the CDSE catalogue.</p>
+                <p className="text-[10.5px] text-gray-400 mt-1">Footprints from the CDSE catalogue.</p>
               </div>
             }
           />
@@ -351,10 +351,10 @@ export default function SatelliteTasking() {
 
         <div className="h-[240px] border-t border-gray-200 bg-white flex-shrink-0 flex flex-col">
           <div className="px-3 py-1.5 border-b border-gray-200 bg-gray-50 flex items-center justify-between gap-3">
-            <span className="text-[11px] font-bold text-gray-700 flex items-center gap-2">Scene catalogue — {passes.length} <ProvenanceBadge p="real" /></span>
+            <span className="text-[12px] font-bold text-gray-700 flex items-center gap-2">Scene catalogue — {passes.length} <ProvenanceBadge p="real" /></span>
             <div className="flex items-center gap-2">
               {active && (
-                <span className="text-[10px] text-gray-500 font-mono truncate max-w-[280px]" title={active.name}>{active.name}</span>
+                <span className="text-[11px] text-gray-500 font-mono truncate max-w-[280px]" title={active.name}>{active.name}</span>
               )}
               <Select value={caseFilter} onChange={setCaseFilter} options={[{ value: 'all', label: 'All cases' }, ...world.cases.map((c) => ({ value: c.id, label: c.title }))]} />
               <Select value={platformFilter} onChange={setPlatformFilter} options={[{ value: 'all', label: 'All platforms' }, ...platforms.map((s) => ({ value: s, label: s }))]} />
@@ -406,17 +406,17 @@ function RequestModal({ open, onClose }: { open: boolean; onClose: () => void })
     <Modal open={open} onClose={onClose} title="Add planning area"
       subtitle="Adds an area to the queue and lets you build catalogue searches for it."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!valid} onClick={submit}>Add area</Button></>}>
-      <div className="space-y-3">
+      <div className="space-y-4">
         <Field label="Area name"><TextInput value={name} onChange={setName} placeholder="e.g. Kakinada Anchorage Watch" /></Field>
         <div>
-          <p className="text-[10px] font-bold text-gray-600 uppercase mb-1.5">Bounding box (decimal degrees)</p>
+          <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5">Bounding box (decimal degrees)</p>
           <div className="grid grid-cols-4 gap-2">
             <Field label="North"><TextInput value={north} onChange={setNorth} mono /></Field>
             <Field label="South"><TextInput value={south} onChange={setSouth} mono /></Field>
             <Field label="East"><TextInput value={east} onChange={setEast} mono /></Field>
             <Field label="West"><TextInput value={west} onChange={setWest} mono /></Field>
           </div>
-          {!valid && name.trim() && <p className="text-[10px] text-amber-700 mt-1">North must exceed South and East must exceed West.</p>}
+          {!valid && name.trim() && <p className="text-[11px] text-amber-700 mt-1">North must exceed South and East must exceed West.</p>}
         </div>
         <Slider label="Priority" value={priority} onChange={setPriority} min={1} max={9} step={1} format={(v) => `P${v}`} />
         <Field label="Rationale" hint="Shown to whoever reviews the queue.">

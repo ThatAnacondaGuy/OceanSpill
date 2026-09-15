@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from .coast_osm import Box, CoastLand, build_coast, coast_json
 from .config import CASES_DIR, REFERENCE_DIR, Settings
 from .geo import epoch_ms, haversine_km, iso, parse_time, point_in_ring
 from .geometry import primary_observation, reported_geometry
@@ -123,8 +124,43 @@ def forcing_json(grid: ForcingGrid, hour_step: int) -> dict[str, Any]:
     }
 
 
-def build_case(case: dict[str, Any], providers: Providers, land: LandMask, out_dir: Path) -> dict[str, Any]:
+def case_coast(case: dict[str, Any], http: CachedHttp, out_dir: Path) -> tuple[CoastLand, dict[str, Any]]:
+    """Detailed land polygons over the case's drift box, written for the frontend drift model."""
+    fb = case["analysis"]["forcingBox"]
+    pad = 0.1
+    box = Box(fb["west"] - pad, fb["south"] - pad, fb["east"] + pad, fb["north"] + pad)
+    span = max(box.east - box.west, box.north - box.south)
+    # Finer where the box is small; about 15 m for a 1-degree box, capped near 100 m for the largest.
+    tolerance_deg = min(0.0009, max(0.00012, span / 8000))
+    coast = build_coast(http, box, tolerance_deg)
+    doc = coast_json(coast, tolerance_deg * 111_000)
+    (out_dir / "coast").mkdir(parents=True, exist_ok=True)
+    (out_dir / "coast" / f"{case['id']}.json").write_text(json.dumps(doc, separators=(",", ":")))
+    ref = {"file": f"coast/{case['id']}.json", "source": coast.source, "rings": len(coast.rings),
+           "vertices": sum(len(r) for r in coast.rings), "bbox": doc["bbox"]}
+    return coast, ref
+
+
+def update_coast(case: dict[str, Any], http: CachedHttp, land: LandMask, out_dir: Path) -> dict[str, Any]:
+    """Refreshes coastline and reported geometry in an existing case artifact, leaving provider data untouched."""
+    path = out_dir / "cases" / f"{case['id']}.json"
+    artifact = json.loads(path.read_text())
+    coast, ref = case_coast(case, http, out_dir)
+    artifact["case"] = case
+    artifact["coast"] = ref
+    artifact["reportedGeometry"] = reported_geometry(case, land, coast)
+    path.write_text(json.dumps(artifact, separators=(",", ":")))
+    return artifact
+
+
+def build_case(case: dict[str, Any], providers: Providers, land: LandMask, out_dir: Path, http: CachedHttp | None = None) -> dict[str, Any]:
     warnings: list[str] = []
+    coast, coast_ref = None, None
+    if http is not None:
+        try:
+            coast, coast_ref = case_coast(case, http, out_dir)
+        except Exception as exc:  # a missing coastline degrades geometry, it must not abort the build
+            warnings.append(f"coastline fetch failed: {exc}")
     analysis = case["analysis"]
     inc = case["incident"]["position"]
     incident_time = parse_time(case["incident"]["time"])
@@ -213,7 +249,8 @@ def build_case(case: dict[str, Any], providers: Providers, land: LandMask, out_d
         "generatedAt": iso(datetime.now(timezone.utc)),
         "case": case,
         "reference": {"time": epoch_ms(ref_time), "basis": ref_basis, "hindcastHours": hindcast_h, "forecastHours": forecast_h},
-        "reportedGeometry": reported_geometry(case, land),
+        "reportedGeometry": reported_geometry(case, land, coast),
+        "coast": coast_ref,
         "sar": {"window": {"start": epoch_ms(sar_start), "end": epoch_ms(sar_end)},
                 "bbox": {"west": bbox.west, "south": bbox.south, "east": bbox.east, "north": bbox.north},
                 "providers": sar_status, "scenes": scenes},
@@ -254,7 +291,7 @@ def build(settings: Settings, case_ids: list[str] | None = None, offline: bool =
     summaries, failures = [], []
     for case in load_cases(case_ids):
         try:
-            art = build_case(case, providers, land, out)
+            art = build_case(case, providers, land, out, http)
         except Exception as exc:
             failures.append({"id": case["id"], "error": str(exc), "trace": traceback.format_exc()})
             continue

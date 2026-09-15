@@ -46,13 +46,13 @@ export default function ImacIntegration() {
   const imacColumns: Column<SpillCase>[] = [
     {
       key: 'id', header: 'Case', value: (c) => c.title,
-      render: (c) => <div><div className="font-bold text-gray-900">{c.title}</div><div className="text-[9.5px] font-mono text-gray-400">{c.id}</div></div>,
+      render: (c) => <div><div className="font-bold text-gray-900">{c.title}</div><div className="text-[11px] font-mono text-gray-400">{c.id}</div></div>,
     },
-    { key: 'region', header: 'Location', width: '220px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[10.5px]">{c.subRegion}</span> },
+    { key: 'region', header: 'Location', width: '220px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[11.5px]">{c.subRegion}</span> },
     {
       key: 'pushed', header: 'Generated (UTC)', width: '140px', value: (c) => c.imacPushedAt ?? 0,
       render: (c) => c.imacPushedAt
-        ? <div><div className="font-mono text-gray-800">{fmt.utcShort(c.imacPushedAt)}</div><div className="text-[9px] text-gray-400">{fmt.ago(c.imacPushedAt, now)}</div></div>
+        ? <div><div className="font-mono text-gray-800">{fmt.utcShort(c.imacPushedAt)}</div><div className="text-[10.5px] text-gray-400">{fmt.ago(c.imacPushedAt, now)}</div></div>
         : <span className="text-gray-300">—</span>,
     },
     { key: 'status', header: 'Case status', width: '130px', value: (c) => c.status, render: (c) => <Badge tone="blue">{c.status}</Badge> },
@@ -72,7 +72,7 @@ export default function ImacIntegration() {
       render: (d) => (
         <div>
           <div className="font-bold text-gray-900">{d.name}</div>
-          <div className="text-[9.5px] text-gray-500">{d.agency} · <code>{d.id}</code></div>
+          <div className="text-[11px] text-gray-500">{d.agency} · <code>{d.id}</code></div>
         </div>
       ),
     },
@@ -83,7 +83,7 @@ export default function ImacIntegration() {
       key: 'status', header: 'Status', width: '120px', value: (d) => ({ Online: 0, 'Interim fallback': 1, 'Not configured': 2, 'Pending access': 3 }[d.status]),
       render: (d) => <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Interim fallback' ? 'teal' : d.status === 'Not configured' ? 'amber' : 'gray'}>{d.status}</Badge>,
     },
-    { key: 'message', header: 'Detail', value: (d) => d.message, render: (d) => <span className="text-gray-600 text-[10.5px]">{d.message}</span> },
+    { key: 'message', header: 'Detail', value: (d) => d.message, render: (d) => <span className="text-gray-600 text-[11.5px]">{d.message}</span> },
     {
       key: 'sync', header: 'Last build', width: '104px', value: (d) => d.lastSync ?? 0,
       render: (d) => d.lastSync != null ? <span className="text-gray-600">{fmt.ago(d.lastSync, now)}</span> : <span className="text-gray-300">—</span>,
@@ -107,7 +107,7 @@ export default function ImacIntegration() {
           <div className="bg-blue-600 text-white p-1.5 rounded"><Database className="w-4 h-4" /></div>
           <div>
             <h2 className="font-bold text-gray-900 text-sm">Data management</h2>
-            <p className="text-[11px] text-gray-500">IMAC payloads and data source status · data built {fmt.ago(Date.parse(world.generatedAt), now)}</p>
+            <p className="text-[12px] text-gray-500">IMAC payloads and data source status · data built {fmt.ago(Date.parse(world.generatedAt), now)}</p>
           </div>
         </div>
       </div>
@@ -118,8 +118,8 @@ export default function ImacIntegration() {
       ]} />
 
       {tab === 'imac' && (
-        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col p-3 gap-3">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
+        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col p-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
             <StatCard icon={<Radio className="w-5 h-5" />} title="Payloads generated" value={generated.length} trend="this session" accent="green" />
             <StatCard icon={<Send className="w-5 h-5" />} title="Not yet generated" value={pending.length} trend="open cases" accent={pending.length > 0 ? 'amber' : 'blue'} />
             <StatCard icon={<CheckCircle2 className="w-5 h-5" />} title="Delivered" value={0} trend="IMAC ingest not integrated" />
@@ -134,7 +134,7 @@ export default function ImacIntegration() {
           <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3">
             <div className="flex-1 min-w-0 h-[70vh] lg:h-auto bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-                <span className="text-[11px] font-bold text-gray-700">Generated payloads</span>
+                <span className="text-[12px] font-bold text-gray-700">Generated payloads</span>
               </div>
               <div className="flex-1 min-h-0">
                 <DataTable columns={imacColumns} rows={generated} rowKey={(c) => c.id} dense
@@ -146,7 +146,7 @@ export default function ImacIntegration() {
 
             <div className="w-full lg:w-[280px] xl:w-[320px] max-h-[70vh] lg:max-h-none flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-                <span className="text-[11px] font-bold text-gray-700">Open cases</span>
+                <span className="text-[12px] font-bold text-gray-700">Open cases</span>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {pending.length === 0 ? (
@@ -155,12 +155,12 @@ export default function ImacIntegration() {
                   <div key={c.id} className="px-2.5 py-2 border-b border-gray-100">
                     <div className="flex justify-between items-start gap-2 mb-1">
                       <div className="min-w-0">
-                        <p className="text-[11px] font-bold text-gray-900 truncate">{c.title}</p>
-                        <p className="text-[10px] text-gray-600 truncate">{c.subRegion}</p>
+                        <p className="text-[12px] font-bold text-gray-900 truncate">{c.title}</p>
+                        <p className="text-[11px] text-gray-600 truncate">{c.subRegion}</p>
                       </div>
                       <Badge tone={c.tier === 'HIGH' ? 'red' : c.tier === 'MEDIUM' ? 'amber' : 'gray'}>{c.tier}</Badge>
                     </div>
-                    <p className="text-[9.5px] text-gray-400 mb-1.5">{c.status} · {fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</p>
+                    <p className="text-[11px] text-gray-400 mb-1.5">{c.status} · {fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</p>
                     <div className="flex gap-1.5">
                       <Button size="sm" className="flex-1 justify-center" onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}>Review</Button>
                       <Button size="sm" variant="primary" className="flex-1 justify-center" onClick={() => { pushToImac(c.id); setPayloadFor(c.id); }} icon={<ArrowUpRight className="w-3 h-3" />}>Generate</Button>
@@ -169,7 +169,7 @@ export default function ImacIntegration() {
                 ))}
               </div>
               <div className="p-2 border-t border-gray-200">
-                <p className="text-[9.5px] text-gray-500 leading-snug">
+                <p className="text-[11px] text-gray-500 leading-normal">
                   Generation is a deliberate act after review. An unreviewed detection should not enter a shared operational picture.
                 </p>
               </div>
@@ -179,8 +179,8 @@ export default function ImacIntegration() {
       )}
 
       {tab === 'sources' && (
-        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col p-3 gap-3">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
+        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col p-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
             <StatCard icon={<Server className="w-5 h-5" />} title="Online" value={health.online} trend={`of ${world.dataSources.length} listed`} accent="green" />
             <StatCard icon={<CheckCircle2 className="w-5 h-5" />} title="Interim fallback" value={health.fallback} trend="working stand-ins for pending sources" />
             <StatCard icon={<AlertTriangle className="w-5 h-5" />} title="Not configured" value={health.notConfigured} trend="adapter ready, credentials missing" accent="amber" />
@@ -191,7 +191,7 @@ export default function ImacIntegration() {
             <SearchInput value={query} onChange={setQuery} placeholder="Source, agency or detail…" className="w-72" />
             <Select value={kindFilter} onChange={setKindFilter}
               options={[{ value: 'all', label: 'All types' }, ...Array.from(new Set(world.dataSources.map((d) => d.kind))).map((k) => ({ value: k, label: k }))]} />
-            <span className="text-[11px] text-gray-500 ml-auto">{sources.length} of {world.dataSources.length} shown</span>
+            <span className="text-[12px] text-gray-500 ml-auto">{sources.length} of {world.dataSources.length} shown</span>
           </div>
 
           <div className="h-[70vh] flex-none lg:h-auto lg:flex-1 lg:min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
@@ -224,7 +224,7 @@ export default function ImacIntegration() {
           ) : null
         }>
         {payloadCase && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <KeyValue cols={2} items={[
               ['Format', 'GeoJSON FeatureCollection + case metadata'],
               ['Transport', 'Not integrated'],
@@ -236,7 +236,7 @@ export default function ImacIntegration() {
                 return <span className="flex items-center gap-1">Interpolated / synthetic <ProvenanceBadge p="synthetic" /></span>;
               })()],
             ]} />
-            <pre className="bg-slate-900 text-slate-100 rounded p-3 text-[10px] font-mono overflow-x-auto leading-relaxed max-h-80 overflow-y-auto">
+            <pre className="bg-slate-900 text-slate-100 rounded p-4 text-[11px] font-mono overflow-x-auto leading-relaxed max-h-80 overflow-y-auto">
               {payloadText}
             </pre>
             <InfoBanner tone="blue">
