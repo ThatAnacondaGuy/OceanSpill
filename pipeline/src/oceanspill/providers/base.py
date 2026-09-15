@@ -95,6 +95,8 @@ class Track:
     pings: list[Ping]
     provenance: str
     notes: list[str] = field(default_factory=list)
+    # Precomputed transmission gaps; None means derive them from ping spacing.
+    gaps: list[dict[str, Any]] | None = None
 
 
 @dataclass

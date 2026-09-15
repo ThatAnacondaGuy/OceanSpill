@@ -61,7 +61,7 @@ def cmd_download(settings: Settings, args: argparse.Namespace) -> int:
 
 
 def cmd_process(settings: Settings, args: argparse.Namespace) -> int:
-    from .sar.landmask import rings_from_land
+    from .sar.landmask import default_land
     from .sar.process import load_measurements, process_scene
 
     case = next((c for c in load_cases() if c["id"] == args.case), None)
@@ -77,12 +77,13 @@ def cmd_process(settings: Settings, args: argparse.Namespace) -> int:
         print(f"no downloaded scenes for {args.case}; run `oceanspill download --case {args.case}` first", file=sys.stderr)
         return 1
     land, _, _ = load_reference()
-    rings = rings_from_land(land)
+    land_source = default_land(land)
+    print(f"land mask: {land_source.source}")
     done = 0
     for path in paths:
         name = path.name.removesuffix(".zip").removesuffix(".SAFE")
         try:
-            record = process_scene(path, case, name, rings, settings.output_dir, radius_km=args.radius_km, factor=args.factor)
+            record = process_scene(path, case, name, land_source, settings.output_dir, radius_km=args.radius_km, factor=args.factor)
         except Exception as exc:  # one bad scene must not stop the rest
             print(f"FAILED {name}: {exc}", file=sys.stderr)
             continue

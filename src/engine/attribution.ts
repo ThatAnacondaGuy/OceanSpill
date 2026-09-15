@@ -206,6 +206,9 @@ export interface CandidateInput {
  * Returns the ranked list plus the vessels that were excluded and why — the exclusion list
  * matters as much as the ranking when the result has to be defended.
  */
+/** Name prefixes of Indian Coast Guard, Coast Guard and Navy ships as they appear in AIS. */
+const STATE_VESSEL = /^(ICGS|ICG\s|CG\s?\d|INS\s|COAST\s?GUARD|NAVY)/i;
+
 export function scoreCandidates(
   candidates: CandidateInput[],
   ctx: ScoringContext
@@ -221,6 +224,17 @@ export function scoreCandidates(
   const excluded: { mmsi: string; name: string; reason: string; cpaKm: number }[] = [];
 
   for (const { vessel, track } of candidates) {
+    // Vessels that came to the incident to help, and state patrol ships, loiter near a slick by
+    // design. Ranking them as suspects would be wrong, so they are listed as excluded instead.
+    if (vessel.role === 'responder') {
+      excluded.push({ mmsi: vessel.mmsi, name: vessel.name, reason: 'Reported response vessel (assisting at the incident)', cpaKm: Infinity });
+      continue;
+    }
+    if (STATE_VESSEL.test(vessel.name)) {
+      excluded.push({ mmsi: vessel.mmsi, name: vessel.name, reason: 'Coast Guard / Navy vessel (name indicates a state patrol or response ship)', cpaKm: Infinity });
+      continue;
+    }
+
     // Closest approach to the hindcast origin, restricted to the plausible window.
     let cpaKm = Infinity;
     let cpaTime = ctx.originTime;
@@ -250,7 +264,26 @@ export function scoreCandidates(
       continue;
     }
 
-    if (cpaKm > radius && !behaviour.darkDuringWindow) {
+    // Dark through the whole window: estimate where it was from its last position before the
+    // silence and its first position after, instead of scoring it with no position at all.
+    let acrossGap = false;
+    if (!cpaPing) {
+      const before = track.pings.filter((p) => p.t < windowStart).pop();
+      const after = track.pings.find((p) => p.t > windowEnd);
+      if (!before || !after) {
+        excluded.push({ mmsi: vessel.mmsi, name: vessel.name, reason: 'Silent throughout the window with no position before and after it', cpaKm: Infinity });
+        continue;
+      }
+      const f = Math.min(1, Math.max(0, (ctx.originTime - before.t) / (after.t - before.t)));
+      const est = { lat: before.lat + (after.lat - before.lat) * f, lon: before.lon + (after.lon - before.lon) * f };
+      cpaKm = haversineKm(ctx.origin, est);
+      cpaTime = ctx.originTime;
+      cpaPing = { ...before, ...est, t: ctx.originTime };
+      acrossGap = true;
+    }
+
+    // Applies to dark vessels too: an AIS gap far from the origin is not evidence about this slick.
+    if (cpaKm > radius) {
       excluded.push({
         mmsi: vessel.mmsi,
         name: vessel.name,
@@ -277,7 +310,7 @@ export function scoreCandidates(
     // against how well the origin is actually known rather than a fixed distance.
     const sigma = Math.max(6, ctx.uncertaintyKm);
     const proximity = Math.exp(-(cpaKm ** 2) / (2 * sigma ** 2));
-    reasons.push(`Closest approach ${cpaKm.toFixed(1)} km from the hindcast origin (1σ = ${sigma.toFixed(0)} km)`);
+    reasons.push(`Closest approach ${cpaKm.toFixed(1)} km from the hindcast origin (1σ = ${sigma.toFixed(0)} km)${acrossGap ? ', estimated across its AIS gap' : ''}`);
 
     // Temporality: how close the CPA was to the estimated discharge time.
     const deltaMin = (cpaTime - ctx.originTime) / 60000;

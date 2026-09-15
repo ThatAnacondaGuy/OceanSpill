@@ -1,14 +1,14 @@
 {
  "schemaVersion": 1,
- "generatedAt": "2026-09-15T11:42:52Z",
+ "generatedAt": "2026-09-15T14:25:36Z",
  "providers": [
   {
    "kind": "sar",
    "name": "eos04",
    "agency": "ISRO / NRSC Bhoonidhi",
    "sovereign": true,
-   "available": false,
-   "message": "Set BHOONIDHI_USER_ID/BHOONIDHI_PASSWORD (search and download need login)"
+   "available": true,
+   "message": "Credentials configured"
   },
   {
    "kind": "sar",
@@ -16,23 +16,23 @@
    "agency": "ESA Copernicus Data Space Ecosystem",
    "sovereign": false,
    "available": true,
-   "message": "Catalogue search public; set CDSE_USERNAME/CDSE_PASSWORD to download scenes"
+   "message": "Catalogue search public; downloads enabled"
   },
   {
    "kind": "metocean",
-   "name": "openmeteo",
-   "agency": "Open-Meteo (ERA5 wind, M\u00e9t\u00e9o-France SMOC currents)",
+   "name": "openmeteo+cmems",
+   "agency": "Open-Meteo (ERA5 wind, M\u00e9t\u00e9o-France SMOC currents) + Copernicus Marine Service (GLORYS12V1 reanalysis currents)",
    "sovereign": false,
    "available": true,
-   "message": "Public API, no key required"
+   "message": "openmeteo: Public API, no key required; cmems: Daily-mean surface currents 1993 onwards, 1/12 degree"
   },
   {
    "kind": "ais",
-   "name": "synthetic",
-   "agency": "OceanSpill synthetic AIS generator",
-   "sovereign": true,
+   "name": "gfw",
+   "agency": "Global Fishing Watch (AIS identity and events)",
+   "sovereign": false,
    "available": true,
-   "message": "Tagged synthetic tracks anchored to reported positions; replace with GFW or DGLL AIS when available"
+   "message": "Real vessel identity and AIS gap / loitering / port-visit events; tracks between events interpolated"
   },
   {
    "kind": "sanctions",
@@ -55,7 +55,7 @@
     "lon": 74.6233
    },
    "sourceType": "vessel",
-   "sarScenes": 1,
+   "sarScenes": 5,
    "forcing": true,
    "warnings": 0
   },
@@ -70,7 +70,7 @@
     "lon": 76.136
    },
    "sourceType": "vessel",
-   "sarScenes": 2,
+   "sarScenes": 5,
    "forcing": true,
    "warnings": 0
   },
@@ -85,7 +85,7 @@
     "lon": 80.325
    },
    "sourceType": "facility",
-   "sarScenes": 2,
+   "sarScenes": 9,
    "forcing": true,
    "warnings": 0
   },
@@ -100,7 +100,7 @@
     "lon": 79.86
    },
    "sourceType": "pipeline",
-   "sarScenes": 2,
+   "sarScenes": 4,
    "forcing": true,
    "warnings": 1
   },
@@ -117,7 +117,7 @@
    "sourceType": "vessel",
    "sarScenes": 5,
    "forcing": true,
-   "warnings": 1
+   "warnings": 0
   },
   {
    "id": "IND-2017-05-GOA-TARBALLS",
@@ -132,7 +132,7 @@
    "sourceType": "unknown",
    "sarScenes": 2,
    "forcing": true,
-   "warnings": 2
+   "warnings": 1
   },
   {
    "id": "IND-2017-01-ENNORE-COLLISION",
@@ -147,7 +147,7 @@
    "sourceType": "vessel",
    "sarScenes": 2,
    "forcing": true,
-   "warnings": 1
+   "warnings": 0
   }
  ],
  "historical": {

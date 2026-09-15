@@ -13,15 +13,16 @@ from .calibration import parse_calibration, parse_noise, sigma0
 from .darkspot import detect_dark_spots
 from .filters import dilate, lee_filter, multilook_power, to_db
 from .geolocation import interpolate_grid, latlon, parse_geolocation
-from .landmask import land_mask
+from .landmask import PolygonLand, RingLand
 from .quicklook import write_quicklook
 from .safe import SafeProduct, pixel_spacing_m
 
 METHOD = "Adaptive-threshold dark-spot detection on Lee-filtered, noise-corrected sigma0 (classical method, not a trained model)"
 LIMITATIONS = [
     "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
-    "Land mask comes from coarse coastline polygons plus a coastal buffer; near-shore detections are unreliable",
+    "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",
     "Multilooking trades resolution for speckle reduction; slicks narrower than two output pixels can be missed",
+    "The quicklook is in radar geometry (not north-up); use the outlines on the map for location",
 ]
 
 
@@ -54,7 +55,7 @@ def analyse_image(
     lon: np.ndarray,
     calibration,
     noise,
-    rings: list[list[tuple[float, float]]],
+    land_source: RingLand | PolygonLand,
     pixel_km: float,
     incident: tuple[float, float],
     looks: float,
@@ -65,7 +66,7 @@ def analyse_image(
     s0 = sigma0(power, rows, cols, calibration, noise)
     filtered = lee_filter(s0, int(params["leeWindow"]), looks)
     db = to_db(filtered)
-    land = land_mask(lat, lon, rings)
+    land = land_source.mask(lat, lon)
     buffer_px = int(round(params["coastBufferKm"] / pixel_km))
     near_land = dilate(land, buffer_px)
     sea = valid & ~near_land
@@ -76,6 +77,9 @@ def analyse_image(
 
     out_spots = []
     for s in spots:
+        # One-pixel-wide lines are crop or swath edges, not slicks.
+        if s.elongation > float(params.get("maxElongation", 50.0)):
+            continue
         clat = bilinear(lat, *s.centroid_rc)
         clon = bilinear(lon, *s.centroid_rc)
         rc = np.argwhere(labels == s.label)
@@ -102,14 +106,15 @@ def process_scene(
     safe_path: Path,
     case: dict[str, Any],
     scene_name: str,
-    rings: list[list[tuple[float, float]]],
+    land_source: RingLand | PolygonLand,
     out_dir: Path,
     radius_km: float = 40.0,
     factor: int = 8,
     params: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    # 2 km is enough with the Natural Earth coastline; the coarse fallback outlines need about 8 km.
     params = {"leeWindow": 7, "detectorWindow": 51, "kSigma": 1.5, "minContrastDb": 3.0, "minAreaKm2": 0.5,
-              "coastBufferKm": 2.0, **(params or {})}
+              "coastBufferKm": 2.0 if isinstance(land_source, PolygonLand) else 8.0, "maxElongation": 50.0, **(params or {})}
     product = SafeProduct.open(safe_path)
     band = product.band()
     annotation = product.read_text(band.annotation)
@@ -137,7 +142,7 @@ def process_scene(
     # Equivalent looks: about 4.4 for IW GRDH, multiplied by the extra block averaging.
     looks = 4.4 * factor * factor
     result = analyse_image(power[rs, cs], rows[rs], cols[cs], lat[rs, cs], lon[rs, cs], calibration, noise,
-                           rings, pixel_km, incident, looks, params)
+                           land_source, pixel_km, incident, looks, params)
 
     case_dir = out_dir / "sar" / case["id"]
     quicklook = write_quicklook(case_dir / f"{scene_name}.png", result["db"], result["land"], result["labels"])
@@ -150,6 +155,7 @@ def process_scene(
         "processedAt": iso(datetime.now(timezone.utc)),
         "polarisation": band.polarisation,
         "method": METHOD,
+        "landMask": land_source.source,
         "parameters": {**params, "multilookFactor": factor, "pixelSpacingM": round(spacing_m, 1), "equivalentLooks": looks,
                        "radiusKm": radius_km},
         "crop": {"corners": [{"lat": round(float(crop_lat[r, c]), 5), "lon": round(float(crop_lon[r, c]), 5)} for r, c in corners],

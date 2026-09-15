@@ -21,6 +21,10 @@ export interface CaseAnalysis {
   excluded: ReturnType<typeof scoreCandidates>['excluded'];
   verdict: ReturnType<typeof attributionVerdict>;
   searchRadiusKm: number;
+  /** Point vessels are scored against: the reported release point when known, else the hindcast estimate. */
+  originBasis: 'reported' | 'hindcast';
+  attributionOrigin: LatLon;
+  attributionTime: number;
   windowStart: number;
   windowEnd: number;
   /** Hours between the incident and the reference observation, when the incident time is precise enough. */
@@ -206,11 +210,19 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
         .map((m) => ({ vessel: world.vesselsByMmsi.get(m)!, track: world.tracks.get(m)! }))
         .filter((x) => x.vessel && x.track);
 
+      // When authorities reported where and when the release happened, score vessels against that
+      // point; the hindcast estimate is only needed when the origin is unknown.
+      const knownOrigin = ['minute', 'hour'].includes(precision) && ageUsable && c.facts.incident.positionPrecisionKm <= 5;
+      const attributionOrigin = knownOrigin ? c.facts.incident.position : hc.estimatedOrigin;
+      const attributionTime = knownOrigin ? c.incidentTime : hc.estimatedTime;
+      const attributionUncertaintyKm = knownOrigin ? Math.max(2, c.facts.incident.positionPrecisionKm) : hc.uncertaintyRadiusKm;
+      const windowHours = knownOrigin ? 1.5 : hc.timeWindowHours;
+
       const { ranked, excluded } = scoreCandidates(candidates, {
-        origin: hc.estimatedOrigin,
-        originTime: hc.estimatedTime,
-        windowHours: hc.timeWindowHours,
-        uncertaintyKm: hc.uncertaintyRadiusKm,
+        origin: attributionOrigin,
+        originTime: attributionTime,
+        windowHours,
+        uncertaintyKm: attributionUncertaintyKm,
         slickOrientationDeg: shape.orientationDeg,
         slickElongation: c.detection.extentReported ? shape.elongation : 1,
         weights,
@@ -245,7 +257,7 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
         .filter((a) => a.distanceKm < 400)
         .sort((a, b) => a.distanceKm - b.distanceKm);
 
-      const windowMs = hc.timeWindowHours * HOUR;
+      const windowMs = windowHours * HOUR;
       const result: CaseAnalysis = {
         caseId,
         assessment,
@@ -255,9 +267,12 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
         ranked,
         excluded,
         verdict: attributionVerdict(ranked),
-        searchRadiusKm: searchRadiusKm(hc.uncertaintyRadiusKm),
-        windowStart: hc.estimatedTime - windowMs * 1.35,
-        windowEnd: hc.estimatedTime + windowMs,
+        searchRadiusKm: searchRadiusKm(attributionUncertaintyKm),
+        windowStart: attributionTime - windowMs * 1.35,
+        windowEnd: attributionTime + windowMs,
+        originBasis: knownOrigin ? 'reported' : 'hindcast',
+        attributionOrigin,
+        attributionTime,
         knownAgeHours,
         weathering,
         threatenedAreas,

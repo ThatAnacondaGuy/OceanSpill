@@ -206,6 +206,13 @@ export interface CaseArtifact {
   tracks: TrackArtifact[];
   sanctions: { key: string; name: string; imo: string | null; listed: boolean; list: string; reference: string | null; checkedAt: string }[];
   sarMeasurements?: SarMeasurement[];
+  windCatalog?: {
+    provider: string;
+    collection: string;
+    description: string;
+    products: { id: string; collection: string; date: string | null; online: boolean }[];
+    online: number;
+  } | null;
   warnings: string[];
 }
 

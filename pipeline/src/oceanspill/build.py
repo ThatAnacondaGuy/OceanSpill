@@ -16,6 +16,7 @@ from .providers.base import BBox, ForcingGrid, SarScene, Track
 from .sar.process import load_measurements
 
 GAP_THRESHOLD_MIN = 20
+SCAT_WIND_COLLECTION = "EOS-06_SCAT_3WW"
 SCHEMA_VERSION = 1
 
 
@@ -176,6 +177,19 @@ def build_case(case: dict[str, Any], providers: Providers, land: LandMask, out_d
     except Exception as exc:
         warnings.append(f"metocean forcing failed: {exc}")
 
+    # Indian scatterometer winds (Oceansat-3 / EOS-06) listed from the Bhoonidhi catalogue. They are
+    # global daily products, so they are matched on date only.
+    wind_catalog = None
+    eos = next((p for p in providers.sar if p.name == "eos04" and p.status().available), None)
+    if eos is not None and f_end.year >= 2023:
+        try:
+            products = [x for x in eos.list_products(SCAT_WIND_COLLECTION, f_start, f_end) if "25km" in x["id"]]
+            wind_catalog = {"provider": "bhoonidhi", "collection": SCAT_WIND_COLLECTION,
+                            "description": "Oceansat-3 (EOS-06) SCAT-3 daily global ocean wind vectors, 25 km",
+                            "products": products, "online": sum(1 for x in products if x["online"])}
+        except Exception as exc:
+            warnings.append(f"EOS-06 scatterometer catalogue search failed: {exc}")
+
     # AIS over the attribution window.
     a_start = ref_time - timedelta(hours=hindcast_h + 12)
     a_end = ref_time + timedelta(hours=forecast_h)
@@ -214,13 +228,14 @@ def build_case(case: dict[str, Any], providers: Providers, land: LandMask, out_d
             for v in vessels
         ],
         "tracks": [
-            {"key": t.key, "provenance": t.provenance, "notes": t.notes, "gaps": detect_gaps(t) if not t.key.startswith("FAC-") else [],
+            {"key": t.key, "provenance": t.provenance, "notes": t.notes, "gaps": t.gaps if t.gaps is not None else detect_gaps(t) if not t.key.startswith("FAC-") else [],
              "pings": [[int((p.t - a_start).total_seconds()), round(p.lat, 4), round(p.lon, 4), p.sog, round(p.cog), round(p.heading), p.nav_status]
                        for p in t.pings]}
             for t in tracks
         ],
         "sanctions": sanctions,
         "sarMeasurements": load_measurements(out_dir, case["id"]),
+        "windCatalog": wind_catalog,
         "warnings": warnings,
     }
     (out_dir / "cases").mkdir(parents=True, exist_ok=True)

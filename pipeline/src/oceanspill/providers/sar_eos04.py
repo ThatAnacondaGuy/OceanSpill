@@ -8,7 +8,7 @@ from typing import Any
 
 from ..config import Settings
 from ..geo import iso, parse_time
-from ..http import CachedHttp
+from ..http import CachedHttp, HttpError
 from .base import BBox, ProviderStatus, SarScene
 
 BASE_URL = "https://bhoonidhi-api.nrsc.gov.in"
@@ -100,7 +100,13 @@ class Eos04Bhoonidhi:
             "datetime": f"{iso(start)}/{iso(end)}",
             "limit": 500,
         }
-        payload = self.http.request_json("POST", f"{BASE_URL}/data/search", json_body=body, headers=headers)
+        try:
+            payload = self.http.request_json("POST", f"{BASE_URL}/data/search", json_body=body, headers=headers)
+        except HttpError as exc:
+            # Bhoonidhi answers an empty search with HTTP 404 "NO RESULTS FOUND" (e.g. before EOS-04 launched).
+            if exc.status == 404 and "NO RESULTS" in str(exc).upper():
+                return []
+            raise
         scenes = parse_features(payload)
         next_link = next((l["href"] for l in payload.get("links", []) if l.get("rel") == "next"), None)
         while next_link:
@@ -108,6 +114,22 @@ class Eos04Bhoonidhi:
             scenes.extend(parse_features(page))
             next_link = next((l["href"] for l in page.get("links", []) if l.get("rel") == "next"), None)
         return scenes
+
+    def list_products(self, collection: str, start: datetime, end: datetime) -> list[dict[str, Any]]:
+        """Catalogue entries of any Bhoonidhi collection (no spatial filter), e.g. EOS-06 scatterometer winds."""
+        headers = {"Authorization": f"Bearer {self._token()}"}
+        body = {"collections": [collection], "datetime": f"{iso(start)}/{iso(end)}", "limit": 500}
+        try:
+            payload = self.http.request_json("POST", f"{BASE_URL}/data/search", json_body=body, headers=headers)
+        except HttpError as exc:
+            if exc.status == 404 and "NO RESULTS" in str(exc).upper():
+                return []
+            raise
+        return [
+            {"id": f["id"], "collection": collection, "date": (f.get("properties") or {}).get("datetime"),
+             "online": str((f.get("properties") or {}).get("Online", "")).upper() == "Y"}
+            for f in payload.get("features", [])
+        ]
 
     def download(self, scene: SarScene, dest_dir: Path) -> Path:
         if not scene.online:

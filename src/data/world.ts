@@ -358,7 +358,8 @@ function buildUsers(): SystemUser[] {
 
 /** Integrations in priority order: Indian primary first, foreign fallbacks after. */
 function buildDataSources(index: IndexArtifact): DataSource[] {
-  const pipeline = new Map(index.providers.map((p) => [p.name, p]));
+  // A merged metocean provider is reported as "openmeteo+cmems"; list each member on its own.
+  const pipeline = new Map(index.providers.flatMap((p) => p.name.split('+').map((name) => [name, p] as const)));
   const built = ms(index.generatedAt);
   const fromPipeline = (id: string, kind: DataSource['kind'], role: DataSource['role']): DataSource => {
     const p = pipeline.get(id);
@@ -376,8 +377,12 @@ function buildDataSources(index: IndexArtifact): DataSource[] {
     pending('nisar', 'SAR', 'NISAR S-SAR', 'ISRO / NRSC Bhoonidhi', 'Open data on Bhoonidhi; only covers acquisitions after June 2026'),
     fromPipeline('sentinel1', 'SAR', 'fallback'),
     pending('incois', 'Metocean', 'INCOIS HOOFS currents', 'INCOIS', 'Needs INCOIS data portal registration and API details'),
-    pending('mosdac', 'Metocean', 'Oceansat-3 scatterometer winds', 'ISRO SAC / MOSDAC', 'Needs MOSDAC account'),
+    pending('eos06-scat', 'Metocean', 'Oceansat-3 (EOS-06) scatterometer winds', 'ISRO / NRSC Bhoonidhi',
+      'Listed per case from the Bhoonidhi catalogue (EOS-06_SCAT_3WW); products are offline and must be requested via the portal'),
     fromPipeline('openmeteo', 'Metocean', 'fallback'),
+    pipeline.has('cmems')
+      ? { ...fromPipeline('cmems', 'Metocean', 'fallback'), name: 'Copernicus Marine GLORYS12 currents', agency: 'Copernicus Marine Service', message: 'Reanalysis currents fill cells Open-Meteo lacks (all dates before 2022)' }
+      : { id: 'cmems', kind: 'Metocean', role: 'fallback', name: 'Copernicus Marine GLORYS12 currents', agency: 'Copernicus Marine Service', sovereign: false, status: 'Not configured', message: 'Adapter ready: METOCEAN_PROVIDER=openmeteo,cmems and CMEMS login', lastSync: null },
     pending('dgll', 'AIS', 'National AIS Network', 'DGLL / Indian Coast Guard / IFC-IOR', 'Needs government data access'),
     pipeline.has('gfw')
       ? fromPipeline('gfw', 'AIS', 'fallback')

@@ -229,9 +229,12 @@ export default function ImacIntegration() {
               ['Format', 'GeoJSON FeatureCollection + case metadata'],
               ['Transport', 'Not integrated'],
               ['Generated', payloadCase.imacPushedAt ? fmt.utc(payloadCase.imacPushedAt) : 'Preview'],
-              ['Suspect data', payloadCase.aisProvider === 'gfw'
-                ? <span className="flex items-center gap-1">GFW events, interpolated tracks <ProvenanceBadge p="synthetic-anchored" /></span>
-                : <span className="flex items-center gap-1">Synthetic AIS <ProvenanceBadge p="synthetic" /></span>],
+              ['Suspect tracks', (() => {
+                const kinds = new Set((getAnalysis(payloadCase.id)?.ranked ?? []).slice(0, 3).map((r) => world.tracks.get(r.mmsi)?.provenance));
+                if (kinds.size === 1 && kinds.has('real')) return <span className="flex items-center gap-1">Real AIS (GFW hourly presence) <ProvenanceBadge p="real" /></span>;
+                if (kinds.has('real')) return <span className="flex items-center gap-1">Mixed real and interpolated <ProvenanceBadge p="synthetic-anchored" /></span>;
+                return <span className="flex items-center gap-1">Interpolated / synthetic <ProvenanceBadge p="synthetic" /></span>;
+              })()],
             ]} />
             <pre className="bg-slate-900 text-slate-100 rounded p-3 text-[10px] font-mono overflow-x-auto leading-relaxed max-h-80 overflow-y-auto">
               {payloadText}
@@ -310,7 +313,7 @@ function buildPayload(c: SpillCase, world: ReturnType<typeof useStore>['world'],
       };
     }),
     verdict: a ? { band: a.verdict.band, label: a.verdict.label } : null,
-    caveat: 'Attribution is a prioritisation score, not evidence of discharge. Vessel tracks in this prototype are synthetic where real AIS was unavailable.',
+    caveat: 'Attribution is a prioritisation score, not evidence of discharge. Check trackProvenance: only "real" tracks are observed AIS positions.',
     sources: c.facts.sources,
   }, null, 2);
 }

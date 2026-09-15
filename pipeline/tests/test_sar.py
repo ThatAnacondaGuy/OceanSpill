@@ -12,7 +12,7 @@ from oceanspill.sar.calibration import interpolate_lut, parse_calibration, parse
 from oceanspill.sar.darkspot import detect_dark_spots, label_components
 from oceanspill.sar.filters import box_mean, lee_filter, multilook_power, to_db
 from oceanspill.sar.geolocation import latlon, parse_geolocation
-from oceanspill.sar.landmask import land_mask, rings_from_land
+from oceanspill.sar.landmask import PolygonLand, RingLand, land_mask, rings_from_land
 from oceanspill.sar.quicklook import png_bytes
 
 # XML below follows the Sentinel-1 IPF annotation layout (calibration, noise and product annotation).
@@ -173,7 +173,7 @@ def test_process_scene_end_to_end_on_a_synthetic_safe(tmp_path: Path):
     case = {"id": "TEST-CASE", "incident": {"position": {"lat": 9.382, "lon": 76.018}}}
     # A land ring over the north-east corner of the scene.
     rings = [[(9.395, 76.030), (9.40, 76.030), (9.40, 76.036), (9.395, 76.036)]]
-    record = process_scene(safe, case, "S1A_IW_GRDH_1SDV_TEST", rings, tmp_path / "out", radius_km=40, factor=2,
+    record = process_scene(safe, case, "S1A_IW_GRDH_1SDV_TEST", RingLand(rings), tmp_path / "out", radius_km=40, factor=2,
                            params={"coastBufferKm": 0.1})
 
     assert record["polarisation"] == "VV" and record["parameters"]["pixelSpacingM"] == 20.0
@@ -185,3 +185,35 @@ def test_process_scene_end_to_end_on_a_synthetic_safe(tmp_path: Path):
     assert (tmp_path / "out" / record["quicklook"]).read_bytes()[:4] == b"\x89PNG"
     saved = json.loads((tmp_path / "out" / "sar" / "TEST-CASE" / "S1A_IW_GRDH_1SDV_TEST.json").read_text())
     assert saved["spots"][0]["outline"]
+
+
+def test_natural_earth_coastline_is_finer_than_the_outlines():
+    from oceanspill.coastline import load_coastline
+
+    polygons = load_coastline()
+    if polygons is None:
+        pytest.skip("coastline_ne10m.json not built")
+    land = PolygonLand(polygons)
+    # Thrissur is inland; 8 km off Kochi is sea; Kavaratti (Lakshadweep) is a small island.
+    lat = np.array([[10.527, 9.97, 10.566]])
+    lon = np.array([[76.214, 76.12, 72.642]])
+    assert land.mask(lat, lon).tolist() == [[True, False, True]]
+
+
+def test_clip_ring_keeps_inside_part_of_polygon():
+    from oceanspill.coastline import clip_ring
+
+    square = [(0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (0.0, 4.0)]
+    clipped = clip_ring(square, (1.0, 1.0, 2.0, 5.0))
+    xs = sorted({round(p[0], 6) for p in clipped})
+    ys = sorted({round(p[1], 6) for p in clipped})
+    assert xs == [1.0, 2.0] and ys == [1.0, 4.0]
+
+
+def test_polygon_holes_are_water():
+    outer = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
+    hole = [(4.0, 4.0), (6.0, 4.0), (6.0, 6.0), (4.0, 6.0)]
+    land = PolygonLand([[outer, hole]])
+    lat = np.array([[2.0, 5.0]])
+    lon = np.array([[2.0, 5.0]])
+    assert land.mask(lat, lon).tolist() == [[True, False]]

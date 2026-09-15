@@ -830,8 +830,27 @@ function distance(path: LatLon[]): number {
 
 function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, onSeek }: any) {
   const [showExcluded, setShowExcluded] = useState(false);
+  // Where authorities named the source, the case doubles as a check on the method.
+  const reportedSources = world.vessels.filter((v: any) => v.caseId === analysis.caseId && v.role === 'source' && !v.isFacility);
   return (
     <div className="p-3 space-y-3">
+      {reportedSources.map((v: any) => {
+        const score = analysis.ranked.find((r: any) => r.mmsi === v.mmsi);
+        const excluded = analysis.excluded.find((e: any) => e.mmsi === v.mmsi);
+        const trackKind = world.tracks.get(v.mmsi)?.provenance;
+        return (
+          <div key={v.mmsi} className={`rounded border p-2.5 ${score?.rank === 1 ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'}`}>
+            <p className="text-[10px] font-bold uppercase text-gray-600">Method check against the official record</p>
+            <p className="text-[11px] text-gray-900 mt-0.5">
+              Reported source: <b>{v.name}</b>{' '}
+              {score ? <>— ranked <b>#{score.rank} of {analysis.ranked.length}</b> ({(score.total * 100).toFixed(0)})</> : <>— not ranked{excluded ? `: ${excluded.reason}` : ''}</>}
+            </p>
+            <p className="text-[9.5px] text-gray-500 mt-0.5">
+              Track: {trackKind === 'real' ? 'real AIS' : 'interpolated'}. A known-source case shows how the ranking behaves; it does not change who the authorities identified.
+            </p>
+          </div>
+        );
+      })}
       <div className={`rounded border p-2.5 ${
         analysis.verdict.band === 'Strong' ? 'bg-red-50 border-red-200'
         : analysis.verdict.band === 'Moderate' ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
@@ -844,6 +863,12 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded p-2 text-[10px] text-gray-600">
+        <p className="font-bold text-gray-700 mb-0.5">Scored against</p>
+        <p className="mb-1">
+          {analysis.originBasis === 'reported'
+            ? <>Reported incident position {analysis.attributionOrigin.lat.toFixed(3)}, {analysis.attributionOrigin.lon.toFixed(3)} at the reported time (release point known)</>
+            : <>Hindcast origin estimate (release point unknown)</>}
+        </p>
         <p className="font-bold text-gray-700 mb-0.5">Discharge window evaluated</p>
         <p className="font-mono">{fmt.utc(analysis.windowStart)}</p>
         <p className="font-mono">→ {fmt.utc(analysis.windowEnd)}</p>
@@ -857,6 +882,18 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
           than an absence of evidence.
         </InfoBanner>
       )}
+
+      {(() => {
+        const estimated = analysis.ranked
+          .filter((s: any) => world.tracks.get(s.mmsi)?.provenance !== 'real' && world.vesselsByMmsi.get(s.mmsi)?.provenance === 'real')
+          .map((s: any) => world.vesselsByMmsi.get(s.mmsi)?.name);
+        return estimated.length > 0 ? (
+          <InfoBanner tone="amber" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
+            <b>Estimated tracks:</b> {estimated.join(', ')}. These ships are real, but their positions are interpolated between
+            reported positions, not observed AIS. Do not name a vessel from its rank without real AIS positions.
+          </InfoBanner>
+        ) : null;
+      })()}
 
       {analysis.ranked.map((s: any) => {
         const v = world.vesselsByMmsi.get(s.mmsi);

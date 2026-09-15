@@ -92,7 +92,10 @@ export default function SpillIncidents() {
               <span className="font-semibold text-gray-800 truncate max-w-[92px]" title={v?.name}>{v?.name ?? top.mmsi}</span>
               {v && <ProvenanceBadge p={v.provenance} />}
             </div>
-            <div className="text-[9.5px] text-gray-500">{a!.verdict.band} · {(top.total * 100).toFixed(0)}</div>
+            <div className="text-[9.5px] text-gray-500 flex items-center gap-1">
+              {a!.verdict.band} · {(top.total * 100).toFixed(0)}
+              {world.tracks.get(top.mmsi)?.provenance !== 'real' && <span title="Track positions between real reports are interpolated">· est. track</span>}
+            </div>
           </div>
         );
       },

@@ -360,6 +360,30 @@ export default function EnvironmentalData() {
                 ]} />
               </div>
             )}
+            {activeCase && (() => {
+              const wc = world.artifacts.get(activeCase.id)?.windCatalog;
+              if (!wc) return null;
+              return (
+                <div className="border border-orange-200 bg-orange-50/50 rounded p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold text-gray-900">Indian scatterometer winds</p>
+                    <Badge tone="green">IN</Badge>
+                  </div>
+                  <p className="text-[10px] text-gray-600 leading-snug">{wc.description} · {wc.collection}</p>
+                  <p className="text-[10px] text-gray-700 mt-1">
+                    {wc.products.length} daily product{wc.products.length === 1 ? '' : 's'} for this window · {wc.online} online
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {wc.products.slice(0, 8).map((x) => (
+                      <span key={x.id} title={x.id} className="text-[9px] font-mono px-1 rounded border border-orange-200 bg-white">{(x.date ?? '').slice(0, 10)}{x.online ? '' : ' · offline'}</span>
+                    ))}
+                  </div>
+                  {wc.online === 0 && wc.products.length > 0 && (
+                    <p className="text-[9.5px] text-gray-500 mt-1">Offline on Bhoonidhi: request them through the portal, then they can replace ERA5 wind for this case.</p>
+                  )}
+                </div>
+              );
+            })()}
             {metSources.map((d) => (
               <div key={d.id} className="border border-gray-200 rounded p-2.5">
                 <div className="flex justify-between items-start gap-2 mb-1">
