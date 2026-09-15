@@ -8,7 +8,9 @@ import { MODEL_SAMPLER, observedSampler, type FieldSampler, type SampledVector }
 import { LandGrid } from '../engine/land';
 import { loadWorld, type World } from '../data/world';
 import { ECOLOGICAL_AREAS } from '../data/geography';
-import type { AuditEntry, CaseStatus, CommunityAlert, EnforcementAction, SightingReport, SpillCase, SystemUser, WorkflowStage } from '../data/types';
+import type { AreaOfInterest, AuditEntry, CaseStatus, CommunityAlert, EnforcementAction, SightingReport, SpillCase, SystemUser, WorkflowStage } from '../data/types';
+import { clearanceAllowsIdentities, tabAccess, type AccessLevel } from '../data/access';
+import { canMoveStage, canSetStatus } from '../data/workflow';
 
 const HOUR = 3600_000;
 
@@ -73,9 +75,20 @@ interface StoreValue {
   samplerFor: (caseId: string) => FieldSampler;
 
   updateCase: (id: string, patch: Partial<SpillCase>) => void;
-  setCaseStatus: (id: string, status: CaseStatus, detail?: string) => void;
-  setWorkflowStage: (id: string, stage: WorkflowStage) => void;
+  setCaseStatus: (id: string, status: CaseStatus, detail?: string) => boolean;
+  setWorkflowStage: (id: string, stage: WorkflowStage) => boolean;
   replayCase: (id: string) => void;
+  /** Access level of the signed-in role for a page. */
+  access: (tab: string) => AccessLevel;
+  canEdit: (tab: string) => boolean;
+  identitiesVisible: boolean;
+  signedOut: boolean;
+  signOut: () => void;
+  signIn: (u: SystemUser) => void;
+  timeZone: DisplayTimeZone;
+  setTimeZone: (tz: DisplayTimeZone) => void;
+  /** Discards changes saved in this browser and reloads the recorded cases. */
+  resetSession: () => void;
   pushToImac: (id: string) => void;
   draftAlert: (alert: Omit<CommunityAlert, 'id' | 'reach' | 'status' | 'provenance' | 'issuer'>) => void;
   addEnforcement: (a: Omit<EnforcementAction, 'id' | 'provenance'>) => void;
@@ -102,7 +115,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadWorld().then(setWorld).catch((e: Error) => setError(e.message));
+    // Keep the first loaded world: a second load (React runs effects twice in development) would
+    // replace the restored session with a fresh copy and overwrite what was saved.
+    loadWorld().then((w) => setWorld((prev) => prev ?? w)).catch((e: Error) => setError(e.message));
   }, []);
 
   if (error) {
@@ -111,7 +126,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         <div className="bg-white border border-red-200 rounded-lg shadow p-6 max-w-lg">
           <h1 className="font-bold text-red-700 mb-2">Case data could not be loaded</h1>
           <p className="text-sm text-gray-700 mb-3">{error}</p>
-          <p className="text-xs text-gray-500">Generate the artifacts with <code className="bg-gray-100 px-1 rounded">cd pipeline && uv run oceanspill build</code>, then reload.</p>
+          <p className="text-xs text-gray-500">Try reloading. If the problem continues, contact the system administrator.</p>
         </div>
       </div>
     );
@@ -121,7 +136,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       <div className="h-screen flex items-center justify-center bg-[#f0f4f8]">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm font-semibold text-gray-700">Loading real case data…</p>
+          <p className="text-sm font-semibold text-gray-700">Loading case data…</p>
         </div>
       </div>
     );
@@ -129,16 +144,103 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return <LoadedStore world={world}>{children}</LoadedStore>;
 }
 
+const SESSION_KEY = 'oceanspill.session.v1';
+const PREFS_KEY = 'oceanspill.prefs.v1';
+const CASE_FIELDS = ['status', 'workflowStage', 'imacPushed', 'imacPushedAt', 'alertDispatched', 'lookalikeReason', 'updatedAt'] as const;
+
+interface SessionSnapshot {
+  cases: Record<string, Partial<SpillCase>>;
+  audit: AuditEntry[];
+  alerts: CommunityAlert[];
+  enforcement: EnforcementAction[];
+  sightings: SightingReport[];
+  sightingPatches: Record<string, { linkedCaseId?: string; verified: boolean }>;
+  users: SystemUser[];
+  aois: AreaOfInterest[];
+  aoiPatches: Record<string, { pinned: boolean; priority: number }>;
+  weights: ScoringWeights;
+  currentUserId: string;
+  signedOut: boolean;
+}
+
+/** Actions taken in the app are kept in this browser so they survive a reload. */
+function saveSession(world: World, weights: ScoringWeights, currentUserId: string, signedOut: boolean) {
+  const snap: SessionSnapshot = {
+    cases: Object.fromEntries(world.cases.map((c) => [c.id, Object.fromEntries(CASE_FIELDS.map((f) => [f, c[f]]))])),
+    audit: world.audit.filter((a) => a.provenance === 'session'),
+    alerts: world.alerts.filter((a) => a.provenance === 'session'),
+    enforcement: world.enforcement.filter((e) => e.provenance === 'session'),
+    sightings: world.sightings.filter((x) => x.provenance === 'session'),
+    sightingPatches: Object.fromEntries(world.sightings.filter((x) => x.provenance !== 'session').map((x) => [x.id, { linkedCaseId: x.linkedCaseId, verified: x.verified }])),
+    users: world.users,
+    aois: world.aois.filter((a) => a.provenance === 'session'),
+    aoiPatches: Object.fromEntries(world.aois.map((a) => [a.id, { pinned: a.pinned, priority: a.priority }])),
+    weights,
+    currentUserId,
+    signedOut,
+  };
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(snap));
+  } catch {
+    // Storage full or disabled: the session simply is not kept.
+  }
+}
+
+function restoreSession(world: World): SessionSnapshot | null {
+  let snap: SessionSnapshot;
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    snap = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  // Restoring can run twice (React re-runs state initialisers in development), so skip entries already present.
+  const fresh = <T extends { id: string }>(existing: T[], incoming: T[] | undefined) =>
+    (incoming ?? []).filter((x) => !existing.some((y) => y.id === x.id));
+  for (const c of world.cases) Object.assign(c, snap.cases?.[c.id] ?? {});
+  world.audit.unshift(...fresh(world.audit, snap.audit));
+  world.audit.sort((x, y) => y.t - x.t);
+  world.alerts.unshift(...fresh(world.alerts, snap.alerts));
+  world.enforcement.unshift(...fresh(world.enforcement, snap.enforcement));
+  world.sightings.unshift(...fresh(world.sightings, snap.sightings));
+  for (const x of world.sightings) Object.assign(x, snap.sightingPatches?.[x.id] ?? {});
+  if (snap.users?.length) world.users.splice(0, world.users.length, ...snap.users);
+  world.aois.push(...(snap.aois ?? []).filter((a) => !world.aois.some((b) => b.id === a.id)));
+  for (const a of world.aois) Object.assign(a, snap.aoiPatches?.[a.id] ?? {});
+  return snap;
+}
+
+export type DisplayTimeZone = 'UTC' | 'IST';
+
+function loadPrefs(): { timeZone: DisplayTimeZone } {
+  try {
+    return { timeZone: 'UTC', ...JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') };
+  } catch {
+    return { timeZone: 'UTC' };
+  }
+}
+
 function LoadedStore({ world, children }: { world: World; children: ReactNode }) {
+  const [restored] = useState(() => restoreSession(world));
   const [revision, setRevision] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(world.cases[0]?.id ?? null);
   const [selectedMmsi, setSelectedMmsi] = useState<string | null>(null);
   const [pendingSection, setPendingSection] = useState<string | null>(null);
-  const [weights, setWeightsState] = useState<ScoringWeights>(DEFAULT_WEIGHTS);
+  const [weights, setWeightsState] = useState<ScoringWeights>(restored?.weights ?? DEFAULT_WEIGHTS);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [currentUser, setCurrentUser] = useState<SystemUser>(world.users[0]);
+  const [currentUser, setCurrentUserState] = useState<SystemUser>(
+    () => world.users.find((u) => u.id === restored?.currentUserId) ?? world.users[0]
+  );
+  const [signedOut, setSignedOut] = useState(restored?.signedOut ?? false);
+  const [timeZone, setTimeZoneState] = useState<DisplayTimeZone>(() => {
+    const tz = loadPrefs().timeZone;
+    setDisplayTimeZone(tz);
+    return tz;
+  });
+  identitiesVisibleFlag = clearanceAllowsIdentities(currentUser.clearance);
 
   const analysisCache = useRef(new Map<string, CaseAnalysis>());
   const samplers = useRef(new Map<string, FieldSampler>());
@@ -151,6 +253,10 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
 
   const bump = useCallback(() => setRevision((r) => r + 1), []);
 
+  useEffect(() => {
+    saveSession(world, weights, currentUser.id, signedOut);
+  }, [world, weights, currentUser, signedOut, revision]);
+
   const notify = useCallback((t: Omit<Toast, 'id'>) => {
     const id = ++toastSeq.current;
     setToasts((list) => [...list, { ...t, id }]);
@@ -161,7 +267,7 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
 
   const log = useCallback(
     (entry: Omit<AuditEntry, 'id' | 't' | 'provenance'>) => {
-      world.audit.unshift({ ...entry, id: `SES-${String(world.audit.length + 1).padStart(5, '0')}`, t: Date.now(), provenance: 'session' });
+      world.audit.unshift({ ...entry, id: `SES-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, t: Date.now(), provenance: 'session' });
       bump();
     },
     [world, bump]
@@ -229,6 +335,7 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
         slickOrientationDeg: shape.orientationDeg,
         slickElongation: c.detection.extentReported ? shape.elongation : 1,
         weights,
+        originBasis: knownOrigin ? 'reported' : 'hindcast',
       });
 
       const windSample = sampler.wind(shape.centroid, ref);
@@ -269,7 +376,7 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
         forecast: fc,
         ranked,
         excluded,
-        verdict: attributionVerdict(ranked),
+        verdict: attributionVerdict(ranked, knownOrigin ? 'reported' : 'hindcast'),
         searchRadiusKm: searchRadiusKm(attributionUncertaintyKm),
         windowStart: attributionTime - windowMs * 1.35,
         windowEnd: attributionTime + windowMs,
@@ -313,20 +420,36 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
 
   const setCaseStatus = useCallback(
     (id: string, status: CaseStatus, detail?: string) => {
+      const c = world.cases.find((x) => x.id === id);
+      if (!c) return false;
+      const check = canSetStatus(status, c.workflowStage);
+      if (!check.ok) {
+        notify({ kind: 'error', title: 'Status not changed', body: check.reason });
+        return false;
+      }
       updateCase(id, { status });
       log({ actor: currentUser.name, role: currentUser.role, action: 'Status changed', target: id, detail: detail ?? `Status set to "${status}"`, category: 'Analysis' });
       notify({ kind: 'success', title: `${id} → ${status}`, body: detail });
+      return true;
     },
-    [updateCase, log, notify, currentUser]
+    [world, updateCase, log, notify, currentUser]
   );
 
   const setWorkflowStage = useCallback(
     (id: string, stage: WorkflowStage) => {
+      const c = world.cases.find((x) => x.id === id);
+      if (!c) return false;
+      const check = canMoveStage(c.workflowStage, stage);
+      if (!check.ok) {
+        notify({ kind: 'error', title: 'Stage not changed', body: check.reason });
+        return false;
+      }
       updateCase(id, { workflowStage: stage });
       log({ actor: currentUser.name, role: currentUser.role, action: 'Workflow advanced', target: id, detail: `Moved to "${stage}"`, category: 'Dispatch' });
       notify({ kind: 'success', title: `${id} moved to ${stage}` });
+      return true;
     },
-    [updateCase, log, notify, currentUser]
+    [world, updateCase, log, notify, currentUser]
   );
 
   const replayCase = useCallback(
@@ -453,6 +576,43 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
     [world, bump]
   );
 
+  const setCurrentUser = useCallback((u: SystemUser) => {
+    setCurrentUserState(u);
+    analysisCache.current.clear();
+  }, []);
+
+  const access = useCallback((tab: string) => tabAccess(currentUser.role, tab), [currentUser.role]);
+  const canEdit = useCallback((tab: string) => tabAccess(currentUser.role, tab) === 'full', [currentUser.role]);
+
+  const signOut = useCallback(() => {
+    log({ actor: currentUser.name, role: currentUser.role, action: 'Signed out', target: currentUser.id, detail: currentUser.email, category: 'Access' });
+    setSignedOut(true);
+  }, [log, currentUser]);
+
+  const signIn = useCallback((u: SystemUser) => {
+    setCurrentUser(u);
+    setSignedOut(false);
+    log({ actor: u.name, role: u.role, action: 'Signed in', target: u.id, detail: u.email, category: 'Access' });
+  }, [log, setCurrentUser]);
+
+  const setTimeZone = useCallback((tz: DisplayTimeZone) => {
+    setDisplayTimeZone(tz);
+    setTimeZoneState(tz);
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ ...loadPrefs(), timeZone: tz }));
+    } catch {
+      // Preference is only kept for this visit.
+    }
+    bump();
+  }, [bump]);
+
+  const resetSession = useCallback(() => {
+    localStorage.removeItem(SESSION_KEY);
+    window.location.reload();
+  }, []);
+
+  const identitiesVisible = clearanceAllowsIdentities(currentUser.clearance);
+
   const value = useMemo<StoreValue>(
     () => ({
       world, now, currentUser, setCurrentUser,
@@ -461,12 +621,14 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
       updateCase, setCaseStatus, setWorkflowStage, replayCase, pushToImac, draftAlert, addEnforcement,
       addSighting, linkSighting, verifySighting, addUser, updateUser, toggleAoiPin, reorderAoi, log,
       toasts, dismissToast, notify, revision,
+      access, canEdit, identitiesVisible, signedOut, signOut, signIn, timeZone, setTimeZone, resetSession,
     }),
     [
       world, now, currentUser, activeTab, navigate, selectedCaseId, selectedMmsi, pendingSection, consumeSection,
       weights, setWeights, resetWeights, getAnalysis, samplerFor, updateCase, setCaseStatus, setWorkflowStage,
       replayCase, pushToImac, draftAlert, addEnforcement, addSighting, linkSighting, verifySighting, addUser, updateUser,
       toggleAoiPin, reorderAoi, log, toasts, dismissToast, notify, revision,
+      access, canEdit, identitiesVisible, signedOut, signOut, signIn, timeZone, setTimeZone, resetSession,
     ]
   );
 
@@ -490,30 +652,48 @@ function hashSeed(s: string): number {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+let displayTz: DisplayTimeZone = 'UTC';
+let identitiesVisibleFlag = true;
+
+/** Chooses whether timestamps are shown in UTC or Indian Standard Time (UTC+05:30). */
+export function setDisplayTimeZone(tz: DisplayTimeZone) {
+  displayTz = tz;
+}
+
+/** A Date whose UTC fields read as the selected display time zone. */
+function shifted(t: number): Date {
+  return new Date(displayTz === 'IST' ? t + 5.5 * HOUR : t);
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
 export const fmt = {
+  zone(): DisplayTimeZone {
+    return displayTz;
+  },
   utc(t: number): string {
-    const d = new Date(t);
-    return `${String(d.getUTCDate()).padStart(2, '0')} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
+    const d = shifted(t);
+    return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} ${displayTz}`;
   },
   utcShort(t: number): string {
-    const d = new Date(t);
-    return `${String(d.getUTCDate()).padStart(2, '0')} ${MONTHS[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    const d = shifted(t);
+    return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
   },
   date(t: number): string {
-    const d = new Date(t);
-    return `${String(d.getUTCDate()).padStart(2, '0')} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    const d = shifted(t);
+    return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
   },
   /** Formats a timestamp at the precision it is actually known to. */
   precise(t: number, precision: string): string {
-    const d = new Date(t);
+    const d = shifted(t);
     if (precision === 'year') return String(d.getUTCFullYear());
     if (precision === 'month') return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
     if (precision === 'day') return fmt.date(t);
     return fmt.utc(t);
   },
   time(t: number): string {
-    const d = new Date(t);
-    return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    const d = shifted(t);
+    return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
   },
   ago(t: number, now: number): string {
     const diff = now - t;
@@ -523,8 +703,8 @@ export const fmt = {
     if (abs < HOUR) return `${Math.round(abs / 60000)} min ${suffix}`;
     if (abs < 86400_000) return `${(abs / HOUR).toFixed(1)} h ${suffix}`;
     if (abs < 60 * 86400_000) return `${Math.round(abs / 86400_000)} d ${suffix}`;
-    if (abs < 730 * 86400_000) return `${Math.round(abs / (30.44 * 86400_000))} mo ${suffix}`;
-    return `${(abs / (365.25 * 86400_000)).toFixed(1)} y ${suffix}`;
+    if (abs < 730 * 86400_000) return `${Math.round(abs / (30.44 * 86400_000))} months ${suffix}`;
+    return `${(abs / (365.25 * 86400_000)).toFixed(1)} years ${suffix}`;
   },
   duration(msv: number): string {
     const h = Math.floor(msv / HOUR);
@@ -533,12 +713,18 @@ export const fmt = {
     if (h >= 48) return `${(msv / 86400_000).toFixed(1)} d`;
     return `${h} h ${String(m).padStart(2, '0')} min`;
   },
+  /** Hours for short spans, days beyond three days. */
+  hoursOrDays(hours: number): string {
+    return hours > 72 ? `${(hours / 24).toFixed(1)} d` : `${hours.toFixed(1)} h`;
+  },
   num(n: number, digits = 0): string {
     return n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
   },
   inr(n: number): string {
-    if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
-    if (n >= 100000) return `₹${(n / 100000).toFixed(2)} L`;
+    // Drop trailing zeros: ₹110 Cr, ₹5.25 Cr.
+    const trim = (x: number) => String(Number(x.toFixed(2)));
+    if (n >= 10000000) return `₹${trim(n / 10000000)} Cr`;
+    if (n >= 100000) return `₹${trim(n / 100000)} L`;
     return `₹${n.toLocaleString('en-IN')}`;
   },
   pct(n: number, digits = 1): string {
@@ -550,10 +736,16 @@ export const fmt = {
   },
   vesselId(v: { mmsiNumber: string | null; imo: string | null; isFacility: boolean }): string {
     if (v.isFacility) return 'Fixed facility';
+    if (!identitiesVisibleFlag) return 'MMSI / IMO withheld at your clearance';
     if (v.mmsiNumber && !v.mmsiNumber.startsWith('999')) return `MMSI ${v.mmsiNumber}${v.imo ? ` · IMO ${v.imo}` : ''}`;
     if (v.mmsiNumber) return `Synthetic MMSI ${v.mmsiNumber}`;
     if (v.imo) return `IMO ${v.imo}`;
     return 'MMSI not public';
+  },
+  /** A single identifier (MMSI or IMO) respecting the viewer's clearance. */
+  ident(value: string | null | undefined, fallback = '—'): string {
+    if (!value) return fallback;
+    return identitiesVisibleFlag ? value : 'Withheld';
   },
 };
 

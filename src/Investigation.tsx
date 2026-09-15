@@ -14,7 +14,9 @@ import { interpolateTrack } from './engine/attribution';
 import { OIL_TYPES, type OilProperties } from './engine/drift';
 import { MODEL_STATUS } from './engine/detection';
 import type { CaseAnalysis } from './store/store';
-import type { SpillCase } from './data/types';
+import type { CaseStatus, SpillCase, WorkflowStage } from './data/types';
+import { CASE_STATUSES, WORKFLOW_ORDER, canMoveStage, canSetStatus } from './data/workflow';
+import { READ_ONLY_HINT } from './data/access';
 import { dataUrl } from './data/world';
 import { ECOLOGICAL_AREAS } from './data/geography';
 import { DEFAULT_WEIGHTS } from './engine/attribution';
@@ -22,6 +24,7 @@ import { DEFAULT_WEIGHTS } from './engine/attribution';
 export default function Investigation() {
   const store = useStore();
   const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, navigate, weights, setWeights, resetWeights, revision } = store;
+  const editable = store.canEdit('Investigation');
 
   const [query, setQuery] = useState('');
   const [basemap, setBasemap] = useState<BasemapStyle>('satellite');
@@ -185,7 +188,7 @@ export default function Investigation() {
               headingDeg: at.cog, label: vessel.name, sublabel: `Rank ${score.rank} · score ${(score.total * 100).toFixed(0)}`,
               selected: focused, dimmed: dim, z: isTop ? 9 : 7,
               meta: {
-                ID: fmt.vesselId(vessel), Data: vessel.provenance === 'real' ? 'Real vessel, synthetic track' : 'Synthetic vessel', Speed: `${at.sog.toFixed(1)} kn`,
+                ID: fmt.vesselId(vessel), Track: track.provenance === 'real' ? 'AIS (hourly)' : track.provenance === 'synthetic-anchored' ? 'Estimated from reported positions' : track.provenance === 'facility-position' ? 'Fixed site' : 'Synthetic', Speed: `${at.sog.toFixed(1)} kn`,
                 Course: `${at.cog.toFixed(0)}°`, CPA: `${score.cpaKm.toFixed(1)} km`,
               },
             });
@@ -255,16 +258,16 @@ export default function Investigation() {
                   c.id === active.id ? 'bg-blue-50 border-l-[3px] border-l-blue-600' : 'hover:bg-gray-50 border-l-[3px] border-l-transparent'
                 }`}>
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <span className="font-bold text-[12.5px] text-gray-900 leading-snug line-clamp-2" title={c.title}>{c.title}</span>
+                  <span className="font-bold text-[0.78125rem] text-gray-900 leading-snug line-clamp-2" title={c.title}>{c.title}</span>
                   <span className="flex-shrink-0 mt-0.5"><Tier tier={c.tier} /></span>
                 </div>
-                <p className="text-[11px] font-mono text-gray-400 truncate">{c.id}</p>
-                <p className="text-[11.5px] text-gray-600 truncate mt-0.5" title={c.subRegion}>{c.subRegion}</p>
+                <p className="text-[0.6875rem] font-mono text-gray-400 truncate">{c.id}</p>
+                <p className="text-[0.71875rem] text-gray-600 truncate mt-0.5" title={c.subRegion}>{c.subRegion}</p>
                 <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                   <StatusBadge status={c.status} />
                   {a?.ranked.some((r) => r.darkDuringWindow) && <Badge tone="red">DARK</Badge>}
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1.5">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {fmt.ago(c.incidentTime, now)}</p>
+                <p className="text-[0.6875rem] text-gray-400 mt-1.5">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {fmt.ago(c.incidentTime, now)}</p>
               </button>
             );
           })}
@@ -276,15 +279,17 @@ export default function Investigation() {
         <div className="bg-white border-b border-gray-200 px-3 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 flex-shrink-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="font-bold text-sm text-gray-900 truncate" title={active.title}>{active.title}</span>
-            <span className="hidden 2xl:inline text-[11px] text-gray-400 font-mono flex-shrink-0">{active.id}</span>
+            <span className="hidden 2xl:inline text-[0.6875rem] text-gray-400 font-mono flex-shrink-0">{active.id}</span>
             <span className="flex-shrink-0"><Tier tier={active.tier} /></span>
             <span className="hidden sm:inline flex-shrink-0"><StatusBadge status={active.status} /></span>
-            <span className="hidden 2xl:inline text-[12px] text-gray-500 truncate">{active.subRegion}</span>
+            <span className="hidden 2xl:inline text-[0.75rem] text-gray-500 truncate">{active.subRegion}</span>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <Button size="sm" title="Scoring weights" onClick={() => setWeightsOpen(true)} icon={<Sliders className="w-3 h-3" />}><span className="hidden 2xl:inline">Scoring weights</span></Button>
-            <Button size="sm" title="Reclassify" onClick={() => setLookalikeOpen(true)} icon={<EyeOff className="w-3 h-3" />}><span className="hidden 2xl:inline">Reclassify</span></Button>
-            <Button size="sm" variant="primary" onClick={() => setDispatchOpen(true)} icon={<Send className="w-3 h-3" />}>Actions</Button>
+            <Button size="sm" title={editable ? 'Scoring weights' : READ_ONLY_HINT} disabled={!editable} onClick={() => setWeightsOpen(true)} icon={<Sliders className="w-3 h-3" />}><span className="hidden 2xl:inline">Scoring weights</span></Button>
+            <Button size="sm" disabled={!editable || active.facts.officiallyConfirmed}
+              title={!editable ? READ_ONLY_HINT : active.facts.officiallyConfirmed ? 'An officially confirmed spill cannot be reclassified as a look-alike' : 'Reclassify as a look-alike'}
+              onClick={() => setLookalikeOpen(true)} icon={<EyeOff className="w-3 h-3" />}><span className="hidden 2xl:inline">Reclassify</span></Button>
+            <Button size="sm" variant="primary" disabled={!editable} title={editable ? undefined : READ_ONLY_HINT} onClick={() => setDispatchOpen(true)} icon={<Send className="w-3 h-3" />}>Actions</Button>
           </div>
         </div>
 
@@ -315,7 +320,7 @@ export default function Investigation() {
                   </button>
                   {layersOpen && (
                     <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-56 z-30">
-                      <p className="text-[11px] font-bold text-gray-500 uppercase mb-1.5">Analysis layers</p>
+                      <p className="text-[0.6875rem] font-bold text-gray-500 uppercase mb-1.5">Analysis layers</p>
                       <Toggle checked={layers.slick} onChange={(v) => setLayers({ ...layers, slick: v })} label="Detected slick polygon" />
                       <Toggle checked={layers.hindcast} onChange={(v) => setLayers({ ...layers, hindcast: v })} label="Hindcast trajectory" />
                       <Toggle checked={layers.ensemble} onChange={(v) => setLayers({ ...layers, ensemble: v })} label="Hindcast ensemble (12)" />
@@ -327,7 +332,7 @@ export default function Investigation() {
                       <Toggle checked={layers.sar} onChange={(v) => setLayers({ ...layers, sar: v })} label="SAR dark spots (processed)"
                         count={active.detection.sarMeasurements.reduce((n, m) => n + m.spots.length, 0)} />
                       {focusMmsi && (
-                        <button onClick={() => setFocusMmsi(null)} className="mt-2 w-full text-[11px] font-semibold text-blue-600 hover:underline">
+                        <button onClick={() => setFocusMmsi(null)} className="mt-2 w-full text-[0.6875rem] font-semibold text-blue-600 hover:underline">
                           Clear vessel focus
                         </button>
                       )}
@@ -337,7 +342,7 @@ export default function Investigation() {
               </div>
             }
             legend={
-              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[11px] shadow-lg">
+              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[0.6875rem] shadow-lg">
                 <h4 className="font-bold mb-1.5 text-gray-700 uppercase tracking-wide">Analysis legend</h4>
                 <LegendLine color="#8b6b9e" fill="radial-gradient(circle, #1a130d 40%, #5a3d22 70%, #9c8fb8 100%)" label={active.detection.extentReported ? 'Reported slick extent' : 'Reported location'} swatch />
                 <LegendLine color="#f59e0b" label="Hindcast (backward)" dash />
@@ -346,7 +351,7 @@ export default function Investigation() {
                 <LegendLine color="#f43f5e" label="Leading suspect track" />
                 <LegendLine color="#dc2626" label="AIS gap (inferred)" dash />
                 <LegendLine color="#64748b" label="Other candidate traffic" />
-                <p className="text-[10.5px] text-gray-500 mt-1.5 max-w-[190px] leading-normal">AIS: {active.aisProvider}. Drift forcing: {analysis.sampler.label}.</p>
+                <p className="text-[0.65625rem] text-gray-500 mt-1.5 max-w-[190px] leading-normal">AIS: {active.aisProvider}. Drift forcing: {analysis.sampler.label}.</p>
               </div>
             }
           />
@@ -395,22 +400,22 @@ export default function Investigation() {
 
         <div className="border-t border-gray-200 p-3 bg-gray-50 flex-shrink-0">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-gray-600 uppercase">Overall assessment</span>
+            <span className="text-[0.6875rem] font-bold text-gray-600 uppercase">Overall assessment</span>
             <Badge tone={analysis.verdict.band === 'Strong' ? 'red' : analysis.verdict.band === 'Moderate' ? 'amber' : 'gray'}>
               {analysis.verdict.band}
             </Badge>
           </div>
-          <p className="text-[11px] text-gray-600 leading-normal mb-2">{analysis.verdict.detail}</p>
+          <p className="text-[0.6875rem] text-gray-600 leading-normal mb-2">{analysis.verdict.detail}</p>
           {topVessel && topScore && (
             <div className="bg-white border border-gray-200 rounded p-2 flex items-center gap-2">
               <Ship className="w-4 h-4 text-rose-600 flex-shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-bold text-gray-900 truncate">{topVessel.name}</p>
-                <p className="text-[11px] text-gray-500 flex items-center gap-1">{topVessel.flag ?? 'Flag n/a'} · {fmt.vesselId(topVessel)} <ProvenanceBadge p={topVessel.provenance} /></p>
+                <p className="text-[0.75rem] font-bold text-gray-900 truncate">{topVessel.name}</p>
+                <p className="text-[0.6875rem] text-gray-500 flex items-center gap-1">{topVessel.flag ?? 'Flag n/a'} · {fmt.vesselId(topVessel)} <ProvenanceBadge p={topVessel.provenance} /></p>
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="text-base font-black text-rose-600 leading-none">{(topScore.total * 100).toFixed(0)}</div>
-                <div className="text-[10.5px] text-gray-400">score</div>
+                <div className="text-[0.65625rem] text-gray-400">score</div>
               </div>
             </div>
           )}
@@ -436,6 +441,7 @@ function LegendLine({ color, label, dash, swatch, fill }: { color: string; label
 }
 
 function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; analysis: CaseAnalysis; shape: PolygonShape; oil: OilProperties | undefined }) {
+  const { identitiesVisible } = useStore();
   const a = analysis.assessment;
   const det = active.detection;
   const pendingCount = a.checks.filter((c) => c.status === 'pending').length;
@@ -451,26 +457,26 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
           <span className="text-lg font-black text-gray-900">{a.confidenceBasis === 'official-report' ? 'Official' : fmt.pct(a.confidence, 0)}</span>
         </div>
         {a.confidenceBasis === 'official-report' ? (
-          <p className="text-[11px] text-gray-700 leading-normal">
+          <p className="text-[0.6875rem] text-gray-700 leading-normal">
             The spill was confirmed by an authority ({det.observationSource}). This is a report, not a model output:
             SAR checks that need a processed scene are shown as pending below.
           </p>
         ) : a.rawModelConfidence != null ? (
-          <p className="text-[11px] text-gray-700 leading-normal">
+          <p className="text-[0.6875rem] text-gray-700 leading-normal">
             Raw segmentation output was {fmt.pct(a.rawModelConfidence)}; the cross-checks below moved it to {fmt.pct(a.confidence)}.
           </p>
         ) : (
-          <p className="text-[11px] text-gray-700 leading-normal">Not officially confirmed and no SAR model output yet.</p>
+          <p className="text-[0.6875rem] text-gray-700 leading-normal">Not officially confirmed and no SAR model output yet.</p>
         )}
         {a.lookalikeHypothesis && (
-          <p className="text-[11px] font-semibold text-slate-700 mt-1.5 pt-1.5 border-t border-slate-200">
+          <p className="text-[0.6875rem] font-semibold text-slate-700 mt-1.5 pt-1.5 border-t border-slate-200">
             Most likely natural alternative: {a.lookalikeHypothesis}
           </p>
         )}
       </div>
 
       <Section title="Look-alike discrimination" icon={<FlaskConical className="w-3.5 h-3.5" />}>
-        <p className="text-[11px] text-gray-500 mb-2 leading-normal">
+        <p className="text-[0.6875rem] text-gray-500 mb-2 leading-normal">
           Separating oil from wind shadows, algal films and current shear. {pendingCount > 0 && `${pendingCount} check${pendingCount === 1 ? '' : 's'} need a downloaded and segmented SAR scene.`}
         </p>
         <div className="space-y-2">
@@ -483,10 +489,10 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
                   : <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />}
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11.5px] font-bold text-gray-900">{c.name}</span>
-                    {c.status === 'pending' ? <ProvenanceBadge p="pending" /> : <span className="text-[10.5px] text-gray-400">weight {c.weight.toFixed(2)}</span>}
+                    <span className="text-[0.71875rem] font-bold text-gray-900">{c.name}</span>
+                    {c.status === 'pending' ? <ProvenanceBadge p="pending" /> : <span className="text-[0.65625rem] text-gray-400">weight {c.weight.toFixed(2)}</span>}
                   </div>
-                  <p className="text-[11px] text-gray-600 leading-normal mt-0.5">{c.detail}</p>
+                  <p className="text-[0.6875rem] text-gray-600 leading-normal mt-0.5">{c.detail}</p>
                 </div>
               </div>
             </div>
@@ -500,34 +506,35 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
           <ProvenanceBadge p={det.extentReported ? 'real' : 'modelled'} />
         </div>
         <KeyValue cols={2} items={[
-          ['Area', `${shape.areaKm2.toFixed(2)} km²`],
-          ['Major axis', `${shape.majorAxisKm.toFixed(2)} km`],
-          ['Elongation', det.extentReported ? `${shape.elongation.toFixed(2)} : 1` : 'n/a (marker)'],
-          ['Orientation', det.extentReported ? `${shape.orientationDeg.toFixed(0)}° (${formatBearing(shape.orientationDeg)})` : 'n/a (marker)'],
+          // A location-only case is drawn as a 1 km marker; its size says nothing about the slick.
+          ['Area', det.extentReported ? `${shape.areaKm2.toFixed(2)} km²` : 'Not reported'],
+          ['Major axis', det.extentReported ? `${shape.majorAxisKm.toFixed(2)} km` : 'Not reported'],
+          ['Elongation', det.extentReported ? `${shape.elongation.toFixed(2)} : 1` : 'Not reported'],
+          ['Orientation', det.extentReported ? `${shape.orientationDeg.toFixed(0)}° (${formatBearing(shape.orientationDeg)})` : 'Not reported'],
           ['Observed', fmt.utc(det.acquiredAt)],
           ['Source', det.observationSource],
         ]} />
         {det.geometryAssumptions.length > 0 && (
           <ul className="mt-1.5 space-y-0.5">
-            {det.geometryAssumptions.map((s) => <li key={s} className="text-[11px] text-gray-500 leading-normal flex gap-1"><span>•</span><span>{s}</span></li>)}
+            {det.geometryAssumptions.map((s) => <li key={s} className="text-[0.6875rem] text-gray-500 leading-normal flex gap-1"><span>•</span><span>{s}</span></li>)}
           </ul>
         )}
         <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2">
-          <p className="text-[11px] font-bold text-blue-900 mb-0.5">Source</p>
-          <p className="text-[11px] text-blue-800 leading-normal">{a.sourceInference}</p>
+          <p className="text-[0.6875rem] font-bold text-blue-900 mb-0.5">Source</p>
+          <p className="text-[0.6875rem] text-blue-800 leading-normal">{a.sourceInference}</p>
         </div>
       </Section>
 
       <Section title="Weathering" icon={<Beaker className="w-3.5 h-3.5" />}>
         <KeyValue cols={2} items={[
           ['Oil type (model)', oil?.label ?? active.oilType],
-          ['Quantity', active.oilQuantityTonnes != null ? `${fmt.num(active.oilQuantityTonnes)} t` : 'Not reported'],
+          ['Quantity', active.oilQuantityTonnes != null ? `${fmt.num(active.oilQuantityTonnes)} t ${active.oilQuantityBasis ?? ''}`.trim() : 'Not reported'],
           ['Age at observation', analysis.knownAgeHours != null ? `${analysis.knownAgeHours.toFixed(1)} h` : 'Unknown (incident time imprecise)'],
           ['Incident time', fmt.precise(active.incidentTime, active.facts.incident.timePrecision)],
         ]} />
         {w ? (
           <>
-            <p className="text-[11px] text-gray-500 my-1.5 leading-normal flex items-center gap-1.5">
+            <p className="text-[0.6875rem] text-gray-500 my-1.5 leading-normal flex items-center gap-1.5">
               <ProvenanceBadge p="modelled" /> Weathering state from the empirical model at the known age, using the observed wind.
             </p>
             <KeyValue cols={2} items={[
@@ -540,9 +547,9 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
             ]} />
           </>
         ) : (
-          <p className="text-[11px] text-gray-500 mt-1.5">Weathering is not modelled because the release time is only known to the {active.facts.incident.timePrecision}.</p>
+          <p className="text-[0.6875rem] text-gray-500 mt-1.5">Weathering is not modelled because the release time is only known to the {active.facts.incident.timePrecision}.</p>
         )}
-        {active.facts.oil.spilledNote && <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">{active.facts.oil.spilledNote}</p>}
+        {active.facts.oil.spilledNote && <p className="text-[0.6875rem] text-gray-500 mt-1.5 leading-normal">{active.facts.oil.spilledNote}</p>}
       </Section>
 
       <Section title="Conditions at the observation" icon={<Wind className="w-3.5 h-3.5" />}>
@@ -560,7 +567,7 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
       <Section title={`SAR catalogue (${det.scenes.length})`} icon={<Layers className="w-3.5 h-3.5" />}>
         <div className="space-y-1.5 mb-2">
           {det.sarProviders.map((p) => (
-            <div key={p.name} className="flex items-center gap-1.5 text-[11px]">
+            <div key={p.name} className="flex items-center gap-1.5 text-[0.6875rem]">
               <Badge tone={p.sovereign ? 'green' : 'gray'}>{p.sovereign ? 'IN' : 'EXT'}</Badge>
               <span className="font-semibold text-gray-800">{p.name}</span>
               <span className={`ml-auto ${p.ok ? 'text-emerald-700' : 'text-amber-700'}`}>{p.ok ? `${p.count} found` : 'not searched'}</span>
@@ -568,17 +575,17 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
           ))}
         </div>
         {det.scenes.length === 0 ? (
-          <p className="text-[11px] text-gray-500">No scene in the search window.</p>
+          <p className="text-[0.6875rem] text-gray-500">No scene in the search window.</p>
         ) : (
           <div className="space-y-1.5">
             {det.scenes.map((s) => (
               <div key={s.id} className="bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold text-gray-800">{s.platform} {s.mode} {s.productType}</span>
+                  <span className="text-[0.6875rem] font-bold text-gray-800">{s.platform} {s.mode} {s.productType}</span>
                   <ProvenanceBadge p="real" />
                 </div>
-                <p className="text-[11px] text-gray-500">{fmt.utc(s.start)} · {s.orbitDirection ?? 'orbit n/a'} · {s.coversIncident ? 'covers incident' : 'near incident'}</p>
-                <p className="text-[10.5px] text-gray-400 font-mono break-all">{s.name}</p>
+                <p className="text-[0.6875rem] text-gray-500">{fmt.utc(s.start)}{s.orbitDirection ? ` · ${s.orbitDirection.toLowerCase()} pass` : ''} · {s.coversIncident ? 'covers incident' : 'near incident'}</p>
+                <p className="text-[0.65625rem] text-gray-400 font-mono break-all">{s.name}</p>
               </div>
             ))}
           </div>
@@ -590,12 +597,14 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
           {det.sarMeasurements.map((m) => (
             <div key={m.scene} className="border border-gray-200 rounded p-2 mb-2">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-[11px] font-bold text-gray-800 truncate" title={m.scene}>{m.scene}</span>
+                <span className="text-[0.6875rem] font-bold text-gray-800 truncate" title={m.scene}>{m.scene}</span>
                 <ProvenanceBadge p="observed" />
               </div>
-              <img src={dataUrl(m.quicklook)} alt={`Calibrated ${m.polarisation} sigma0 quicklook with detected dark spots outlined`}
-                className="w-full rounded border border-gray-200 bg-gray-900" />
-              <p className="text-[11px] text-gray-500 mt-1 leading-normal">{m.method}</p>
+              {identitiesVisible
+                ? <img src={dataUrl(m.quicklook)} alt={`Calibrated ${m.polarisation} sigma0 quicklook with detected dark spots outlined`}
+                    className="w-full rounded border border-gray-200 bg-gray-900" />
+                : <div className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-6 text-center text-[0.75rem] text-gray-600">SAR imagery is withheld at your clearance level.</div>}
+              <p className="text-[0.6875rem] text-gray-500 mt-1 leading-normal">{m.method}</p>
               <KeyValue cols={2} items={[
                 ['Product', m.product ?? 'Sentinel-1 GRD'],
                 ['Radiometry', m.radiometry ?? 'Sigma0'],
@@ -605,9 +614,9 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
                 ['Incidence', `${m.incidenceDeg}°`],
               ]} />
               <div className="mt-1.5 space-y-1.5">
-                {m.spots.length === 0 && <p className="text-[11px] text-gray-500">No dark spot above the thresholds.</p>}
+                {m.spots.length === 0 && <p className="text-[0.6875rem] text-gray-500">No dark spot above the thresholds.</p>}
                 {m.spots.slice(0, 5).map((spot, i) => (
-                  <div key={i} className="flex items-center gap-2 text-[11px]">
+                  <div key={i} className="flex items-center gap-2 text-[0.6875rem]">
                     <span className="w-14 font-mono text-gray-700">{spot.distanceKm.toFixed(1)} km</span>
                     <span className="flex-1 text-gray-600">{spot.areaKm2.toFixed(2)} km² · {spot.elongation.toFixed(1)}:1 · {spot.orientationDeg.toFixed(0)}°</span>
                     <span className="font-mono font-bold text-gray-900">{spot.contrastDb.toFixed(1)} dB</span>
@@ -615,7 +624,7 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
                 ))}
               </div>
               <ul className="mt-1.5 space-y-0.5">
-                {m.limitations.map((l) => <li key={l} className="text-[10.5px] text-gray-400 leading-normal">• {l}</li>)}
+                {m.limitations.map((l) => <li key={l} className="text-[0.65625rem] text-gray-400 leading-normal">• {l}</li>)}
               </ul>
             </div>
           ))}
@@ -623,13 +632,13 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
       )}
 
       <Section title="Segmentation model" icon={<Layers className="w-3.5 h-3.5" />}>
-        <div className="flex items-center gap-1.5 mb-1.5"><ProvenanceBadge p="pending" /><span className="text-[11px] text-gray-600">Not trained</span></div>
+        <div className="flex items-center gap-1.5 mb-1.5"><ProvenanceBadge p="pending" /><span className="text-[0.6875rem] text-gray-600">Not trained</span></div>
         <KeyValue cols={1} items={[
           ['Architecture', MODEL_STATUS.plannedArchitecture],
           ['Training plan', MODEL_STATUS.plannedTraining],
           ['Loss', MODEL_STATUS.plannedLoss],
         ]} />
-        <p className="text-[11px] text-gray-500 mt-1.5 leading-normal">{MODEL_STATUS.note}</p>
+        <p className="text-[0.6875rem] text-gray-500 mt-1.5 leading-normal">{MODEL_STATUS.note}</p>
       </Section>
 
       {active.lookalikeReason && (
@@ -650,7 +659,7 @@ function RecordTab({ active }: { active: SpillCase }) {
           <p className="text-xs font-bold text-gray-900">{f.title}</p>
           <ProvenanceBadge p="real" />
         </div>
-        <p className="text-[11px] text-gray-600 leading-normal">{f.officialFindings}</p>
+        <p className="text-[0.6875rem] text-gray-600 leading-normal">{f.officialFindings}</p>
       </div>
 
       <Section title="Incident" icon={<Info className="w-3.5 h-3.5" />}>
@@ -662,18 +671,18 @@ function RecordTab({ active }: { active: SpillCase }) {
           ['Source type', f.sourceType],
           ['Position source', f.incident.positionSource],
         ]} />
-        {f.incident.timeNote && <p className="text-[11px] text-gray-500 mt-1">{f.incident.timeNote}</p>}
+        {f.incident.timeNote && <p className="text-[0.6875rem] text-gray-500 mt-1">{f.incident.timeNote}</p>}
       </Section>
 
       <Section title="Oil" icon={<Beaker className="w-3.5 h-3.5" />}>
         <div className="space-y-1.5">
           {f.oil.onboard.map((o) => (
-            <div key={o.product} className="flex justify-between gap-2 text-[11.5px]">
+            <div key={o.product} className="flex justify-between gap-2 text-[0.71875rem]">
               <span className="text-gray-700">{o.product}{o.note && <span className="text-gray-400"> · {o.note}</span>}</span>
               <span className="font-mono font-bold text-gray-900 flex-shrink-0">{o.tonnes != null ? `${fmt.num(o.tonnes, o.tonnes % 1 ? 1 : 0)} t` : o.cubicMetres != null ? `${fmt.num(o.cubicMetres)} m³` : 'n/r'}</span>
             </div>
           ))}
-          <div className="flex justify-between gap-2 text-[11.5px] pt-1 border-t border-gray-200">
+          <div className="flex justify-between gap-2 text-[0.71875rem] pt-1 border-t border-gray-200">
             <span className="text-gray-700 font-semibold">Released</span>
             <span className="font-mono font-bold text-gray-900">{f.oil.spilledTonnes != null ? `${fmt.num(f.oil.spilledTonnes)} t` : 'Not published'}</span>
           </div>
@@ -685,11 +694,11 @@ function RecordTab({ active }: { active: SpillCase }) {
           {f.observations.map((o) => (
             <div key={`${o.time}-${o.type}`} className="bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
               <div className="flex justify-between gap-2">
-                <span className="text-[11px] font-bold text-gray-800">{o.type}</span>
-                <span className="text-[11px] font-mono text-gray-500">{fmt.utcShort(Date.parse(o.time))}</span>
+                <span className="text-[0.6875rem] font-bold text-gray-800">{o.type}</span>
+                <span className="text-[0.6875rem] font-mono text-gray-500">{fmt.utcShort(Date.parse(o.time))}</span>
               </div>
-              <p className="text-[11px] text-gray-600 leading-normal">{o.description}</p>
-              <p className="text-[10.5px] text-gray-400">{o.source}{o.extentKm2 != null ? ` · ${o.extentKm2} km²` : ''}</p>
+              <p className="text-[0.6875rem] text-gray-600 leading-normal">{o.description}</p>
+              <p className="text-[0.65625rem] text-gray-400">{o.source}{o.extentKm2 != null ? ` · ${o.extentKm2} km²` : ''}</p>
             </div>
           ))}
         </div>
@@ -700,8 +709,8 @@ function RecordTab({ active }: { active: SpillCase }) {
           {f.timeline.map((e) => (
             <li key={`${e.time}-${e.event}`} className="ml-3">
               <span className="absolute -left-[4.5px] w-2 h-2 rounded-full bg-blue-500 mt-1" />
-              <p className="text-[11px] font-mono text-gray-500">{fmt.precise(Date.parse(e.time), e.timePrecision ?? 'minute')}</p>
-              <p className="text-[11.5px] text-gray-800 leading-normal">{e.event}</p>
+              <p className="text-[0.6875rem] font-mono text-gray-500">{fmt.precise(Date.parse(e.time), e.timePrecision ?? 'minute')}</p>
+              <p className="text-[0.71875rem] text-gray-800 leading-normal">{e.event}</p>
             </li>
           ))}
         </ol>
@@ -723,9 +732,9 @@ function RecordTab({ active }: { active: SpillCase }) {
         <Section title="Legal outcome" icon={<Scale className="w-3.5 h-3.5" />}>
           {f.legal.map((l) => (
             <div key={`${l.authority}-${l.action}`} className="bg-amber-50 border border-amber-200 rounded p-2 mb-1">
-              <p className="text-[11.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
-              <p className="text-[11px] text-amber-800">{l.authority} → {l.party}</p>
-              {l.note && <p className="text-[11px] text-amber-700 mt-0.5">{l.note}</p>}
+              <p className="text-[0.71875rem] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
+              <p className="text-[0.6875rem] text-amber-800">{l.authority} → {l.party}</p>
+              {l.note && <p className="text-[0.6875rem] text-amber-700 mt-0.5">{l.note}</p>}
             </div>
           ))}
         </Section>
@@ -734,7 +743,7 @@ function RecordTab({ active }: { active: SpillCase }) {
       {active.warnings.length > 0 && (
         <Section title="Data warnings" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
           <ul className="space-y-1.5">
-            {active.warnings.map((w) => <li key={w} className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 leading-normal">{w}</li>)}
+            {active.warnings.map((w) => <li key={w} className="text-[0.6875rem] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 leading-normal">{w}</li>)}
           </ul>
         </Section>
       )}
@@ -743,7 +752,7 @@ function RecordTab({ active }: { active: SpillCase }) {
         <ul className="space-y-1.5">
           {f.sources.map((s) => (
             <li key={s.url}>
-              <a href={s.url} target="_blank" rel="noreferrer" className="text-[11.5px] text-blue-700 hover:underline leading-normal break-words">{s.title}</a>
+              <a href={s.url} target="_blank" rel="noreferrer" className="text-[0.71875rem] text-blue-700 hover:underline leading-normal break-words">{s.title}</a>
             </li>
           ))}
         </ul>
@@ -758,24 +767,24 @@ function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnaly
   return (
     <div className="p-4 space-y-4">
       <Section title="Hindcast — where it came from" icon={<Clock className="w-3.5 h-3.5" />}>
-        <p className="text-[11px] text-gray-500 mb-2 leading-normal">
+        <p className="text-[0.6875rem] text-gray-500 mb-2 leading-normal">
           A particle cloud is integrated backward from the reported observation under current + Stokes drift +
           3% windage. Twelve ensemble members with perturbed windage and diffusivity give the uncertainty.
         </p>
         <div className="bg-amber-50 border border-amber-200 rounded p-3 mb-2">
-          <p className="text-[11px] font-bold text-amber-900 uppercase mb-1">Estimated release</p>
+          <p className="text-[0.6875rem] font-bold text-amber-900 uppercase mb-1">Estimated release</p>
           <p className="font-mono text-xs font-bold text-amber-900">
             {Math.abs(hc.estimatedOrigin.lat).toFixed(4)}° N &nbsp; {Math.abs(hc.estimatedOrigin.lon).toFixed(4)}° E
           </p>
-          <p className="text-[12px] text-amber-800 mt-1">{fmt.utc(hc.estimatedTime)}</p>
+          <p className="text-[0.75rem] text-amber-800 mt-1">{fmt.utc(hc.estimatedTime)}</p>
           <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-amber-200">
             <div>
-              <p className="text-[10.5px] text-amber-700 uppercase font-bold">Spatial</p>
-              <p className="text-[12px] font-bold text-amber-900">± {hc.uncertaintyRadiusKm.toFixed(1)} km</p>
+              <p className="text-[0.65625rem] text-amber-700 uppercase font-bold">Spatial</p>
+              <p className="text-[0.75rem] font-bold text-amber-900">± {hc.uncertaintyRadiusKm.toFixed(1)} km</p>
             </div>
             <div>
-              <p className="text-[10.5px] text-amber-700 uppercase font-bold">Temporal</p>
-              <p className="text-[12px] font-bold text-amber-900">± {hc.timeWindowHours.toFixed(1)} h</p>
+              <p className="text-[0.65625rem] text-amber-700 uppercase font-bold">Temporal</p>
+              <p className="text-[0.75rem] font-bold text-amber-900">± {hc.timeWindowHours.toFixed(1)} h</p>
             </div>
           </div>
         </div>
@@ -796,21 +805,21 @@ function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnaly
         <div className="space-y-2">
           {fc.horizons.map((h) => (
             <div key={h.hours} className="flex items-center gap-2 bg-cyan-50 border border-cyan-200 rounded px-2 py-1.5">
-              <div className="w-10 text-[12px] font-black text-cyan-800 flex-shrink-0">+{h.hours} h</div>
+              <div className="w-10 text-[0.75rem] font-black text-cyan-800 flex-shrink-0">+{h.hours} h</div>
               <div className="flex-1 min-w-0">
-                <p className="font-mono text-[11px] text-cyan-900 truncate">
+                <p className="font-mono text-[0.6875rem] text-cyan-900 truncate">
                   {h.centroid.lat.toFixed(3)}° N  {h.centroid.lon.toFixed(3)}° E
                 </p>
-                <p className="text-[11px] text-cyan-700">{fmt.utc(h.time)}</p>
+                <p className="text-[0.6875rem] text-cyan-700">{fmt.utc(h.time)}</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="text-[11px] font-bold text-cyan-900">± {h.spreadKm.toFixed(1)} km</p>
-                <p className="text-[10.5px] text-cyan-600">spread</p>
+                <p className="text-[0.6875rem] font-bold text-cyan-900">± {h.spreadKm.toFixed(1)} km</p>
+                <p className="text-[0.65625rem] text-cyan-600">spread</p>
               </div>
             </div>
           ))}
         </div>
-        <p className="text-[11px] text-gray-500 mt-2 leading-normal">
+        <p className="text-[0.6875rem] text-gray-500 mt-2 leading-normal">
           The spread radius grows with time because turbulent diffusion and forcing uncertainty compound.
           A single predicted point would be misleading past about 24 hours.
         </p>
@@ -825,7 +834,7 @@ function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnaly
           [<span className="flex items-center gap-1">SST <ProvenanceBadge p="modelled" /></span>, `${analysis.conditions.sea.seaSurfaceTempC} °C`],
           ['Wave height', `${analysis.conditions.sea.significantWaveHeightM} m`],
         ]} />
-        <div className="mt-2 space-y-0.5 text-[11px] text-gray-500">
+        <div className="mt-2 space-y-0.5 text-[0.6875rem] text-gray-500">
           <p><b>Wind:</b> {analysis.sampler.sources.wind}</p>
           <p><b>Current:</b> {analysis.sampler.sources.current}</p>
           {active.forcingCoverage && (
@@ -836,8 +845,7 @@ function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnaly
       </Section>
 
       <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
-        Same Lagrangian approach as OpenDrift OpenOil and NOAA GNOME, run in the browser. Operational use should
-        switch the forcing to INCOIS HOOFS currents once access is granted.
+        Lagrangian particle model of the same kind as OpenDrift and NOAA GNOME. INCOIS HOOFS currents will replace the current forcing once access is granted.
       </InfoBanner>
     </div>
   );
@@ -865,12 +873,12 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
         const trackKind = world.tracks.get(v.mmsi)?.provenance;
         return (
           <div key={v.mmsi} className={`rounded border p-3 ${score?.rank === 1 ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'}`}>
-            <p className="text-[11px] font-bold uppercase text-gray-600">Method check against the official record</p>
-            <p className="text-[12px] text-gray-900 mt-0.5">
+            <p className="text-[0.6875rem] font-bold uppercase text-gray-600">Method check against the official record</p>
+            <p className="text-[0.75rem] text-gray-900 mt-0.5">
               Reported source: <b>{v.name}</b>{' '}
               {score ? <>— ranked <b>#{score.rank} of {analysis.ranked.length}</b> ({(score.total * 100).toFixed(0)})</> : <>— not ranked{excluded ? `: ${excluded.reason}` : ''}</>}
             </p>
-            <p className="text-[11px] text-gray-500 mt-0.5">
+            <p className="text-[0.6875rem] text-gray-500 mt-0.5">
               Track: {trackKind === 'real' ? 'real AIS' : 'interpolated'}. A known-source case shows how the ranking behaves; it does not change who the authorities identified.
             </p>
           </div>
@@ -880,14 +888,14 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
         analysis.verdict.band === 'Strong' ? 'bg-red-50 border-red-200'
         : analysis.verdict.band === 'Moderate' ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
         <p className="text-xs font-bold text-gray-900 mb-1">{analysis.verdict.label}</p>
-        <p className="text-[11px] text-gray-700 leading-normal">{analysis.verdict.detail}</p>
-        <div className="flex gap-4 mt-2 pt-2 border-t border-gray-200/70 text-[11px]">
+        <p className="text-[0.6875rem] text-gray-700 leading-normal">{analysis.verdict.detail}</p>
+        <div className="flex gap-4 mt-2 pt-2 border-t border-gray-200/70 text-[0.6875rem]">
           <span className="text-gray-600">Separation from #2: <b className="text-gray-900">{(analysis.verdict.separation * 100).toFixed(1)}</b></span>
           <span className="text-gray-600">Search radius: <b className="text-gray-900">{analysis.searchRadiusKm.toFixed(0)} km</b></span>
         </div>
       </div>
 
-      <div className="bg-gray-50 border border-gray-200 rounded p-2 text-[11px] text-gray-600">
+      <div className="bg-gray-50 border border-gray-200 rounded p-2 text-[0.6875rem] text-gray-600">
         <p className="font-bold text-gray-700 mb-0.5">Scored against</p>
         <p className="mb-1">
           {analysis.originBasis === 'reported'
@@ -903,8 +911,7 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
 
       {analysis.ranked.length === 0 && (
         <InfoBanner tone="red" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
-          No AIS traffic intersected the discharge window. Treat this as a suspected dark-vessel event rather
-          than an absence of evidence.
+          No AIS traffic crossed the discharge window. A vessel without AIS may still be responsible.
         </InfoBanner>
       )}
 
@@ -914,8 +921,7 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
           .map((s: any) => world.vesselsByMmsi.get(s.mmsi)?.name);
         return estimated.length > 0 ? (
           <InfoBanner tone="amber" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
-            <b>Estimated tracks:</b> {estimated.join(', ')}. These ships are real, but their positions are interpolated between
-            reported positions, not observed AIS. Do not name a vessel from its rank without real AIS positions.
+            <b>Estimated tracks:</b> {estimated.join(', ')}. Positions are interpolated between reported positions, not AIS; confirm with AIS before naming a vessel.
           </InfoBanner>
         ) : null;
       })()}
@@ -932,21 +938,21 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
               : s.rank === 1 ? 'border-rose-300 bg-rose-50/30' : 'border-gray-200 bg-white'}`}>
             <button onClick={() => setFocusMmsi(open ? null : s.mmsi)} className="w-full text-left p-3">
               <div className="flex items-start gap-2">
-                <div className={`w-6 h-6 rounded flex items-center justify-center font-black text-[12px] flex-shrink-0 ${
+                <div className={`w-6 h-6 rounded flex items-center justify-center font-black text-[0.75rem] flex-shrink-0 ${
                   s.rank === 1 ? 'bg-rose-600 text-white' : s.rank <= 3 ? 'bg-orange-500 text-white' : 'bg-gray-300 text-gray-700'}`}>
                   {s.rank}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-[12.5px] text-gray-900 truncate">{v.name}</span>
+                    <span className="font-bold text-[0.78125rem] text-gray-900 truncate">{v.name}</span>
                     {s.darkDuringWindow && <Badge tone="red">DARK VESSEL</Badge>}
                     {v.sanctioned && <Badge tone="slate">SANCTIONED</Badge>}
                     <ProvenanceBadge p={v.provenance} />
                   </div>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
+                  <p className="text-[0.6875rem] text-gray-500 mt-0.5">
                     {v.type} · {v.flag ?? 'flag n/a'} · {fmt.vesselId(v)}
                   </p>
-                  <div className="flex gap-3 mt-1 text-[11px] text-gray-600">
+                  <div className="flex gap-3 mt-1 text-[0.6875rem] text-gray-600">
                     <span>CPA <b className="font-mono">{s.cpaKm.toFixed(1)} km</b></span>
                     <span>Δt <b className="font-mono">{s.deltaTimeMin >= 0 ? '+' : ''}{s.deltaTimeMin.toFixed(0)} min</b></span>
                     <span>Δθ <b className="font-mono">{s.courseAlignmentDeg.toFixed(0)}°</b></span>
@@ -972,10 +978,10 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Why this ranking</p>
+                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">Why this ranking</p>
                   <ul className="space-y-1.5">
                     {s.reasons.map((r: string, i: number) => (
-                      <li key={i} className="text-[11px] text-gray-700 leading-normal flex gap-1.5">
+                      <li key={i} className="text-[0.6875rem] text-gray-700 leading-normal flex gap-1.5">
                         <span className="text-gray-400 flex-shrink-0">•</span><span>{r}</span>
                       </li>
                     ))}
@@ -984,10 +990,10 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
 
                 {s.flags.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded p-2">
-                    <p className="text-[11px] font-bold text-red-900 uppercase mb-1">Registry flags</p>
+                    <p className="text-[0.6875rem] font-bold text-red-900 uppercase mb-1">Registry flags</p>
                     <ul className="space-y-0.5">
                       {s.flags.map((f: string, i: number) => (
-                        <li key={i} className="text-[11px] text-red-800 flex gap-1.5">
+                        <li key={i} className="text-[0.6875rem] text-red-800 flex gap-1.5">
                           <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" /><span>{f}</span>
                         </li>
                       ))}
@@ -996,16 +1002,16 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
                 )}
 
                 <KeyValue cols={2} items={[
-                  ['IMO', v.imo ?? '—'], ['Role', v.role],
+                  ['IMO', fmt.ident(v.imo)], ['Role', v.role],
                   ['Operator', v.operator ?? 'Not published'], ['Flag risk', v.flagRisk ?? 'Not assessed'],
                   ['Sanctions', v.sanctionsChecked ? (v.sanctioned ? `Listed (${v.sanctionsList ?? 'UNSC'})` : 'Not listed (UNSC)') : 'Not checked'],
                   ['PSC detentions', v.pscDetentions != null ? String(v.pscDetentions) : 'Needs Equasis'],
                 ]} />
-                {v.note && <p className="text-[11px] text-gray-500 leading-normal">{v.note}</p>}
+                {v.note && <p className="text-[0.6875rem] text-gray-500 leading-normal">{v.note}</p>}
                 {(() => {
                   const t = world.tracks.get(v.mmsi);
                   return t ? (
-                    <p className="text-[11px] text-gray-500 leading-normal flex items-start gap-1">
+                    <p className="text-[0.6875rem] text-gray-500 leading-normal flex items-start gap-1">
                       <ProvenanceBadge p={t.provenance} /> <span>{t.notes[0] ?? ''}</span>
                     </p>
                   ) : null;
@@ -1024,25 +1030,25 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
       {analysis.excluded.length > 0 && (
         <div>
           <button onClick={() => setShowExcluded((o) => !o)}
-            className="w-full text-left text-[11px] font-bold text-gray-500 uppercase hover:text-gray-800 flex items-center gap-1.5 py-1">
+            className="w-full text-left text-[0.6875rem] font-bold text-gray-500 uppercase hover:text-gray-800 flex items-center gap-1.5 py-1">
             <ChevronRight className={`w-3 h-3 transition-transform ${showExcluded ? 'rotate-90' : ''}`} />
             Filtered out ({analysis.excluded.length})
           </button>
           {showExcluded && (
             <div className="space-y-1.5 mt-1">
-              <p className="text-[11px] text-gray-500 leading-normal mb-1.5">
+              <p className="text-[0.6875rem] text-gray-500 leading-normal mb-1.5">
                 Traffic that was evaluated and rejected. The exclusion list matters as much as the ranking
                 when an attribution has to be defended.
               </p>
               {analysis.excluded.map((e: any) => (
                 <div key={e.mmsi} className="bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
                   <div className="flex justify-between gap-2">
-                    <span className="text-[11px] font-semibold text-gray-700 truncate">{e.name}</span>
-                    <span className="text-[11px] font-mono text-gray-500 flex-shrink-0">
+                    <span className="text-[0.6875rem] font-semibold text-gray-700 truncate">{e.name}</span>
+                    <span className="text-[0.6875rem] font-mono text-gray-500 flex-shrink-0">
                       {Number.isFinite(e.cpaKm) ? `${e.cpaKm.toFixed(0)} km` : '—'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 leading-normal">{e.reason}</p>
+                  <p className="text-[0.6875rem] text-gray-500 leading-normal">{e.reason}</p>
                 </div>
               ))}
             </div>
@@ -1051,8 +1057,7 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
       )}
 
       <InfoBanner tone="amber" icon={<Scale className="w-3.5 h-3.5" />}>
-        This ranking prioritises inspection. It is not proof of discharge. Evidentiary attribution requires a
-        physical sample and a GC-MS fingerprint match against the vessel's slop tank.
+        The ranking prioritises inspection and is not proof. Evidence needs an oil sample matched to the vessel by GC-MS fingerprinting.
       </InfoBanner>
     </div>
   );
@@ -1064,23 +1069,23 @@ function ImpactTab({ active, analysis, navigate }: any) {
     <div className="p-4 space-y-4">
       <Section title="Ecological exposure" icon={<Leaf className="w-3.5 h-3.5" />}>
         {threatened.length === 0 ? (
-          <p className="text-[12px] text-gray-500">No designated sensitive area lies within 250 km of the forecast envelope.</p>
+          <p className="text-[0.75rem] text-gray-500">No designated sensitive area lies within 250 km of the forecast envelope.</p>
         ) : (
           <div className="space-y-2">
             {threatened.map((t: any) => (
               <div key={t.id} className={`rounded border p-2 ${t.hoursToImpact !== null ? 'bg-red-50 border-red-300' : t.distanceKm < 60 ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0">
-                    <p className="text-[12px] font-bold text-gray-900 leading-snug">{t.name}</p>
-                    <p className="text-[11px] text-gray-500">{t.category} · {t.state}</p>
+                    <p className="text-[0.75rem] font-bold text-gray-900 leading-snug">{t.name}</p>
+                    <p className="text-[0.6875rem] text-gray-500">{t.category} · {t.state}</p>
                   </div>
                   <div className="flex flex-col items-end flex-shrink-0">
                     <Badge tone={t.sensitivity >= 5 ? 'red' : t.sensitivity >= 4 ? 'amber' : 'gray'}>S{t.sensitivity}</Badge>
-                    <span className="text-[11px] font-mono font-bold text-gray-700 mt-0.5">{t.distanceKm.toFixed(1)} km</span>
+                    <span className="text-[0.6875rem] font-mono font-bold text-gray-700 mt-0.5">{t.distanceKm.toFixed(1)} km</span>
                   </div>
                 </div>
                 {t.hoursToImpact !== null && (
-                  <p className="text-[11px] font-bold text-red-700 mt-1 flex items-center gap-1">
+                  <p className="text-[0.6875rem] font-bold text-red-700 mt-1 flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" /> Forecast envelope reaches this area within {t.hoursToImpact} h
                   </p>
                 )}
@@ -1100,12 +1105,12 @@ function ImpactTab({ active, analysis, navigate }: any) {
           ['Published to IMAC', active.imacPushed ? 'Yes' : 'Not yet'],
           ['Community alert', active.alertDispatched ? 'Drafted' : 'Not drafted'],
           ['Assigned analyst', active.assignedTo],
-          ['Oil quantity', active.oilQuantityTonnes != null ? `${fmt.num(active.oilQuantityTonnes)} t` : 'Not reported'],
+          ['Oil quantity', active.oilQuantityTonnes != null ? `${fmt.num(active.oilQuantityTonnes)} t ${active.oilQuantityBasis ?? ''}`.trim() : 'Not reported'],
         ]} />
       </Section>
 
       <Section title="Case notes">
-        <p className="text-[12px] text-gray-700 leading-relaxed">{active.notes}</p>
+        <p className="text-[0.75rem] text-gray-700 leading-relaxed">{active.notes}</p>
       </Section>
     </div>
   );
@@ -1114,7 +1119,7 @@ function ImpactTab({ active, analysis, navigate }: any) {
 function Section({ title, icon, children }: { title: string; icon?: any; children: any }) {
   return (
     <div>
-      <h4 className="text-[11px] font-bold text-gray-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+      <h4 className="text-[0.6875rem] font-bold text-gray-600 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
         {icon}{title}
       </h4>
       {children}
@@ -1130,12 +1135,11 @@ function WeightsModal({ open, onClose, weights, setWeights, reset }: any) {
       footer={<><Button onClick={reset}>Reset to defaults</Button><Button variant="primary" onClick={onClose}>Done</Button></>}>
       <div className="space-y-4">
         <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
-          Weights are exposed deliberately. An analyst who cannot see how a ranking was produced cannot
-          defend it, and a weighting that suits a coastal discharge is wrong for an open-ocean one.
+          Coastal and open-ocean discharges may need different weightings. Changes apply to all cases.
         </InfoBanner>
         {([
-          ['proximity', 'Proximity', 'Distance from the vessel track to the hindcast origin, scaled by the origin uncertainty.'],
-          ['temporality', 'Temporality', 'How closely the closest approach aligns with the estimated discharge time.'],
+          ['proximity', 'Proximity', 'Distance from the vessel track to the release point (the reported position when known, otherwise the hindcast origin), scaled by its uncertainty.'],
+          ['temporality', 'Temporality', 'How closely the closest approach matches the release time (reported or estimated).'],
           ['trajectory', 'Trajectory parity', 'Agreement between the vessel course and the slick major axis. Automatically down-weighted for compact slicks.'],
           ['behaviour', 'Behavioural anomaly', 'Speed reduction, loitering, sharp manoeuvres and AIS transmission gaps.'],
           ['vesselPrior', 'Registry prior', 'Prior confirmed attributions, sanctions listing, flag risk and port-state detention history.'],
@@ -1143,10 +1147,10 @@ function WeightsModal({ open, onClose, weights, setWeights, reset }: any) {
           <div key={key}>
             <Slider label={label} value={weights[key]} min={0} max={0.6} step={0.01}
               onChange={(v) => setWeights({ ...weights, [key]: v })} format={(v) => v.toFixed(2)} />
-            <p className="text-[11px] text-gray-500 mt-0.5 leading-normal">{help}</p>
+            <p className="text-[0.6875rem] text-gray-500 mt-0.5 leading-normal">{help}</p>
           </div>
         ))}
-        <div className={`rounded border p-2 text-[12px] ${Math.abs(total - 1) < 0.02 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+        <div className={`rounded border p-2 text-[0.75rem] ${Math.abs(total - 1) < 0.02 ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
           Weights sum to <b>{total.toFixed(2)}</b>.{Math.abs(total - 1) >= 0.02 && ' Scores remain comparable within a case but are no longer on a 0–1 scale.'}
         </div>
       </div>
@@ -1160,6 +1164,7 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
   const [stage, setStage] = useState(c.workflowStage);
   const [status, setStatus] = useState(c.status);
   const [note, setNote] = useState('');
+  const enforcementReady = canSetStatus('Enforcement', c.workflowStage).ok;
 
   useEffect(() => { setStage(c.workflowStage); setStatus(c.status); }, [caseId, c.workflowStage, c.status]);
 
@@ -1169,29 +1174,35 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Case status">
-            <Select value={status} onChange={(v) => setStatus(v as any)}
-              options={['New', 'Under Analysis', 'Attributed', 'Verification Dispatched', 'Verified', 'Enforcement', 'Closed'].map((s) => ({ value: s, label: s }))} />
+            <Select value={status} onChange={(v) => setStatus(v as CaseStatus)}
+              options={CASE_STATUSES.map((s) => {
+                const check = canSetStatus(s, stage);
+                return { value: s, label: check.ok ? s : `${s} (needs a later stage)`, disabled: !check.ok };
+              })} />
           </Field>
-          <Field label="Workflow stage">
-            <Select value={stage} onChange={(v) => setStage(v as any)}
-              options={['Awaiting Dispatch', 'Patrol En Route', 'Sample Collected', 'Forensic Match Pending', 'Port Inspection Requested', 'Closed'].map((s) => ({ value: s, label: s }))} />
+          <Field label="Workflow stage" hint="One stage forward or back at a time.">
+            <Select value={stage} onChange={(v) => setStage(v as WorkflowStage)}
+              options={WORKFLOW_ORDER.map((s) => ({ value: s, label: s, disabled: !canMoveStage(c.workflowStage, s).ok }))} />
           </Field>
         </div>
         <Field label="Note for the audit record">
           <TextArea value={note} onChange={setNote} rows={2} placeholder="Optional context recorded against this action…" />
         </Field>
         <div className="flex gap-2">
-          <Button variant="primary" onClick={() => {
-            if (status !== c.status) setCaseStatus(caseId, status, note || undefined);
-            if (stage !== c.workflowStage) setWorkflowStage(caseId, stage);
+          <Button variant="primary" disabled={!canSetStatus(status, stage).ok} onClick={() => {
+            // Stage first, so a status that depends on the new stage is checked against it.
+            if (stage !== c.workflowStage && !setWorkflowStage(caseId, stage)) return;
+            if (status !== c.status && !setCaseStatus(caseId, status, note || undefined)) return;
             onClose();
           }}>Apply changes</Button>
         </div>
 
         <div className="border-t border-gray-200 pt-4 space-y-3">
-          <p className="text-[11px] font-bold text-gray-600 uppercase">Dispatch and hand-off</p>
+          <p className="text-[0.6875rem] font-bold text-gray-600 uppercase">Dispatch and hand-off</p>
           <div className="grid grid-cols-2 gap-2">
-            <Button icon={<Send className="w-3 h-3" />} onClick={() => { setWorkflowStage(caseId, 'Patrol En Route'); onClose(); }}>
+            <Button icon={<Send className="w-3 h-3" />} disabled={c.workflowStage !== 'Awaiting Dispatch'}
+              title={c.workflowStage !== 'Awaiting Dispatch' ? 'Verification has already been dispatched' : undefined}
+              onClick={() => { if (setWorkflowStage(caseId, 'Patrol En Route')) onClose(); }}>
               Dispatch ICG verification
             </Button>
             <Button icon={<Radio className="w-3 h-3" />} disabled={c.imacPushed} onClick={() => { pushToImac(caseId); onClose(); }}>
@@ -1201,8 +1212,8 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
               Compose community alert
             </Button>
             <Button variant="danger" icon={<Scale className="w-3 h-3" />}
-              disabled={c.workflowStage === 'Awaiting Dispatch'}
-              title={c.workflowStage === 'Awaiting Dispatch' ? 'A case cannot reach enforcement before human verification' : undefined}
+              disabled={!enforcementReady}
+              title={!enforcementReady ? 'Enforcement needs on-scene verification and a forensic match first' : undefined}
               onClick={() => {
                 const top = useStoreSafeTop(world, caseId);
                 const party = top ? world.vesselsByMmsi.get(top)?.name ?? top : 'Unidentified source';
@@ -1211,16 +1222,14 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
                   authority: 'DG Shipping — Mercantile Marine Department', reference: null,
                   status: 'Pending', outcome: note || 'Referral recorded in this session; no order has been issued.',
                 });
-                setCaseStatus(caseId, 'Enforcement', 'Referred for regulatory action');
-                onClose();
+                if (setCaseStatus(caseId, 'Enforcement', 'Referred for regulatory action')) onClose();
               }}>
               Refer to enforcement
             </Button>
           </div>
-          {c.workflowStage === 'Awaiting Dispatch' && (
+          {!enforcementReady && (
             <InfoBanner tone="amber" icon={<Info className="w-3.5 h-3.5" />}>
-              Enforcement is blocked until the case has passed through a human verification stage. This is
-              enforced by the workflow, not left to discipline.
+              Referral to enforcement opens once the case reaches Forensic Match Pending.
             </InfoBanner>
           )}
         </div>
@@ -1254,8 +1263,7 @@ function LookalikeModal({ open, onClose, caseId }: { open: boolean; onClose: () 
       }>
       <div className="space-y-4">
         <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
-          Reclassified detections are never deleted. They stay in the archive with the reasoning attached, so
-          the false-positive rate can be measured honestly rather than hidden.
+          Reclassified detections stay in the archive with the reason recorded.
         </InfoBanner>
         <Field label="Look-alike category">
           <Select value={kind} onChange={setKind} options={[

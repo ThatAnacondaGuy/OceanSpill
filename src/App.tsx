@@ -3,8 +3,10 @@ import {
   Bell, HelpCircle, LogOut, Search, Satellite, Home, AlertTriangle, FileText, Anchor,
   Database, Activity, ChevronDown, Map as MapIcon, Megaphone, CheckSquare, Shield, Archive,
   Settings, Clock, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Contrast, Leaf, History, Radar,
 } from 'lucide-react';
+import { allowedTabs } from './data/access';
+import { ECOLOGICAL_AREAS } from './data/geography';
 import { StoreProvider, useStore, fmt } from './store/store';
 import { Seal } from './components/Seal';
 import Dashboard from './Dashboard';
@@ -22,7 +24,8 @@ import AnalyticsReporting from './AnalyticsReporting';
 import CaseArchive from './CaseArchive';
 import SystemAdministration from './SystemAdministration';
 
-const NAV: { label: string; icon: ReactNode }[] = [
+/** `label` is the page id used for navigation; `display` is shown when it differs. */
+const NAV: { label: string; display?: string; icon: ReactNode }[] = [
   { label: 'Dashboard', icon: <Home className="w-4 h-4" /> },
   { label: 'Spill Incidents', icon: <AlertTriangle className="w-4 h-4" /> },
   { label: 'Investigation', icon: <Search className="w-4 h-4" /> },
@@ -32,7 +35,7 @@ const NAV: { label: string; icon: ReactNode }[] = [
   { label: 'NCSCM Ecological', icon: <MapIcon className="w-4 h-4" /> },
   { label: 'SACHET / SAMUDRA', icon: <Megaphone className="w-4 h-4" /> },
   { label: 'Workflow', icon: <CheckSquare className="w-4 h-4" /> },
-  { label: 'Offender Registry', icon: <Shield className="w-4 h-4" /> },
+  { label: 'Offender Registry', display: 'Liability Register', icon: <Shield className="w-4 h-4" /> },
   { label: 'Reports', icon: <FileText className="w-4 h-4" /> },
   { label: 'Data Management', icon: <Database className="w-4 h-4" /> },
   { label: 'Case Archive', icon: <Archive className="w-4 h-4" /> },
@@ -47,20 +50,32 @@ const NAV_GROUPS: { title: string; items: string[] }[] = [
   { title: 'Records', items: ['Reports', 'Data Management', 'Case Archive', 'System Admin'] },
 ];
 
-/** Pages a role is permitted to open. Anything else is hidden from the nav entirely. */
-const ROLE_ACCESS: Record<string, string[] | 'all'> = {
-  'NTRO Admin': 'all',
-  'NTRO Reviewer': 'all',
-  Analyst: ['Dashboard', 'Spill Incidents', 'Investigation', 'Vessel Analysis', 'Environmental Data', 'Satellite Tasking', 'NCSCM Ecological', 'SACHET / SAMUDRA', 'Workflow', 'Offender Registry', 'Reports', 'Case Archive'],
-  Regulator: ['Dashboard', 'Spill Incidents', 'Offender Registry', 'Workflow', 'Reports', 'Case Archive'],
-  Liaison: ['Dashboard', 'Spill Incidents', 'Investigation', 'Workflow', 'Data Management', 'Case Archive'],
-  'Data Operator': ['Dashboard', 'Environmental Data', 'Satellite Tasking', 'Data Management', 'Reports'],
-  Viewer: ['Dashboard', 'Spill Incidents', 'NCSCM Ecological', 'Reports', 'Case Archive'],
-};
+const A11Y_KEY = 'oceanspill.a11y.v1';
+const TEXT_SCALES = ['100%', '112.5%', '125%'];
+
+function loadA11y(): { scale: number; contrast: boolean } {
+  try {
+    return { scale: 0, contrast: false, ...JSON.parse(localStorage.getItem(A11Y_KEY) ?? '{}') };
+  } catch {
+    return { scale: 0, contrast: false };
+  }
+}
 
 function Shell() {
   const store = useStore();
-  const { activeTab, navigate, now, currentUser, world } = store;
+  const { activeTab, navigate, now, currentUser, world, timeZone, setTimeZone } = store;
+  const [a11y, setA11y] = useState(loadA11y);
+
+  // Text size and contrast, kept for this browser like on public-sector portals.
+  useEffect(() => {
+    document.documentElement.style.fontSize = TEXT_SCALES[a11y.scale] ?? '100%';
+    document.documentElement.classList.toggle('hc', a11y.contrast);
+    try {
+      localStorage.setItem(A11Y_KEY, JSON.stringify(a11y));
+    } catch {
+      // Not kept if storage is unavailable.
+    }
+  }, [a11y]);
   const [userMenu, setUserMenu] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -93,10 +108,7 @@ function Shell() {
 
   const scrollNav = (dir: number) => navRef.current?.scrollBy({ left: dir * 320, behavior: 'smooth' });
 
-  const allowed = useMemo(() => {
-    const a = ROLE_ACCESS[currentUser.role];
-    return a === 'all' ? NAV.map((n) => n.label) : a;
-  }, [currentUser.role]);
+  const allowed = useMemo(() => allowedTabs(currentUser.role), [currentUser.role]);
 
   useEffect(() => {
     if (!allowed.includes(activeTab)) navigate({ tab: 'Dashboard' });
@@ -111,27 +123,54 @@ function Shell() {
     return () => window.removeEventListener('mousedown', h);
   }, []);
 
-  // Global search across cases, vessels and protected areas.
+  // Global search across cases, vessels, protected areas, the historical register and SAR scenes.
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (q.length < 2) return [];
     const out: { kind: string; label: string; sub: string; go: () => void }[] = [];
+    const can = (tab: string) => allowed.includes(tab);
     for (const c of world.cases) {
       if (`${c.id} ${c.title} ${c.region} ${c.subRegion}`.toLowerCase().includes(q)) {
-        out.push({ kind: 'Case', label: c.title, sub: `${c.id} · ${c.subRegion}`, go: () => navigate({ tab: 'Investigation', caseId: c.id }) });
+        out.push({ kind: 'Case', label: c.title, sub: `${c.id} · ${c.subRegion}`, go: () => navigate({ tab: can('Investigation') ? 'Investigation' : 'Spill Incidents', caseId: c.id }) });
       }
     }
-    for (const v of world.vessels) {
-      if (v.name.toLowerCase().includes(q) || (v.mmsiNumber ?? '').includes(q) || (v.imo ?? '').includes(q)) {
-        out.push({ kind: 'Vessel', label: v.name, sub: `${fmt.vesselId(v)} · ${v.type}${v.provenance === 'synthetic' ? ' · synthetic' : ''}`, go: () => navigate({ tab: 'Vessel Analysis', mmsi: v.mmsi }) });
+    if (can('Vessel Analysis')) {
+      for (const v of world.vessels) {
+        if (v.name.toLowerCase().includes(q) || (store.identitiesVisible && ((v.mmsiNumber ?? '').includes(q) || (v.imo ?? '').includes(q)))) {
+          out.push({ kind: 'Vessel', label: v.name, sub: `${fmt.vesselId(v)} · ${v.type}${v.provenance === 'synthetic' ? ' · synthetic' : ''}`, go: () => navigate({ tab: 'Vessel Analysis', mmsi: v.mmsi }) });
+        }
       }
     }
-    return out.slice(0, 9);
-  }, [search, world, navigate]);
+    if (can('NCSCM Ecological')) {
+      for (const a of ECOLOGICAL_AREAS) {
+        if (`${a.name} ${a.category} ${a.state}`.toLowerCase().includes(q)) {
+          out.push({ kind: 'Area', label: a.name, sub: `${a.category} · ${a.state}`, go: () => navigate({ tab: 'NCSCM Ecological', section: a.id }) });
+        }
+      }
+    }
+    if (can('Case Archive')) {
+      for (const h of world.historical) {
+        if (h.activeCaseId) continue;
+        if (`${h.name} ${h.location} ${h.date}`.toLowerCase().includes(q)) {
+          out.push({ kind: 'Historical', label: `${h.name} (${h.date.slice(0, 4)})`, sub: h.location, go: () => navigate({ tab: 'Case Archive', section: 'historical' }) });
+        }
+      }
+    }
+    if (can('Satellite Tasking')) {
+      for (const p of world.passes) {
+        if (p.name.toLowerCase().includes(q)) {
+          out.push({ kind: 'Scene', label: p.name, sub: `${p.sensor} · ${fmt.utc(p.start)}`, go: () => navigate({ tab: 'Satellite Tasking', caseId: p.caseIds[0] }) });
+        }
+      }
+    }
+    return out.slice(0, 10);
+  }, [search, world, navigate, allowed, store.identitiesVisible]);
 
   const unread = useMemo(() => world.audit.filter((a) => a.t > now - 6 * 3600_000).slice(0, 8), [world.audit, now, store.revision]);
 
   const openCases = world.cases.filter((c) => !['Closed', 'Dismissed — Look-alike'].includes(c.status)).length;
+
+  if (store.signedOut) return <SignedOut />;
 
   return (
     <div className="h-screen flex flex-col bg-[#f0f4f8] overflow-hidden">
@@ -145,7 +184,7 @@ function Shell() {
         <span className="flex-1 bg-white" />
         <span className="flex-1 bg-[#138808]" />
       </div>
-      <div className="bg-[#0b2a55] text-slate-200 text-[11.5px] flex-shrink-0">
+      <div className="bg-[#0b2a55] text-slate-200 text-[0.71875rem] flex-shrink-0">
         <div className="px-3 sm:px-5 h-8 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <span lang="hi" className="font-hindi whitespace-nowrap">समुद्री प्रदूषण निगरानी</span>
@@ -153,13 +192,32 @@ function Shell() {
             <span className="truncate">Maritime Pollution Surveillance</span>
           </div>
           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-            <span title={`Case data generated ${fmt.utc(new Date(world.generatedAt).getTime())}`} className="hidden lg:inline whitespace-nowrap">
-              Replay mode · {world.cases.length} recorded incidents
+            <span title={`Case data updated ${fmt.utc(new Date(world.generatedAt).getTime())}`} className="hidden xl:inline whitespace-nowrap">
+              Retrospective analysis · {world.cases.length} recorded incidents
             </span>
-            <span className="hidden lg:inline text-slate-500">|</span>
+            <span className="hidden xl:inline text-slate-500">|</span>
             <span className="hidden sm:flex items-center gap-1.5 font-mono whitespace-nowrap">
               <Clock className="w-3 h-3" /> {fmt.utc(now)}
             </span>
+            <div className="hidden sm:flex rounded border border-white/25 overflow-hidden" role="group" aria-label="Time zone">
+              {(['UTC', 'IST'] as const).map((tz) => (
+                <button key={tz} onClick={() => setTimeZone(tz)} aria-pressed={timeZone === tz}
+                  className={`px-1.5 leading-5 ${timeZone === tz ? 'bg-white text-[#0b2a55] font-semibold' : 'hover:bg-white/10'}`}>{tz}</button>
+              ))}
+            </div>
+            <span className="hidden md:inline text-slate-500">|</span>
+            <div className="hidden md:flex items-center gap-0.5" role="group" aria-label="Text size">
+              <button onClick={() => setA11y((a) => ({ ...a, scale: Math.max(0, a.scale - 1) }))} disabled={a11y.scale === 0}
+                title="Smaller text" aria-label="Smaller text" className="px-1 rounded hover:bg-white/10 disabled:opacity-40">A-</button>
+              <button onClick={() => setA11y((a) => ({ ...a, scale: 0 }))} title="Normal text" aria-label="Normal text size"
+                className={`px-1 rounded hover:bg-white/10 ${a11y.scale === 0 ? 'underline underline-offset-2' : ''}`}>A</button>
+              <button onClick={() => setA11y((a) => ({ ...a, scale: Math.min(TEXT_SCALES.length - 1, a.scale + 1) }))} disabled={a11y.scale === TEXT_SCALES.length - 1}
+                title="Larger text" aria-label="Larger text" className="px-1 rounded hover:bg-white/10 disabled:opacity-40">A+</button>
+              <button onClick={() => setA11y((a) => ({ ...a, contrast: !a.contrast }))} aria-pressed={a11y.contrast}
+                title="High contrast" aria-label="High contrast" className={`ml-1 p-1 rounded hover:bg-white/10 ${a11y.contrast ? 'bg-white/20' : ''}`}>
+                <Contrast className="w-3.5 h-3.5" />
+              </button>
+            </div>
             <span className="hidden sm:inline text-slate-500">|</span>
             <button onClick={() => setHelpOpen(true)} className="flex items-center gap-1 hover:text-white whitespace-nowrap">
               <HelpCircle className="w-3.5 h-3.5" /> Help
@@ -174,9 +232,9 @@ function Shell() {
           <span className="hidden sm:block"><Seal size={50} /></span>
           <div className="hidden sm:block w-px self-stretch my-1 bg-gray-300" aria-hidden />
           <div className="min-w-0 leading-tight">
-            <p lang="hi" className="font-hindi text-[12px] sm:text-[13px] text-gray-700 truncate">समुद्री तेल रिसाव जाँच एवं पोत अभिनिर्धारण प्रणाली</p>
-            <h1 className="text-[17px] sm:text-[19px] font-bold text-[#0b2a55] tracking-wide uppercase">OceanSpill</h1>
-            <p className="hidden md:block text-[12px] text-gray-600 truncate">Oil Spill Detection &amp; Vessel Attribution System</p>
+            <p lang="hi" className="font-hindi text-[0.75rem] sm:text-[0.8125rem] text-gray-700 truncate">समुद्री तेल रिसाव जाँच एवं पोत अभिनिर्धारण प्रणाली</p>
+            <h1 className="text-[1.0625rem] sm:text-[1.1875rem] font-bold text-[#0b2a55] tracking-wide uppercase">OceanSpill</h1>
+            <p className="hidden md:block text-[0.75rem] text-gray-600 truncate">Oil Spill Detection &amp; Vessel Attribution System</p>
           </div>
         </div>
 
@@ -190,8 +248,8 @@ function Shell() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
             onFocus={() => setSearchOpen(true)}
-            placeholder="Search cases, vessels, MMSI or IMO…"
-            aria-label="Search cases and vessels"
+            placeholder="Search cases, vessels, areas, scenes…"
+            aria-label="Search cases, vessels, protected areas, historical incidents and scenes"
             className="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0b2a55]/40 focus:border-[#0b2a55]"
           />
           {searchOpen && results.length > 0 && (
@@ -202,10 +260,14 @@ function Shell() {
                   onClick={() => { r.go(); setSearchOpen(false); setSearch(''); setMobileSearch(false); }}
                   className="w-full text-left px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-0 flex items-center gap-2.5"
                 >
-                  {r.kind === 'Case' ? <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /> : <Ship className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                  {r.kind === 'Case' ? <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                    : r.kind === 'Vessel' ? <Ship className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                    : r.kind === 'Area' ? <Leaf className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                    : r.kind === 'Historical' ? <History className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                    : <Radar className="w-3.5 h-3.5 text-violet-500 flex-shrink-0" />}
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-gray-900 truncate">{r.label}</div>
-                    <div className="text-[11px] text-gray-500 truncate">{r.sub}</div>
+                    <div className="text-[0.6875rem] text-gray-500 truncate">{r.sub}</div>
                   </div>
                 </button>
               ))}
@@ -213,7 +275,7 @@ function Shell() {
           )}
           {searchOpen && search.trim().length >= 2 && results.length === 0 && (
             <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-50 px-3 py-3 text-xs text-gray-500">
-              No cases or vessels match “{search}”.
+              Nothing matches “{search}”.
             </div>
           )}
           </div>
@@ -228,7 +290,7 @@ function Shell() {
             <button onClick={() => { setNotifOpen((o) => !o); setUserMenu(false); }} className="relative text-gray-600 hover:text-blue-600 p-1">
               <Bell className="w-5 h-5" />
               {unread.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10.5px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[0.65625rem] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {unread.length}
                 </span>
               )}
@@ -244,17 +306,17 @@ function Shell() {
                   {unread.map((a) => (
                     <div key={a.id} className="px-3 py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <div className="flex justify-between gap-2">
-                        <span className="text-[12px] font-semibold text-gray-900">{a.action}</span>
-                        <span className="text-[10.5px] text-gray-400 font-mono flex-shrink-0">{fmt.ago(a.t, now)}</span>
+                        <span className="text-[0.75rem] font-semibold text-gray-900">{a.action}</span>
+                        <span className="text-[0.65625rem] text-gray-400 font-mono flex-shrink-0">{fmt.ago(a.t, now)}</span>
                       </div>
-                      <p className="text-[11px] text-gray-600 mt-0.5 leading-normal">{a.detail}</p>
-                      <p className="text-[10.5px] text-gray-400 mt-0.5 font-mono">{a.target}</p>
+                      <p className="text-[0.6875rem] text-gray-600 mt-0.5 leading-normal">{a.detail}</p>
+                      <p className="text-[0.65625rem] text-gray-400 mt-0.5 font-mono">{a.target}</p>
                     </div>
                   ))}
                 </div>
                 <button
                   onClick={() => { navigate({ tab: 'Case Archive', section: 'audit' }); setNotifOpen(false); }}
-                  className="w-full px-3 py-2 text-[12px] font-semibold text-blue-600 hover:bg-blue-50 border-t border-gray-200 rounded-b-lg"
+                  className="w-full px-3 py-2 text-[0.75rem] font-semibold text-blue-600 hover:bg-blue-50 border-t border-gray-200 rounded-b-lg"
                 >
                   View the full audit trail
                 </button>
@@ -272,7 +334,7 @@ function Shell() {
               </div>
               <div className="hidden lg:block text-left">
                 <div className="text-xs font-bold text-gray-800 leading-snug">{currentUser.name}</div>
-                <div className="text-[10.5px] text-gray-500 leading-snug">{currentUser.role}</div>
+                <div className="text-[0.65625rem] text-gray-500 leading-snug">{currentUser.role}</div>
               </div>
               <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-gray-500" />
             </button>
@@ -280,32 +342,33 @@ function Shell() {
               <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
                 <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
                   <div className="text-xs font-bold text-gray-800">{currentUser.name}</div>
-                  <div className="text-[11px] text-gray-500">{currentUser.email}</div>
-                  <div className="text-[11px] text-gray-500 mt-1">
+                  <div className="text-[0.6875rem] text-gray-500">{currentUser.email}</div>
+                  <div className="text-[0.6875rem] text-gray-500 mt-1">
                     {currentUser.agency} · clearance <span className="font-semibold">{currentUser.clearance}</span>
                   </div>
                 </div>
                 <div className="px-3 py-2 border-b border-gray-200">
-                  <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5">Switch role (demo accounts)</p>
-                  <p className="text-[11px] text-gray-500 mb-2 leading-normal">
-                    Navigation and page permissions change with the signed-in role.
+                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Switch account</p>
+                  <p className="text-[0.6875rem] text-gray-500 mb-2 leading-normal">
+                    Pages and permissions follow the selected account's role.
                   </p>
                   <div className="space-y-0.5 max-h-52 overflow-y-auto">
                     {world.users.filter((u) => u.status === 'Active').map((u) => (
                       <button
                         key={u.id}
                         onClick={() => { store.setCurrentUser(u); setUserMenu(false); store.notify({ kind: 'info', title: `Signed in as ${u.name}`, body: `${u.role} — ${u.agency}` }); }}
-                        className={`w-full text-left px-2 py-1.5 rounded text-[12px] flex justify-between items-center ${
+                        className={`w-full text-left px-2 py-1.5 rounded text-[0.75rem] flex justify-between items-center ${
                           u.id === currentUser.id ? 'bg-blue-50 text-blue-800 font-semibold' : 'hover:bg-gray-100 text-gray-700'
                         }`}
                       >
                         <span className="truncate">{u.name}</span>
-                        <span className="text-[10.5px] text-gray-500 flex-shrink-0 ml-2">{u.role}</span>
+                        <span className="text-[0.65625rem] text-gray-500 flex-shrink-0 ml-2">{u.role}</span>
                       </button>
                     ))}
                   </div>
                 </div>
-                <button className="w-full px-3 py-2 text-[12px] font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 rounded-b-lg">
+                <button onClick={() => { setUserMenu(false); store.signOut(); }}
+                  className="w-full px-3 py-2 text-[0.75rem] font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 rounded-b-lg">
                   <LogOut className="w-3.5 h-3.5" /> Sign out
                 </button>
               </div>
@@ -315,13 +378,13 @@ function Shell() {
       </header>
 
       <nav className="relative bg-[#0b1c3c] text-white flex-shrink-0 z-20" aria-label="Main">
-        <div ref={navRef} onScroll={updateNavOverflow} className="no-scrollbar flex items-stretch overflow-x-auto px-2 sm:px-3">
+        <div ref={navRef} onScroll={updateNavOverflow} className="no-scrollbar flex items-stretch overflow-x-auto px-1 2xl:px-3">
           {NAV_GROUPS.map((g) => {
             const items = NAV.filter((n) => g.items.includes(n.label) && allowed.includes(n.label));
             if (!items.length) return null;
             return (
               <Fragment key={g.title}>
-                <span className="first:hidden self-center h-5 w-px bg-white/15 mx-1.5 flex-shrink-0" aria-hidden />
+                <span className="first:hidden self-center h-5 w-px bg-white/15 mx-0.5 2xl:mx-1.5 flex-shrink-0" aria-hidden />
                 {items.map((n) => {
                   const current = activeTab === n.label;
                   return (
@@ -329,15 +392,15 @@ function Shell() {
                       key={n.label}
                       onClick={() => navigate({ tab: n.label })}
                       aria-current={current ? 'page' : undefined}
-                      title={`${g.title} · ${n.label}`}
-                      className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
+                      title={`${g.title} · ${n.display ?? n.label}`}
+                      className={`flex items-center gap-1.5 px-2 2xl:px-3 py-2.5 text-[0.71875rem] 2xl:text-xs font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
                         current ? 'bg-[#153468] border-blue-400 text-white' : 'border-transparent text-slate-300 hover:text-white hover:bg-[#153468]/60'
                       }`}
                     >
-                      {n.icon}
-                      <span>{n.label}</span>
+                      <span className="hidden 2xl:inline">{n.icon}</span>
+                      <span>{n.display ?? n.label}</span>
                       {n.label === 'Spill Incidents' && openCases > 0 && (
-                        <span className="bg-amber-500 text-[11px] font-bold px-1.5 rounded text-white leading-4">{openCases}</span>
+                        <span className="bg-amber-500 text-[0.6875rem] font-bold px-1.5 rounded text-white leading-4">{openCases}</span>
                       )}
                     </button>
                   );
@@ -360,7 +423,8 @@ function Shell() {
         )}
       </nav>
 
-      <div id="main-content" tabIndex={-1} className="flex-1 min-w-0 min-h-0 flex flex-col outline-none">
+      {/* Keyed by time zone so every formatted time on the page is recomputed when it changes. */}
+      <div key={timeZone} id="main-content" tabIndex={-1} className="flex-1 min-w-0 min-h-0 flex flex-col outline-none">
         {activeTab === 'Dashboard' && <Dashboard />}
         {activeTab === 'Spill Incidents' && <SpillIncidents />}
         {activeTab === 'Investigation' && <Investigation />}
@@ -402,11 +466,51 @@ function ToastHost() {
           <div className="flex-shrink-0 mt-0.5">{icons[t.kind]}</div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-gray-900">{t.title}</p>
-            {t.body && <p className="text-[12px] text-gray-600 mt-0.5 leading-normal">{t.body}</p>}
+            {t.body && <p className="text-[0.75rem] text-gray-600 mt-0.5 leading-normal">{t.body}</p>}
           </div>
           <button onClick={() => dismissToast(t.id)} className="text-gray-400 hover:text-gray-700 flex-shrink-0"><X className="w-3.5 h-3.5" /></button>
         </div>
       ))}
+    </div>
+  );
+}
+
+function SignedOut() {
+  const { world, signIn } = useStore();
+  const accounts = world.users.filter((u) => u.status === 'Active');
+  return (
+    <div className="min-h-screen bg-[#f0f4f8] flex flex-col">
+      <div className="flex h-1" aria-hidden>
+        <span className="flex-1 bg-[#FF9933]" />
+        <span className="flex-1 bg-white" />
+        <span className="flex-1 bg-[#138808]" />
+      </div>
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm w-full max-w-md">
+          <div className="px-6 pt-6 pb-4 flex items-center gap-3 border-b border-gray-200">
+            <Seal size={48} />
+            <div>
+              <p lang="hi" className="font-hindi text-[0.8125rem] text-gray-700">समुद्री तेल रिसाव जाँच एवं पोत अभिनिर्धारण प्रणाली</p>
+              <h1 className="text-lg font-bold text-[#0b2a55] tracking-wide uppercase">OceanSpill</h1>
+            </div>
+          </div>
+          <div className="px-6 py-5">
+            <h2 className="font-semibold text-gray-900">You have signed out</h2>
+            <p className="text-sm text-gray-600 mt-1">Choose an account to sign in again.</p>
+            <div className="mt-4 divide-y divide-gray-100 border border-gray-200 rounded-md">
+              {accounts.map((u) => (
+                <button key={u.id} onClick={() => signIn(u)} className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-gray-900 truncate">{u.name}</span>
+                    <span className="block text-xs text-gray-500 truncate">{u.agency}</span>
+                  </span>
+                  <span className="text-xs text-gray-600 flex-shrink-0">{u.role}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -416,44 +520,45 @@ function HelpPanel({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="font-bold text-gray-900">How this system works</h3>
-          <button onClick={onClose}><X className="w-5 h-5 text-gray-400 hover:text-gray-700" /></button>
+          <h3 className="font-bold text-gray-900">Help</h3>
+          <button onClick={onClose} aria-label="Close help"><X className="w-5 h-5 text-gray-400 hover:text-gray-700" /></button>
         </div>
         <div className="p-4 overflow-y-auto text-xs text-gray-700 space-y-4 leading-relaxed">
           <section>
-            <h4 className="font-bold text-gray-900 text-sm mb-1">The four-stage pipeline</h4>
-            <ol className="list-decimal ml-4 space-y-2">
-              <li><b>Detection.</b> SAR scenes are segmented pixel-by-pixel into sea, oil, look-alike, ship and land. Dark patches are the easy part; separating oil from wind shadows and algal films is the hard part, and it is done with cross-checks on wind speed, backscatter contrast, edge definition and slick geometry.</li>
-              <li><b>Hindcast.</b> A Lagrangian particle model runs backward from the observed slick using ocean currents, Stokes drift and windage, producing an origin point and a discharge time window with an honest uncertainty envelope rather than a single point.</li>
-              <li><b>Attribution.</b> AIS traffic intersecting that window is scored on proximity, temporality, course parity, behavioural anomalies and registry priors. Every sub-score is shown so the ranking can be inspected rather than trusted blindly.</li>
-              <li><b>Response.</b> Confirmed cases drive verification dispatch, community alerting through SACHET, ecological impact assessment, and the hand-off to IMAC.</li>
+            <h4 className="font-bold text-gray-900 text-sm mb-1">How a case is analysed</h4>
+            <ol className="list-decimal ml-4 space-y-1.5">
+              <li><b>Detection.</b> The slick comes from the official report. SAR scenes from EOS-04 and Sentinel-1 are listed for each case; processed scenes add dark-spot measurements.</li>
+              <li><b>Hindcast.</b> A particle model runs backward from the slick using currents, wind drift and the coastline, giving an estimated release point, time window and uncertainty.</li>
+              <li><b>Attribution.</b> Vessels near that point and time are scored on proximity, timing, course, behaviour and registry history. When authorities reported the release point, vessels are scored against it instead.</li>
+              <li><b>Response.</b> Verification, community alerts, ecological impact and the IMAC hand-off follow the workflow stages in order.</li>
             </ol>
           </section>
           <section>
-            <h4 className="font-bold text-gray-900 text-sm mb-1">Reading the confidence figures</h4>
+            <h4 className="font-bold text-gray-900 text-sm mb-1">Reading the scores</h4>
             <p>
-              Detection confidence is the probability that the feature is mineral oil rather than a natural look-alike.
-              Attribution confidence is a <i>prioritisation</i> score, not proof of guilt. A high-ranking vessel is a vessel
-              worth inspecting; the evidentiary step is a physical sample and a GC-MS fingerprint match against the vessel's
-              slop tank. The interface never allows a case to reach enforcement without passing through a human verification stage.
+              Attribution scores rank vessels for inspection; they are not proof. Enforcement needs on-scene verification
+              and a forensic match, and a case reaches enforcement only through those stages.
             </p>
           </section>
           <section>
-            <h4 className="font-bold text-gray-900 text-sm mb-1">Navigating</h4>
-            <p>
-              Each case page has its own time scrubber covering the incident window.
-              Use the search box for any case ID, vessel name, MMSI or IMO number. Maps pan by dragging and zoom with the wheel.
-              Switching the signed-in role from the user menu changes which pages are available.
-            </p>
-          </section>
-          <section className="bg-amber-50 border border-amber-200 rounded p-4">
-            <h4 className="font-bold text-amber-900 text-sm mb-1">What is real and what is not</h4>
-            <ul className="text-amber-900 list-disc ml-4 space-y-1.5">
-              <li><b>Real:</b> the seven incidents, their positions, times, vessels, quantities and outcomes (cited to official and public sources); Sentinel-1 scene catalogue entries; ERA5 wind and SMOC currents; UN sanctions checks.</li>
-              <li><b>Synthetic:</b> AIS tracks (anchored to reported real positions) and all background traffic, which carries SYN names and 999 MMSIs.</li>
-              <li><b>Pending:</b> SAR segmentation (no model trained yet), EOS-04 search (needs Bhoonidhi login), INCOIS and DGLL feeds.</li>
+            <h4 className="font-bold text-gray-900 text-sm mb-1">Using the system</h4>
+            <ul className="list-disc ml-4 space-y-1">
+              <li>Search finds cases, vessels (name, MMSI, IMO), protected areas, historical incidents and SAR scenes.</li>
+              <li>Maps pan by dragging and zoom with the wheel. Case pages have a time scrubber for the incident window.</li>
+              <li>The top bar switches times between UTC and IST and adjusts text size and contrast.</li>
+              <li>Pages and editing rights follow the signed-in account's role. Your actions are kept in this browser.</li>
             </ul>
-            <p className="text-amber-900 mt-2">Every value carries a REAL, OBSERVED, SYNTHETIC, MODELLED or PENDING badge. Cases start in replay mode: the workflow is this system's; the real-world outcome is shown beside it.</p>
+          </section>
+          <section className="bg-slate-50 border border-slate-200 rounded p-4">
+            <h4 className="font-bold text-gray-900 text-sm mb-1">Data sources</h4>
+            <ul className="list-disc ml-4 space-y-1.5">
+              <li><b>Incidents:</b> seven Indian oil spills with positions, times, vessels, quantities and outcomes from official and public sources.</li>
+              <li><b>AIS:</b> Global Fishing Watch hourly vessel positions; national AIS (DGLL) is not connected.</li>
+              <li><b>SAR:</b> ISRO Bhoonidhi (EOS-04) and Copernicus (Sentinel-1) catalogues. No segmentation model is trained yet.</li>
+              <li><b>Ocean and weather:</b> ERA5 wind, Météo-France SMOC and Copernicus Marine currents; INCOIS feeds are not connected.</li>
+              <li><b>Coastline:</b> OpenStreetMap.</li>
+            </ul>
+            <p className="mt-2">Values that are modelled, synthetic or still pending are labelled as such.</p>
           </section>
         </div>
       </div>

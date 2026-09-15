@@ -44,3 +44,14 @@
 /* Horizontal scrollers without a visible scrollbar (arrows indicate overflow instead). */
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* High-contrast mode (toggle in the top bar): darker text, firmer borders, visible focus. */
+html.hc body { background: #ffffff; }
+html.hc .text-gray-300, html.hc .text-gray-400, html.hc .text-gray-500,
+html.hc .text-slate-300, html.hc .text-slate-400, html.hc .text-slate-500 { color: #374151 !important; }
+html.hc .text-gray-600, html.hc .text-gray-700, html.hc .text-slate-600, html.hc .text-slate-700 { color: #111827 !important; }
+html.hc .border-gray-100, html.hc .border-gray-200, html.hc .border-gray-300 { border-color: #4b5563 !important; }
+html.hc .divide-gray-100 > * + * { border-color: #6b7280 !important; }
+html.hc .text-blue-600, html.hc .text-blue-700 { color: #0033a0 !important; }
+html.hc main a, html.hc main button.text-blue-600 { text-decoration: underline; }
+html.hc :focus-visible { outline: 3px solid #f59e0b !important; outline-offset: 2px; }

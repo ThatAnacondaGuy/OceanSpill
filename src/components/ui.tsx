@@ -14,7 +14,7 @@ export function Panel({
         <div className={`${dense ? 'px-3.5 py-2.5' : 'px-4 py-3'} border-b border-gray-200 flex justify-between items-center gap-3 bg-gray-50/60 rounded-t-lg flex-shrink-0`}>
           <div className="min-w-0">
             {title && <h3 className="font-bold text-gray-800 text-sm truncate">{title}</h3>}
-            {subtitle && <p className="text-[12px] text-gray-500 truncate mt-0.5">{subtitle}</p>}
+            {subtitle && <p className="text-[0.75rem] text-gray-500 truncate mt-0.5">{subtitle}</p>}
           </div>
           {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
         </div>
@@ -49,7 +49,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export function Tier({ tier }: { tier: string }) {
-  return <span className={`${TIER_STYLES[tier] ?? 'bg-gray-400 text-white'} text-[11px] font-bold px-1.5 py-[3px] rounded leading-none tracking-wide`}>{tier}</span>;
+  return <span className={`${TIER_STYLES[tier] ?? 'bg-gray-400 text-white'} text-[0.6875rem] font-bold px-1.5 py-[3px] rounded leading-none tracking-wide`}>{tier}</span>;
 }
 
 export function Badge({ children, tone = 'gray', className = '' }: { children: ReactNode; tone?: string; className?: string }) {
@@ -63,11 +63,11 @@ export function Badge({ children, tone = 'gray', className = '' }: { children: R
     teal: 'bg-teal-100 text-teal-800 border-teal-200',
     slate: 'bg-slate-700 text-white border-slate-800',
   };
-  return <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-[3px] rounded border leading-none ${styles[tone] ?? styles.gray} ${className}`}>{children}</span>;
+  return <span className={`inline-flex items-center gap-1 text-[0.6875rem] font-bold px-1.5 py-[3px] rounded border leading-none ${styles[tone] ?? styles.gray} ${className}`}>{children}</span>;
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  return <span className={`inline-block text-[11px] font-bold px-1.5 py-[3px] rounded border leading-none ${STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-200'}`}>{status}</span>;
+  return <span className={`inline-block text-[0.6875rem] font-bold px-1.5 py-[3px] rounded border leading-none ${STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-200'}`}>{status}</span>;
 }
 
 export function StatCard({
@@ -91,10 +91,10 @@ export function StatCard({
     >
       <div className={`${accents[accent]} p-2 sm:p-3 rounded-lg flex-shrink-0`}>{icon}</div>
       <div className="min-w-0">
-        <h3 className="text-[11px] font-bold text-gray-600 uppercase tracking-wide leading-snug line-clamp-2" title={title}>{title}</h3>
-        {subtitle && <p className="text-[10.5px] font-semibold text-gray-400">{subtitle}</p>}
+        <h3 className="text-[0.6875rem] font-bold text-gray-600 uppercase tracking-wide leading-snug line-clamp-2" title={title}>{title}</h3>
+        {subtitle && <p className="text-[0.65625rem] font-semibold text-gray-400">{subtitle}</p>}
         <div className="text-2xl font-black text-[#0a192f] mt-1 tracking-tight leading-none">{value}</div>
-        {trend && <p className={`text-[11px] font-medium mt-1.5 leading-snug line-clamp-2 ${tones[trendTone]}`}>{trend}</p>}
+        {trend && <p className={`text-[0.6875rem] font-medium mt-1.5 leading-snug line-clamp-2 ${tones[trendTone]}`}>{trend}</p>}
       </div>
     </button>
   );
@@ -114,11 +114,13 @@ export interface Column<T> {
 
 export function DataTable<T>({
   columns, rows, onRowClick, selectedId, rowKey, empty = 'No records match the current filters.',
-  dense, maxHeight, initialSort, stickyHeader = true,
+  dense, maxHeight, initialSort, stickyHeader = true, minWidth,
 }: {
   columns: Column<T>[]; rows: T[]; onRowClick?: (row: T) => void; selectedId?: string | null;
   rowKey: (row: T) => string; empty?: ReactNode; dense?: boolean; maxHeight?: string;
   initialSort?: { key: string; dir: 'asc' | 'desc' }; stickyHeader?: boolean;
+  /** Wide tables scroll sideways below this width instead of squeezing their columns. */
+  minWidth?: number;
 }) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(initialSort ?? null);
 
@@ -143,8 +145,8 @@ export function DataTable<T>({
 
   return (
     <div className="overflow-auto h-full" style={maxHeight ? { maxHeight } : undefined}>
-      <table className="w-full text-xs text-left border-collapse">
-        <thead className={`text-[11px] text-gray-600 bg-gray-50 border-b border-gray-200 ${stickyHeader ? 'sticky top-0 z-10' : ''}`}>
+      <table className="w-full text-xs text-left border-collapse" style={minWidth ? { minWidth } : undefined}>
+        <thead className={`text-[0.6875rem] text-gray-600 bg-gray-50 border-b border-gray-200 ${stickyHeader ? 'sticky top-0 z-10' : ''}`}>
           <tr>
             {columns.map((c) => (
               <th
@@ -222,17 +224,17 @@ export function Select({
   value, onChange, options, className = '', label,
 }: {
   value: string; onChange: (v: string) => void;
-  options: { value: string; label: string }[]; className?: string; label?: string;
+  options: { value: string; label: string; disabled?: boolean }[]; className?: string; label?: string;
 }) {
   return (
     <div className={className}>
-      {label && <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">{label}</label>}
+      {label && <label className="block text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">{label}</label>}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-2.5 py-2 text-xs border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
       >
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
       </select>
     </div>
   );
@@ -250,7 +252,7 @@ export function Toggle({ checked, onChange, label, count }: { checked: boolean; 
         {checked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
       </span>
       <span className="flex-1 text-gray-700 group-hover:text-gray-900">{label}</span>
-      {count !== undefined && <span className="text-[11px] text-gray-400 font-mono">{count}</span>}
+      {count !== undefined && <span className="text-[0.6875rem] text-gray-400 font-mono">{count}</span>}
     </label>
   );
 }
@@ -265,8 +267,8 @@ export function Slider({
     <div className={className}>
       {label && (
         <div className="flex justify-between items-baseline mb-1.5">
-          <label className="text-[11px] font-bold text-gray-600 uppercase">{label}</label>
-          <span className="text-[12px] font-mono font-semibold text-blue-700">{format ? format(value) : value}</span>
+          <label className="text-[0.6875rem] font-bold text-gray-600 uppercase">{label}</label>
+          <span className="text-[0.75rem] font-mono font-semibold text-blue-700">{format ? format(value) : value}</span>
         </div>
       )}
       <input
@@ -285,14 +287,14 @@ export function ScoreBar({ label, value, tone = 'blue', detail }: { label: strin
   };
   return (
     <div>
-      <div className="flex justify-between items-baseline text-[11px] mb-1">
+      <div className="flex justify-between items-baseline text-[0.6875rem] mb-1">
         <span className="text-gray-600 font-semibold">{label}</span>
         <span className="font-mono font-bold text-gray-900">{(value * 100).toFixed(0)}</span>
       </div>
       <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <div className={`h-full ${tones[tone] ?? tones.blue} rounded-full transition-all duration-500`} style={{ width: `${Math.max(1, Math.min(100, value * 100))}%` }} />
       </div>
-      {detail && <p className="text-[10.5px] text-gray-500 mt-1 leading-snug">{detail}</p>}
+      {detail && <p className="text-[0.65625rem] text-gray-500 mt-1 leading-snug">{detail}</p>}
     </div>
   );
 }
@@ -341,7 +343,7 @@ export function Button({
     success: 'bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600 disabled:bg-emerald-300',
     ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 border-transparent',
   };
-  const sizes = { sm: 'px-2.5 py-1.5 text-[12px]', md: 'px-3.5 py-2 text-xs' };
+  const sizes = { sm: 'px-2.5 py-1.5 text-[0.75rem]', md: 'px-3.5 py-2 text-xs' };
   return (
     <button
       onClick={onClick} disabled={disabled} title={title}
@@ -355,9 +357,9 @@ export function Button({
 export function Field({ label, children, hint }: { label: ReactNode; children: ReactNode; hint?: ReactNode }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1.5">{label}</label>
+      <label className="block text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">{label}</label>
       {children}
-      {hint && <p className="text-[11px] text-gray-500 mt-1">{hint}</p>}
+      {hint && <p className="text-[0.6875rem] text-gray-500 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -393,13 +395,13 @@ export function Tabs({
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
-          className={`${fill ? 'flex-1 justify-center px-1.5 text-[12px]' : 'px-3.5 text-[12.5px]'} py-2.5 font-semibold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 ${
+          className={`${fill ? 'flex-1 justify-center px-1.5 text-[0.75rem]' : 'px-3.5 text-[0.78125rem]'} py-2.5 font-semibold whitespace-nowrap border-b-2 transition-colors flex items-center gap-1.5 ${
             active === t.id ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50'
           }`}
         >
           {t.label}
           {t.count !== undefined && (
-            <span className={`text-[10.5px] px-1.5 py-0.5 rounded font-bold ${active === t.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>{t.count}</span>
+            <span className={`text-[0.65625rem] px-1.5 py-0.5 rounded font-bold ${active === t.id ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>{t.count}</span>
           )}
         </button>
       ))}
@@ -443,12 +445,12 @@ export function TimeScrubber({
         />
       </div>
 
-      <div className="font-mono text-[12px] font-bold text-gray-900 whitespace-nowrap tabular-nums">{format(value)}</div>
+      <div className="font-mono text-[0.75rem] font-bold text-gray-900 whitespace-nowrap tabular-nums">{format(value)}</div>
 
       <select
         value={speed}
         onChange={(e) => onSpeedChange(Number(e.target.value))}
-        className="text-[12px] border border-gray-300 rounded px-1.5 py-1 bg-white font-semibold"
+        className="text-[0.75rem] border border-gray-300 rounded px-1.5 py-1 bg-white font-semibold"
         title="Playback speed"
       >
         {[1, 2, 4, 8, 16, 32].map((s) => <option key={s} value={s}>{s}×</option>)}
@@ -517,11 +519,11 @@ export function BarChart({
       <div className="space-y-2">
         {data.map((d) => (
           <div key={d.label} className="flex items-center gap-2.5">
-            <div className="w-28 text-[11px] text-gray-600 truncate text-right flex-shrink-0" title={d.label}>{d.label}</div>
+            <div className="w-28 text-[0.6875rem] text-gray-600 truncate text-right flex-shrink-0" title={d.label}>{d.label}</div>
             <div className="flex-1 h-4 bg-gray-100 rounded-sm overflow-hidden">
               <div className="h-full rounded-sm transition-all duration-500" style={{ width: `${(d.value / max) * 100}%`, background: d.color ?? color }} />
             </div>
-            <div className="w-12 text-[11px] font-mono font-bold text-gray-800 text-right flex-shrink-0">
+            <div className="w-12 text-[0.6875rem] font-mono font-bold text-gray-800 text-right flex-shrink-0">
               {valueFormat ? valueFormat(d.value) : d.value}
             </div>
           </div>
@@ -533,7 +535,7 @@ export function BarChart({
     <div className="flex items-end gap-1" style={{ height }}>
       {data.map((d) => (
         <div key={d.label} className="flex-1 flex flex-col items-center gap-1 min-w-0 group">
-          <div className="text-[10.5px] font-mono font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="text-[0.65625rem] font-mono font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
             {valueFormat ? valueFormat(d.value) : d.value}
           </div>
           <div
@@ -541,7 +543,7 @@ export function BarChart({
             style={{ height: `${Math.max(2, (d.value / max) * (height - 34))}px`, background: d.color ?? color }}
             title={`${d.label}: ${valueFormat ? valueFormat(d.value) : d.value}`}
           />
-          <div className="text-[10.5px] text-gray-500 truncate w-full text-center" title={d.label}>{d.label}</div>
+          <div className="text-[0.65625rem] text-gray-500 truncate w-full text-center" title={d.label}>{d.label}</div>
         </div>
       ))}
     </div>
@@ -636,7 +638,7 @@ export function Donut({ segments, size = 110, thickness = 18, centreLabel, centr
       {(centreLabel || centreSub) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <div className="text-xl font-black text-gray-900 leading-none">{centreLabel}</div>
-          {centreSub && <div className="text-[10.5px] text-gray-500 font-semibold mt-0.5">{centreSub}</div>}
+          {centreSub && <div className="text-[0.65625rem] text-gray-500 font-semibold mt-0.5">{centreSub}</div>}
         </div>
       )}
     </div>
@@ -645,7 +647,7 @@ export function Donut({ segments, size = 110, thickness = 18, centreLabel, centr
 
 export function KeyValue({ items, cols = 2 }: { items: [ReactNode, ReactNode][]; cols?: number }) {
   return (
-    <div className={`grid gap-x-5 gap-y-2 text-[12px]`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
+    <div className={`grid gap-x-5 gap-y-2 text-[0.75rem]`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
       {items.map(([k, v], i) => (
         // Long values take the whole row rather than wrapping into a narrow column.
         <div key={i} className="flex justify-between gap-3 border-b border-gray-100 pb-1.5 min-w-0"
@@ -666,7 +668,7 @@ export function InfoBanner({ children, tone = 'blue', icon }: { children: ReactN
     green: 'bg-emerald-50 border-emerald-200 text-emerald-900',
   };
   return (
-    <div className={`${tones[tone]} border rounded-md px-3.5 py-2.5 text-[12px] flex gap-2.5 items-start`}>
+    <div className={`${tones[tone]} border rounded-md px-3.5 py-2.5 text-[0.75rem] flex gap-2.5 items-start`}>
       {icon && <div className="flex-shrink-0 mt-0.5">{icon}</div>}
       <div className="leading-relaxed">{children}</div>
     </div>
@@ -714,19 +716,21 @@ export function ExportButton({ onExport, label = 'Export CSV' }: { onExport: () 
 const PROVENANCE_STYLES: Record<string, { label: string; cls: string; help: string }> = {
   real: { label: 'REAL', cls: 'bg-emerald-50 text-emerald-700 border-emerald-300', help: 'From a cited public or official source' },
   observed: { label: 'OBSERVED', cls: 'bg-emerald-50 text-emerald-700 border-emerald-300', help: 'Measured or reanalysis data from a named provider' },
-  synthetic: { label: 'SYNTHETIC', cls: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-300', help: 'Generated because real data is not available to this prototype' },
+  synthetic: { label: 'SYNTHETIC', cls: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-300', help: 'Generated because no real data is available for this value' },
   'synthetic-anchored': { label: 'SYNTHETIC · ANCHORED', cls: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-300', help: 'Synthetic track passing through reported real positions' },
   modelled: { label: 'MODELLED', cls: 'bg-amber-50 text-amber-800 border-amber-300', help: 'Output of a model or an analyst planning construct' },
   model: { label: 'MODEL', cls: 'bg-amber-50 text-amber-800 border-amber-300', help: 'Climatological model used where observed data is missing' },
-  pending: { label: 'PENDING', cls: 'bg-slate-100 text-slate-600 border-slate-300', help: 'Needs data or access the prototype does not have yet' },
+  pending: { label: 'PENDING', cls: 'bg-slate-100 text-slate-600 border-slate-300', help: 'Needs data or access that is not available yet' },
   session: { label: 'SESSION', cls: 'bg-blue-50 text-blue-700 border-blue-300', help: 'Created by a user action in this browser session' },
   'facility-position': { label: 'FIXED SITE', cls: 'bg-emerald-50 text-emerald-700 border-emerald-300', help: 'Reported facility location' },
 };
 
 export function ProvenanceBadge({ p, className = '' }: { p: Provenance | 'observed' | 'model' | 'synthetic-anchored' | 'facility-position'; className?: string }) {
+  // Real and observed data is the default, so it carries no badge; only exceptions are labelled.
+  if (p === 'real' || p === 'observed') return null;
   const st = PROVENANCE_STYLES[p] ?? PROVENANCE_STYLES.pending;
   return (
-    <span title={st.help} className={`inline-flex items-center text-[10px] font-bold tracking-wide px-1.5 py-[2px] rounded border leading-none ${st.cls} ${className}`}>
+    <span title={st.help} className={`inline-flex items-center text-[0.625rem] font-bold tracking-wide px-1.5 py-[2px] rounded border leading-none ${st.cls} ${className}`}>
       {st.label}
     </span>
   );

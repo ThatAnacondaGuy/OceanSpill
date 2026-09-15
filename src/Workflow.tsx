@@ -9,6 +9,8 @@ import {
   Modal, Field, TextArea, StatCard, DataTable, ProvenanceBadge, type Column,
 } from './components/ui';
 import type { SpillCase, WorkflowStage, EnforcementAction } from './data/types';
+import { READ_ONLY_HINT } from './data/access';
+import { canSetStatus } from './data/workflow';
 
 /**
  * Verification and enforcement tracker.
@@ -27,7 +29,8 @@ const STAGES: { id: WorkflowStage; label: string; icon: any; tone: string; help:
 ];
 
 export default function Workflow() {
-  const { world, now, setWorkflowStage, navigate, getAnalysis, revision } = useStore();
+  const { world, now, setWorkflowStage, navigate, getAnalysis, revision, canEdit } = useStore();
+  const editable = canEdit('Workflow');
   const [query, setQuery] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [view, setView] = useState<'board' | 'enforcement'>('board');
@@ -83,18 +86,18 @@ export default function Workflow() {
         return v ? (
           <button onClick={() => navigate({ tab: 'Vessel Analysis', mmsi: a.mmsi })} className="text-left hover:underline">
             <div className="font-semibold text-gray-900">{a.party}</div>
-            <div className="text-[11px] text-gray-500 font-mono">{fmt.vesselId(v)}</div>
+            <div className="text-[0.6875rem] text-gray-500 font-mono">{fmt.vesselId(v)}</div>
           </button>
         ) : <span className="text-gray-800 font-semibold">{a.party}</span>;
       },
     },
     { key: 'type', header: 'Action', width: '150px', value: (a) => a.type, render: (a) => <Badge tone={a.type === 'Fine Issued' ? 'red' : a.type === 'Detention' ? 'amber' : 'blue'}>{a.type}</Badge> },
-    { key: 'authority', header: 'Authority', value: (a) => a.authority, render: (a) => <span className="text-gray-600 text-[11.5px]">{a.authority}</span> },
+    { key: 'authority', header: 'Authority', value: (a) => a.authority, render: (a) => <span className="text-gray-600 text-[0.71875rem]">{a.authority}</span> },
     {
       key: 'ref', header: 'Reference / source', width: '170px', value: (a) => a.reference ?? a.source ?? '',
       render: (a) => a.source
-        ? <a href={a.source} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-[11px] break-all">{a.reference ?? 'Public source'}</a>
-        : <span className="font-mono text-gray-500 text-[11px]">{a.reference ?? 'Not issued'}</span>,
+        ? <a href={a.source} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-[0.6875rem] break-all">{a.reference ?? 'Public source'}</a>
+        : <span className="font-mono text-gray-500 text-[0.6875rem]">{a.reference ?? 'Not issued'}</span>,
     },
     {
       key: 'amount', header: 'Penalty', width: '92px', align: 'right', value: (a) => a.amountInr ?? 0,
@@ -121,7 +124,7 @@ export default function Workflow() {
           <div className="bg-blue-600 text-white p-1.5 rounded"><CheckSquare className="w-4 h-4" /></div>
           <div>
             <h2 className="font-bold text-gray-900 text-sm">Verification &amp; enforcement</h2>
-            <p className="text-[12px] text-gray-500">Tracks human action, not model output</p>
+            <p className="text-[0.75rem] text-gray-500">Tracks human action, not model output</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -129,8 +132,8 @@ export default function Workflow() {
           <Select value={tierFilter} onChange={setTierFilter}
             options={[{ value: 'all', label: 'All tiers' }, { value: 'HIGH', label: 'High' }, { value: 'MEDIUM', label: 'Medium' }, { value: 'LOW', label: 'Low' }]} />
           <div className="flex rounded border border-gray-300 overflow-hidden">
-            <button onClick={() => setView('board')} className={`px-2.5 py-1.5 text-[12px] font-semibold ${view === 'board' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Board</button>
-            <button onClick={() => setView('enforcement')} className={`px-2.5 py-1.5 text-[12px] font-semibold border-l border-gray-300 ${view === 'enforcement' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+            <button onClick={() => setView('board')} className={`px-2.5 py-1.5 text-[0.75rem] font-semibold ${view === 'board' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Board</button>
+            <button onClick={() => setView('enforcement')} className={`px-2.5 py-1.5 text-[0.75rem] font-semibold border-l border-gray-300 ${view === 'enforcement' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
               Enforcement register
             </button>
           </div>
@@ -156,14 +159,14 @@ export default function Workflow() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="text-[12px] font-bold truncate">{stage.label}</span>
+                        <span className="text-[0.75rem] font-bold truncate">{stage.label}</span>
                       </div>
-                      <span className="text-[11px] font-black bg-white/70 px-1.5 rounded flex-shrink-0">{items.length}</span>
+                      <span className="text-[0.6875rem] font-black bg-white/70 px-1.5 rounded flex-shrink-0">{items.length}</span>
                     </div>
-                    <p className="text-[11px] opacity-80 mt-0.5 leading-normal">{stage.help}</p>
+                    <p className="text-[0.6875rem] opacity-80 mt-0.5 leading-normal">{stage.help}</p>
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-3">
-                    {items.length === 0 && <p className="text-[11px] text-gray-400 text-center py-6">No cases</p>}
+                    {items.length === 0 && <p className="text-[0.6875rem] text-gray-400 text-center py-6">No cases</p>}
                     {items.map((c) => {
                       const a = getAnalysis(c.id);
                       const top = a?.ranked[0];
@@ -172,32 +175,32 @@ export default function Workflow() {
                         <div key={c.id} className="bg-white rounded-md border border-gray-200 p-3 shadow-sm hover:border-blue-400 hover:shadow transition-all">
                           <button onClick={() => setDetail(c.id)} className="w-full text-left">
                             <div className="flex items-start justify-between gap-2 mb-1">
-                              <span className="font-bold text-[12px] text-gray-900 leading-snug line-clamp-2" title={c.title}>{c.title}</span>
+                              <span className="font-bold text-[0.75rem] text-gray-900 leading-snug line-clamp-2" title={c.title}>{c.title}</span>
                               <span className="flex-shrink-0"><Tier tier={c.tier} /></span>
                             </div>
-                            <p className="text-[11px] text-gray-600 truncate">{c.subRegion}</p>
+                            <p className="text-[0.6875rem] text-gray-600 truncate">{c.subRegion}</p>
                             {vessel && (
-                              <div className="flex items-center gap-1 mt-1 text-[11px] text-gray-700">
+                              <div className="flex items-center gap-1 mt-1 text-[0.6875rem] text-gray-700">
                                 <Ship className="w-3 h-3 text-gray-400 flex-shrink-0" />
                                 <span className="truncate font-semibold">{vessel.name}</span>
                                 <ProvenanceBadge p={vessel.provenance} />
                                 {top?.darkDuringWindow && <Badge tone="red">DARK</Badge>}
                               </div>
                             )}
-                            <div className="flex items-center justify-between mt-1.5 text-[10.5px] text-gray-400">
+                            <div className="flex items-center justify-between mt-1.5 text-[0.65625rem] text-gray-400">
                               <span>{c.assignedTo}</span>
                               <span>{fmt.ago(c.updatedAt, now)}</span>
                             </div>
                           </button>
                           <div className="flex gap-1 mt-1.5 pt-1.5 border-t border-gray-100">
-                            <button onClick={() => advance(c, -1)} disabled={si === 0}
-                              title={si === 0 ? 'Already at the first stage' : `Move back to ${STAGES[si - 1]?.label}`}
-                              className="flex-1 text-[11px] font-semibold py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-0.5">
+                            <button onClick={() => advance(c, -1)} disabled={!editable || si === 0}
+                              title={!editable ? READ_ONLY_HINT : si === 0 ? 'Already at the first stage' : `Move back to ${STAGES[si - 1]?.label}`}
+                              className="flex-1 text-[0.6875rem] font-semibold py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-0.5">
                               <ArrowLeft className="w-2.5 h-2.5" />
                             </button>
-                            <button onClick={() => advance(c, 1)} disabled={si === STAGES.length - 1}
-                              title={si === STAGES.length - 1 ? 'Case is closed' : `Advance to ${STAGES[si + 1]?.label}`}
-                              className="flex-[2] text-[11px] font-semibold py-1 rounded border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+                            <button onClick={() => advance(c, 1)} disabled={!editable || si === STAGES.length - 1}
+                              title={!editable ? READ_ONLY_HINT : si === STAGES.length - 1 ? 'Case is closed' : `Advance to ${STAGES[si + 1]?.label}`}
+                              className="flex-[2] text-[0.6875rem] font-semibold py-1 rounded border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1">
                               {si === STAGES.length - 1 ? 'Closed' : <>Advance <ArrowRight className="w-2.5 h-2.5" /></>}
                             </button>
                           </div>
@@ -214,8 +217,8 @@ export default function Workflow() {
         <div className="h-[80vh] flex-none lg:h-auto lg:flex-1 lg:min-h-0 p-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
             <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-              <span className="text-[12px] font-bold text-gray-700">Enforcement register — {world.enforcement.length} actions</span>
-              <span className="text-[11px] text-gray-500">Real outcomes from public records, plus actions recorded in this session · total penalties {fmt.inr(stats.penalties)}</span>
+              <span className="text-[0.75rem] font-bold text-gray-700">Enforcement register — {world.enforcement.length} actions</span>
+              <span className="text-[0.6875rem] text-gray-500">Outcomes from public records, plus actions recorded here · total penalties {fmt.inr(stats.penalties)}</span>
             </div>
             <div className="flex-1 min-h-0">
               <DataTable columns={enforcementColumns} rows={world.enforcement} rowKey={(a) => a.id} dense
@@ -228,9 +231,7 @@ export default function Workflow() {
 
       <div className="bg-white border-t border-gray-200 px-3 py-2 flex-shrink-0">
         <InfoBanner tone="blue" icon={<Lock className="w-3.5 h-3.5" />}>
-          Cases move one stage at a time and cannot skip ahead. A detection cannot become an enforcement
-          action without passing through on-scene verification and a forensic match — the interface enforces
-          that sequence rather than relying on the operator to observe it.
+          Cases move one stage at a time. Enforcement opens only after on-scene verification and a forensic match.
         </InfoBanner>
       </div>
 
@@ -240,8 +241,8 @@ export default function Workflow() {
           active ? (
             <>
               <Button onClick={() => { navigate({ tab: 'Investigation', caseId: active.id }); setDetail(null); }}>Open investigation</Button>
-              <Button variant="danger" disabled={stageIndex(active.workflowStage) < 2}
-                title={stageIndex(active.workflowStage) < 2 ? 'Requires a collected sample before enforcement can be raised' : undefined}
+              <Button variant="danger" disabled={!editable || !canSetStatus('Enforcement', active.workflowStage).ok}
+                title={!editable ? READ_ONLY_HINT : !canSetStatus('Enforcement', active.workflowStage).ok ? 'Enforcement needs on-scene verification and a forensic match first' : undefined}
                 onClick={() => { setEnforceFor(active.id); setDetail(null); }} icon={<Scale className="w-3 h-3" />}>
                 Raise enforcement action
               </Button>
@@ -265,7 +266,7 @@ export default function Workflow() {
                 const isNow = i === current;
                 return (
                   <div key={s.id} className="flex items-center gap-1 flex-shrink-0">
-                    <div className={`px-2 py-1 rounded text-[11px] font-semibold border ${
+                    <div className={`px-2 py-1 rounded text-[0.6875rem] font-semibold border ${
                       done ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
                       : isNow ? 'bg-blue-600 border-blue-600 text-white'
                       : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
@@ -279,7 +280,7 @@ export default function Workflow() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5">Case</p>
+                <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Case</p>
                 <KeyValue cols={1} items={[
                   ['Incident', fmt.precise(active.incidentTime, active.facts.incident.timePrecision)],
                   ['Observed by', active.detection.observationSource],
@@ -290,7 +291,7 @@ export default function Workflow() {
                 ]} />
               </div>
               <div>
-                <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5">Leading suspect</p>
+                <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Leading suspect</p>
                 {activeAnalysis.ranked[0] ? (() => {
                   const top = activeAnalysis.ranked[0];
                   const v = world.vesselsByMmsi.get(top.mmsi)!;
@@ -302,20 +303,20 @@ export default function Workflow() {
                       ['Prior offences', v.registryVerified ? String(v.priorOffences) : 'Not verified'],
                     ]} />
                   );
-                })() : <p className="text-[12px] text-gray-500">No candidate vessel — suspected dark-vessel event.</p>}
+                })() : <p className="text-[0.75rem] text-gray-500">No candidate vessel — suspected dark-vessel event.</p>}
               </div>
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5">Case history</p>
+              <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Case history</p>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {world.audit.filter((e) => e.target === active.id).map((e) => (
-                  <div key={e.id} className="flex gap-2 text-[11px] border-b border-gray-100 pb-1">
+                  <div key={e.id} className="flex gap-2 text-[0.6875rem] border-b border-gray-100 pb-1">
                     <span className="font-mono text-gray-400 w-24 flex-shrink-0">{fmt.utcShort(e.t)}</span>
                     <div className="min-w-0">
                       <span className="font-semibold text-gray-900">{e.action}</span>
                       <span className="text-gray-500"> — {e.detail}</span>
-                      <div className="text-[10.5px] text-gray-400">{e.actor} ({e.role})</div>
+                      <div className="text-[0.65625rem] text-gray-400">{e.actor} ({e.role})</div>
                     </div>
                   </div>
                 ))}
@@ -324,8 +325,7 @@ export default function Workflow() {
 
             {stageIndex(active.workflowStage) < 2 && (
               <InfoBanner tone="amber" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
-                Enforcement is unavailable until a physical sample has been collected. The attribution score
-                prioritises inspection; it does not substitute for evidence.
+                Enforcement opens at Forensic Match Pending, after a sample has been collected and sent for fingerprinting.
               </InfoBanner>
             )}
           </div>
@@ -373,7 +373,7 @@ function EnforcementModal({ open, onClose, caseId }: { open: boolean; onClose: (
         {vessel && (
           <div className="bg-gray-50 border border-gray-200 rounded p-3">
             <KeyValue cols={2} items={[
-              ['Vessel', vessel.name], ['IMO', vessel.imo ?? '—'],
+              ['Vessel', vessel.name], ['IMO', fmt.ident(vessel.imo)],
               ['Flag', `${vessel.flag ?? 'n/a'}${vessel.flagRisk ? ` (${vessel.flagRisk})` : ''}`], ['Operator', vessel.operator ?? 'Not published'],
               ['Attribution score', `${(top!.total * 100).toFixed(0)} / 100`],
               ['Verdict', analysis!.verdict.band],
@@ -401,8 +401,7 @@ function EnforcementModal({ open, onClose, caseId }: { open: boolean; onClose: (
         <Field label="Notes"><TextArea value={outcome} onChange={setOutcome} rows={3}
           placeholder="Basis for the action, evidence relied on, and any conditions…" /></Field>
         <InfoBanner tone="amber" icon={<Scale className="w-3.5 h-3.5" />}>
-          A named vessel carries legal and diplomatic consequence. Record the evidentiary basis — sample
-          reference and fingerprint match result — not just the attribution score.
+          Record the evidence (sample reference and fingerprint match result) with the action.
         </InfoBanner>
       </div>
     </Modal>

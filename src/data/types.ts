@@ -231,6 +231,8 @@ export interface CoastArtifact {
   rings: [number, number][][];
 }
 
+export type OilQuantityBasis = 'released' | 'on board' | 'recovered' | 'unaccounted';
+
 export interface ForcingArtifact {
   lats: number[];
   lons: number[];
@@ -411,6 +413,8 @@ export interface SpillCase {
   oilType: string;
   /** Tonnes on board or released, whichever is known, for impact scaling. */
   oilQuantityTonnes: number | null;
+  /** What the quantity measures; on board and recovered are not amounts spilled. */
+  oilQuantityBasis: OilQuantityBasis | null;
   hindcastHours: number;
   forecastHours: number;
   incidentTime: number;

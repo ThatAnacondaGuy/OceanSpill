@@ -44,6 +44,8 @@ export interface ScoringContext {
   /** How linear the slick is. Low elongation means course parity is uninformative. */
   slickElongation: number;
   weights?: ScoringWeights;
+  /** Whether the origin is the authorities' reported release point or the hindcast estimate; wording only. */
+  originBasis?: 'reported' | 'hindcast';
 }
 
 /** Search radius for pulling candidate traffic: the origin uncertainty plus a margin. */
@@ -161,7 +163,7 @@ export function analyseBehaviour(
     flags.push(`Slowed from ${cruiseEstimate.toFixed(1)} kn to ${minSpeedKn.toFixed(1)} kn within the window`);
   } else if (slowdown > 6) {
     score += 0.12;
-    flags.push(`Unexplained speed reduction of ${slowdown.toFixed(1)} kn`);
+    flags.push(`Speed reduction of ${slowdown.toFixed(1)} kn within the window`);
   }
 
   if (loiterMinutes > 25) {
@@ -310,14 +312,15 @@ export function scoreCandidates(
     // against how well the origin is actually known rather than a fixed distance.
     const sigma = Math.max(6, ctx.uncertaintyKm);
     const proximity = Math.exp(-(cpaKm ** 2) / (2 * sigma ** 2));
-    reasons.push(`Closest approach ${cpaKm.toFixed(1)} km from the hindcast origin (1σ = ${sigma.toFixed(0)} km)${acrossGap ? ', estimated across its AIS gap' : ''}`);
+    const originName = ctx.originBasis === 'reported' ? 'the reported release point' : 'the hindcast origin';
+    reasons.push(`Closest approach ${cpaKm.toFixed(1)} km from ${originName} (1σ = ${sigma.toFixed(0)} km)${acrossGap ? ', estimated across its AIS gap' : ''}`);
 
     // Temporality: how close the CPA was to the estimated discharge time.
     const deltaMin = (cpaTime - ctx.originTime) / 60000;
     const tSigmaMin = ctx.windowHours * 60 * 0.62;
     const temporality = Math.exp(-(deltaMin ** 2) / (2 * tSigmaMin ** 2));
     reasons.push(
-      `Passed the origin ${Math.abs(deltaMin).toFixed(0)} min ${deltaMin >= 0 ? 'after' : 'before'} the estimated discharge time`
+      `Closest approach ${Math.abs(deltaMin).toFixed(0)} min ${deltaMin >= 0 ? 'after' : 'before'} the ${ctx.originBasis === 'reported' ? 'reported release time' : 'estimated discharge time'}`
     );
 
     // Trajectory parity: a moving discharge lays oil along the vessel's course, so the slick's
@@ -409,7 +412,7 @@ export function scoreCandidates(
  * Converts the top score into a plain-language confidence band. The wording deliberately
  * stops short of asserting guilt — this output prioritises an inspection, it is not proof.
  */
-export function attributionVerdict(ranked: AttributionScore[]): {
+export function attributionVerdict(ranked: AttributionScore[], originBasis: 'reported' | 'hindcast' = 'hindcast'): {
   band: 'Strong' | 'Moderate' | 'Weak' | 'Inconclusive';
   label: string;
   detail: string;
@@ -449,7 +452,9 @@ export function attributionVerdict(ranked: AttributionScore[]): {
     return {
       band: 'Weak',
       label: 'Weak correlation',
-      detail: 'No candidate correlates strongly with the hindcast origin. Widen the search window or re-run the hindcast with updated ocean forcing.',
+      detail: originBasis === 'reported'
+        ? 'All scores are low: hourly AIS positions sit several kilometres from the reported release point, so no vessel stands out. The order still reflects proximity and timing.'
+        : 'No candidate correlates strongly with the hindcast origin. Widen the search window or re-run the hindcast with updated ocean forcing.',
       separation,
     };
   }

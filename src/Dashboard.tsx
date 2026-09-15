@@ -3,6 +3,7 @@ import {
   Satellite, FileText, Anchor, Activity, ClipboardList, ArrowRight, Search, BarChart2, Settings, Layers, Scale, History, AlertTriangle,
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
+import { legalSummary, reportedSource } from './data/world';
 import { MapView, BasemapSwitch, type BasemapStyle, type MapMarker, type MapPolygon } from './components/MapView';
 import { Panel, StatCard, Tier, StatusBadge, Badge, Toggle, InfoBanner, ProvenanceBadge } from './components/ui';
 import { analysePolygon } from './lib/geo';
@@ -20,9 +21,8 @@ export default function Dashboard() {
     const eosScenes = world.passes.filter((p) => p.provider === 'bhoonidhi').length;
     const real = world.vessels.filter((v) => v.provenance === 'real' && !v.isFacility).length;
     const synthetic = world.vessels.filter((v) => v.provenance === 'synthetic').length;
-    const legal = world.enforcement.filter((e) => e.provenance === 'real');
-    const fines = legal.reduce((s, e) => s + (e.amountInr ?? 0), 0);
-    return { scenes, eosScenes, real, synthetic, legal: legal.length, fines, high: world.cases.filter((c) => c.tier === 'HIGH').length };
+    const legal = legalSummary(world);
+    return { scenes, eosScenes, real, synthetic, legal: legal.actions, legalIncidents: legal.incidents, fines: legal.penaltiesInr, high: world.cases.filter((c) => c.tier === 'HIGH').length };
   }, [world, revision]);
 
   const ordered = useMemo(() => {
@@ -85,22 +85,22 @@ export default function Dashboard() {
     ? sampleField({ north: 25, south: 4, east: 96, west: 65 }, new Date(now), 16, 12, 'current').map((s) => ({ position: s.position, dirDeg: s.sample.dirTo, magnitude: s.sample.speed }))
     : []), [layers.currents, now]);
 
-  const recordEvents = useMemo(() => world.audit.filter((a) => a.category !== 'Access').slice(0, 8), [world.audit, revision]);
+  const recordEvents = useMemo(() => world.audit.filter((a) => a.category !== 'Access' && a.category !== 'System').slice(0, 8), [world.audit, revision]);
   const warnings = useMemo(() => world.cases.flatMap((c) => c.warnings.map((w) => ({ caseId: c.id, text: w }))), [world.cases]);
 
   return (
     <main className="flex-1 min-h-0 p-4 grid grid-cols-12 gap-4 overflow-y-auto content-start">
       <div className="col-span-12 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-        <StatCard icon={<ClipboardList className="w-6 h-6" />} title="Real cases" value={world.cases.length}
-          trend={`${stats.high} high tier · replay mode`} onClick={() => navigate({ tab: 'Spill Incidents' })} />
+        <StatCard icon={<ClipboardList className="w-6 h-6" />} title="Recorded cases" value={world.cases.length}
+          trend={`${stats.high} high tier · retrospective`} onClick={() => navigate({ tab: 'Spill Incidents' })} />
         <StatCard icon={<Satellite className="w-6 h-6" />} title="SAR scenes catalogued" value={stats.scenes}
-          trend={stats.eosScenes ? `${stats.eosScenes} EOS-04` : 'Sentinel-1 only · EOS-04 needs login'} onClick={() => navigate({ tab: 'Satellite Tasking' })} />
+          trend={`${stats.eosScenes} EOS-04 · ${stats.scenes - stats.eosScenes} Sentinel-1`} onClick={() => navigate({ tab: 'Satellite Tasking' })} />
         <StatCard icon={<Anchor className="w-6 h-6" />} title="Vessels in case windows" value={stats.real + stats.synthetic}
-          trend={`${stats.real} real · ${stats.synthetic} synthetic`} onClick={() => navigate({ tab: 'Vessel Analysis' })} />
+          trend={stats.synthetic ? `${stats.synthetic} synthetic` : `across ${world.cases.length} cases`} onClick={() => navigate({ tab: 'Vessel Analysis' })} />
         <StatCard icon={<History className="w-6 h-6" />} title="Historical incidents" value={world.historical.length}
           accent="amber" trend="Indian waters, 1970–2025" onClick={() => navigate({ tab: 'Case Archive', section: 'historical' })} />
         <StatCard icon={<Scale className="w-6 h-6" />} title="Legal actions on record" value={stats.legal}
-          accent="red" trend={stats.fines ? `${fmt.inr(stats.fines)} in fines (NGT)` : 'none recorded'} onClick={() => navigate({ tab: 'Workflow', section: 'enforcement' })} />
+          accent="red" trend={`${stats.legalIncidents} incidents${stats.fines ? ` · ${fmt.inr(stats.fines)} in fines` : ''}`} onClick={() => navigate({ tab: 'Workflow', section: 'enforcement' })} />
       </div>
 
       <div className="col-span-12 lg:col-span-8 xl:col-span-9 h-[560px] rounded-lg shadow-sm border border-gray-200 overflow-hidden relative bg-white">
@@ -120,7 +120,7 @@ export default function Dashboard() {
                 </button>
                 {layersOpen && (
                   <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-56 z-30">
-                    <Toggle checked={layers.cases} onChange={(v) => setLayers({ ...layers, cases: v })} label="Real cases (analysed)" count={world.cases.length} />
+                    <Toggle checked={layers.cases} onChange={(v) => setLayers({ ...layers, cases: v })} label="Recorded cases" count={world.cases.length} />
                     <Toggle checked={layers.historical} onChange={(v) => setLayers({ ...layers, historical: v })} label="Historical register" count={world.historical.filter((h) => !h.activeCaseId && h.lat != null).length} />
                     <Toggle checked={layers.eez} onChange={(v) => setLayers({ ...layers, eez: v })} label="Indian EEZ (approx.)" />
                     <Toggle checked={layers.esa} onChange={(v) => setLayers({ ...layers, esa: v })} label="Sensitive areas" count={ECOLOGICAL_AREAS.length} />
@@ -133,20 +133,20 @@ export default function Dashboard() {
             </div>
           }
           legend={
-            <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded-lg p-3 text-[11px] shadow-lg">
+            <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded-lg p-3 text-[0.6875rem] shadow-lg">
               <h4 className="font-bold mb-1.5 text-gray-700 uppercase tracking-wide">Legend</h4>
               <LegendDot color="#dc2626" label="Case, high tier (≥250 t)" />
               <LegendDot color="#f59e0b" label="Case, medium / unknown quantity" />
               <LegendDot color="#10b981" label="Case, low tier" />
               <div className="flex items-center gap-2 mb-1"><span className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[7px] border-l-transparent border-r-transparent border-b-slate-500" /><span className="text-gray-700">Historical incident</span></div>
-              <p className="text-[10.5px] text-gray-400 mt-1 max-w-[170px] leading-snug">Tier from oil quantity on board or released, as reported.</p>
+              <p className="text-[0.65625rem] text-gray-400 mt-1 max-w-[170px] leading-snug">Tier from oil quantity on board or released, as reported.</p>
             </div>
           }
         />
       </div>
 
         <Panel title="Cases" subtitle="Ordered by tier, then most recent"
-          actions={<button onClick={() => navigate({ tab: 'Spill Incidents' })} className="text-[12px] text-blue-600 font-semibold hover:underline flex items-center gap-1">All <ArrowRight className="w-3 h-3" /></button>}
+          actions={<button onClick={() => navigate({ tab: 'Spill Incidents' })} className="text-[0.75rem] text-blue-600 font-semibold hover:underline flex items-center gap-1">All <ArrowRight className="w-3 h-3" /></button>}
           className="col-span-12 lg:col-span-4 xl:col-span-3 h-[560px]" bodyClass="overflow-y-auto" dense>
           {ordered.map((c, i) => {
             const a = getAnalysis(c.id);
@@ -156,14 +156,18 @@ export default function Dashboard() {
                 <div className="font-bold text-gray-300 text-base pt-0.5 w-4 text-center flex-shrink-0">{i + 1}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start gap-2 mb-0.5">
-                    <span className="font-bold text-[12px] text-[#0a192f] group-hover:text-blue-700 leading-snug">{c.title}</span>
+                    <span className="font-bold text-[0.75rem] text-[#0a192f] group-hover:text-blue-700 leading-snug">{c.title}</span>
                     <Tier tier={c.tier} />
                   </div>
-                  <p className="text-[11px] text-gray-500 truncate">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {c.region}</p>
+                  <p className="text-[0.6875rem] text-gray-500 truncate">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {c.region}</p>
                   <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                     <StatusBadge status={c.status} />
                     <Badge tone="gray">{c.detection.scenes.length} SAR</Badge>
-                    {a?.ranked[0] && <span className="text-[10.5px] text-gray-500 truncate">top: {world.vesselsByMmsi.get(a.ranked[0].mmsi)?.name}</span>}
+                    {(() => {
+                      const src = reportedSource(world, c.id);
+                      if (src?.isFacility) return <span className="text-[0.65625rem] text-gray-500 truncate">Reported source: {src.name}</span>;
+                      return a?.ranked[0] && <span className="text-[0.65625rem] text-gray-500 truncate">Top AIS candidate: {world.vesselsByMmsi.get(a.ranked[0].mmsi)?.name}</span>;
+                    })()}
                   </div>
                 </div>
               </button>
@@ -173,9 +177,9 @@ export default function Dashboard() {
 
       <div className="col-span-12 grid grid-cols-12 gap-4">
         <Panel title="Case record events" className="col-span-12 lg:col-span-7" dense
-          actions={<button onClick={() => navigate({ tab: 'Case Archive', section: 'audit' })} className="text-[12px] text-blue-600 font-semibold hover:underline flex items-center gap-1">Audit trail <ArrowRight className="w-3 h-3" /></button>}>
-          <table className="w-full text-[12px] text-left">
-            <thead className="text-[11px] text-gray-500 bg-gray-50 border-b border-gray-100 uppercase">
+          actions={<button onClick={() => navigate({ tab: 'Case Archive', section: 'audit' })} className="text-[0.75rem] text-blue-600 font-semibold hover:underline flex items-center gap-1">Audit trail <ArrowRight className="w-3 h-3" /></button>}>
+          <table className="w-full text-[0.75rem] text-left">
+            <thead className="text-[0.6875rem] text-gray-500 bg-gray-50 border-b border-gray-100 uppercase">
               <tr><th className="px-4 py-2 font-bold">When (UTC)</th><th className="px-4 py-2 font-bold">Event</th><th className="px-4 py-2 font-bold">Case</th><th className="px-4 py-2 font-bold" /></tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -183,7 +187,7 @@ export default function Dashboard() {
                 <tr key={a.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => world.cases.some((c) => c.id === a.target) && navigate({ tab: 'Investigation', caseId: a.target })}>
                   <td className="px-4 py-2 text-gray-500 font-mono whitespace-nowrap">{fmt.utcShort(a.t)}</td>
                   <td className="px-4 py-2 text-gray-900">{a.action}</td>
-                  <td className="px-4 py-2 text-gray-600 font-mono text-[11px] truncate max-w-[150px]">{a.target}</td>
+                  <td className="px-4 py-2 text-gray-600 font-mono text-[0.6875rem] truncate max-w-[150px]">{a.target}</td>
                   <td className="px-4 py-2"><ProvenanceBadge p={a.provenance} /></td>
                 </tr>
               ))}
@@ -193,11 +197,11 @@ export default function Dashboard() {
 
         <Panel title="Data quality warnings" subtitle="From the pipeline build" className="col-span-12 lg:col-span-5" dense>
           <div className="p-4 space-y-2.5 max-h-72 overflow-y-auto">
-            {warnings.length === 0 && <p className="text-[12px] text-gray-400">No warnings.</p>}
+            {warnings.length === 0 && <p className="text-[0.75rem] text-gray-400">No warnings.</p>}
             {warnings.map((w, i) => (
-              <button key={i} onClick={() => navigate({ tab: 'Investigation', caseId: w.caseId })} className="w-full text-left flex gap-2 text-[12px] leading-normal hover:bg-amber-50 rounded px-1.5 py-1">
+              <button key={i} onClick={() => navigate({ tab: 'Investigation', caseId: w.caseId })} className="w-full text-left flex gap-2 text-[0.75rem] leading-normal hover:bg-amber-50 rounded px-1.5 py-1">
                 <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0 mt-0.5" />
-                <span><span className="font-mono text-[11px] text-gray-500">{w.caseId.slice(4)}</span> {w.text}</span>
+                <span><span className="font-mono text-[0.6875rem] text-gray-500">{w.caseId.slice(4)}</span> {w.text}</span>
               </button>
             ))}
           </div>
@@ -206,14 +210,14 @@ export default function Dashboard() {
 
       <div className="col-span-12 grid grid-cols-12 gap-4 items-start">
         <Panel title="Integration status" subtitle="Indian primary first, fallbacks after" className="col-span-12 lg:col-span-8" dense
-          actions={<button onClick={() => navigate({ tab: 'Data Management', section: 'sources' })} className="text-[12px] text-blue-600 font-semibold hover:underline">Details</button>}>
+          actions={<button onClick={() => navigate({ tab: 'Data Management', section: 'sources' })} className="text-[0.75rem] text-blue-600 font-semibold hover:underline">Details</button>}>
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
             {world.dataSources.map((d) => (
-              <div key={d.id} className="flex items-center gap-2.5 text-[12px] min-w-0">
+              <div key={d.id} className="flex items-center gap-2.5 text-[0.75rem] min-w-0">
                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${d.status === 'Online' ? 'bg-emerald-500' : d.status === 'Interim fallback' ? 'bg-amber-500' : d.status === 'Not configured' ? 'bg-blue-400' : 'bg-slate-300'}`} />
                 <span className="font-semibold text-gray-800 truncate flex-1" title={d.message}>{d.name}</span>
-                <span className="text-[10.5px] text-gray-400 flex-shrink-0">{d.kind}</span>
-                <span className={`text-[10.5px] font-bold flex-shrink-0 ${d.sovereign ? 'text-emerald-700' : 'text-gray-400'}`}>{d.sovereign ? 'IN' : 'EXT'}</span>
+                <span className="text-[0.65625rem] text-gray-400 flex-shrink-0">{d.kind}</span>
+                <span className={`text-[0.65625rem] font-bold flex-shrink-0 ${d.sovereign ? 'text-emerald-700' : 'text-gray-400'}`}>{d.sovereign ? 'IN' : 'EXT'}</span>
               </div>
             ))}
           </div>
@@ -228,7 +232,7 @@ export default function Dashboard() {
             <QuickAction icon={<Settings className="w-5 h-5 text-blue-600" />} label={'Integration\nstatus'} onClick={() => navigate({ tab: 'Data Management', section: 'sources' })} />
           </div>
           <InfoBanner tone="blue" icon={<Activity className="w-3.5 h-3.5" />}>
-            Case data generated {fmt.ago(new Date(world.generatedAt).getTime(), now)}. Rebuild with <code className="font-mono">uv run oceanspill build</code> after adding credentials.
+            Case data updated {fmt.ago(new Date(world.generatedAt).getTime(), now)}.
           </InfoBanner>
         </div>
       </div>
@@ -248,7 +252,7 @@ function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: s
   return (
     <button onClick={onClick} className="bg-white border border-gray-200 rounded-lg p-3 flex flex-col items-center justify-center gap-1.5 shadow-sm hover:border-blue-400 hover:shadow-md transition-all text-center">
       <div className="bg-blue-50/60 p-1.5 rounded-lg">{icon}</div>
-      <span className="text-[11px] font-semibold text-gray-700 whitespace-pre-line leading-snug">{label}</span>
+      <span className="text-[0.6875rem] font-semibold text-gray-700 whitespace-pre-line leading-snug">{label}</span>
     </button>
   );
 }

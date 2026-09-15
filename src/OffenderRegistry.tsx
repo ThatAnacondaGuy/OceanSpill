@@ -9,6 +9,7 @@ import {
   ScoreBar, BarChart, ProvenanceBadge, type Column,
 } from './components/ui';
 import type { EnforcementAction, Vessel } from './data/types';
+import { READ_ONLY_HINT } from './data/access';
 
 /** Registry prior exactly as the attribution engine computes it, so the page shows the real input. */
 function registryPrior(v: Vessel): { total: number; parts: { label: string; value: number }[] } {
@@ -40,7 +41,7 @@ interface Party {
  * registry histories exist only to exercise the scoring model, are kept on a separate tab.
  */
 export default function OffenderRegistry() {
-  const { world, selectedMmsi, setSelectedMmsi, navigate, getAnalysis, revision, weights } = useStore();
+  const { world, selectedMmsi, setSelectedMmsi, navigate, getAnalysis, revision, weights, canEdit } = useStore();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState('register');
   const [kindFilter, setKindFilter] = useState('all');
@@ -132,19 +133,19 @@ export default function OffenderRegistry() {
             <ProvenanceBadge p={p.provenance} />
             {p.vessel?.sanctioned && <Badge tone="slate"><Ban className="w-2.5 h-2.5" /> SANCTIONED</Badge>}
           </div>
-          <div className="text-[11px] text-gray-500 font-mono">{p.vessel ? fmt.vesselId(p.vessel) : p.actions[0]?.outcome ?? '—'}</div>
+          <div className="text-[0.6875rem] text-gray-500 font-mono">{p.vessel ? fmt.vesselId(p.vessel) : p.actions[0]?.outcome ?? '—'}</div>
         </div>
       ),
     },
     { key: 'kind', header: 'Kind', width: '104px', value: (p) => p.kind, render: (p) => <Badge tone={p.kind === 'Vessel' ? 'blue' : p.kind === 'Facility' ? 'violet' : 'gray'}>{p.kind}</Badge> },
-    { key: 'flag', header: 'Flag / operator', width: '160px', value: (p) => p.vessel?.flag ?? p.vessel?.operator ?? '', render: (p) => <span className="text-gray-700 text-[11.5px]">{[p.vessel?.flag, p.vessel?.operator].filter(Boolean).join(' · ') || '—'}</span> },
+    { key: 'flag', header: 'Flag / operator', width: '160px', value: (p) => p.vessel?.flag ?? p.vessel?.operator ?? '', render: (p) => <span className="text-gray-700 text-[0.71875rem]">{[p.vessel?.flag, p.vessel?.operator].filter(Boolean).join(' · ') || '—'}</span> },
     {
       key: 'source', header: 'Reported source', width: '100px', align: 'center', value: (p) => (p.reportedSource ? 1 : 0),
       render: (p) => p.reportedSource ? <Badge tone="amber">Yes</Badge> : <span className="text-gray-300">—</span>,
     },
     {
       key: 'actions', header: 'Legal actions', width: '96px', align: 'center', value: (p) => p.actions.length,
-      render: (p) => p.actions.length > 0 ? <Badge tone="blue">{p.actions.length}</Badge> : <span className="text-gray-400 text-[11px]">none published</span>,
+      render: (p) => p.actions.length > 0 ? <Badge tone="blue">{p.actions.length}</Badge> : <span className="text-gray-400 text-[0.6875rem]">No action published</span>,
     },
     {
       key: 'penalty', header: 'Penalties', width: '96px', align: 'right', value: (p) => p.penalties,
@@ -164,12 +165,12 @@ export default function OffenderRegistry() {
       render: (r) => (
         <div>
           <div className="flex items-center gap-1.5"><span className="font-bold text-gray-900">{r.vessel.name}</span><ProvenanceBadge p="synthetic" /></div>
-          <div className="text-[11px] text-gray-500 font-mono">{fmt.vesselId(r.vessel)} · case {r.vessel.caseId}</div>
+          <div className="text-[0.6875rem] text-gray-500 font-mono">{fmt.vesselId(r.vessel)} · case {r.vessel.caseId}</div>
         </div>
       ),
     },
     { key: 'type', header: 'Type', width: '120px', value: (r) => r.vessel.type },
-    { key: 'flag', header: 'Flag', width: '130px', value: (r) => r.vessel.flag ?? '', render: (r) => <span>{r.vessel.flag ?? '—'}{r.vessel.flagRisk && r.vessel.flagRisk !== 'Standard' ? <span className="text-[10.5px] text-amber-700 ml-1">({r.vessel.flagRisk})</span> : null}</span> },
+    { key: 'flag', header: 'Flag', width: '130px', value: (r) => r.vessel.flag ?? '', render: (r) => <span>{r.vessel.flag ?? '—'}{r.vessel.flagRisk && r.vessel.flagRisk !== 'Standard' ? <span className="text-[0.65625rem] text-amber-700 ml-1">({r.vessel.flagRisk})</span> : null}</span> },
     { key: 'priors', header: 'Priors', width: '60px', align: 'center', value: (r) => r.vessel.priorOffences },
     { key: 'psc', header: 'Detentions', width: '80px', align: 'center', value: (r) => r.vessel.pscDetentions ?? 0 },
     {
@@ -190,7 +191,7 @@ export default function OffenderRegistry() {
           <div className="bg-blue-50 text-blue-700 p-2 rounded"><Shield className="w-5 h-5" /></div>
           <div>
             <h2 className="font-bold text-gray-900 text-base">Liability register</h2>
-            <p className="text-xs text-gray-500">Parties in Indian oil pollution incidents and their published legal outcomes</p>
+            <p className="text-xs text-gray-500">Parties named in Indian oil pollution incidents, as reported sources or in legal actions. Inclusion is not a finding of liability.</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -211,11 +212,12 @@ export default function OffenderRegistry() {
       </div>
 
       <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3 px-4 pb-4">
-        <div className="flex-1 min-w-0 h-[75vh] lg:h-auto bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
+        <div className="flex-none h-[75vh] lg:h-auto lg:flex-1 min-w-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
           <Tabs active={tab} onChange={setTab} tabs={[
             { id: 'register', label: 'Register', count: register.length },
             { id: 'analysis', label: 'Legal outcomes' },
-            { id: 'synthetic', label: 'Synthetic watch list', count: synthetic.length },
+            // Shown only when synthetic vessels exist in the loaded cases.
+            ...(synthetic.length ? [{ id: 'synthetic', label: 'Synthetic watch list', count: synthetic.length }] : []),
           ]} className="px-2" />
           {tab === 'register' && (
             <div className="flex-1 min-h-0">
@@ -241,15 +243,15 @@ export default function OffenderRegistry() {
                   <div key={e.id} className="border border-gray-200 rounded p-2 flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[12px] font-bold text-gray-900">{e.party}</span>
+                        <span className="text-[0.75rem] font-bold text-gray-900">{e.party}</span>
                         <Badge tone={e.type === 'Fine Issued' ? 'red' : 'blue'}>{e.type}</Badge>
                         <ProvenanceBadge p={e.provenance} />
                       </div>
-                      <p className="text-[11px] text-gray-600">{e.authority}{e.outcome ? ` · ${e.outcome}` : ''}</p>
+                      <p className="text-[0.6875rem] text-gray-600">{e.authority}{e.outcome ? ` · ${e.outcome}` : ''}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      {e.amountInr ? <p className="text-[12px] font-mono font-bold text-gray-900">{fmt.inr(e.amountInr)}</p> : null}
-                      {e.source && <a href={e.source} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline inline-flex items-center gap-0.5"><ExternalLink className="w-2.5 h-2.5" /> source</a>}
+                      {e.amountInr ? <p className="text-[0.75rem] font-mono font-bold text-gray-900">{fmt.inr(e.amountInr)}</p> : null}
+                      {e.source && <a href={e.source} target="_blank" rel="noreferrer" className="text-[0.6875rem] text-blue-600 hover:underline inline-flex items-center gap-0.5"><ExternalLink className="w-2.5 h-2.5" /> source</a>}
                     </div>
                   </div>
                 ))}
@@ -284,7 +286,7 @@ export default function OffenderRegistry() {
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0">
                     <h3 className="font-bold text-gray-900 text-sm truncate">{selected.name}</h3>
-                    <p className="text-[11px] text-gray-500 font-mono">{selected.vessel ? fmt.vesselId(selected.vessel) : selected.kind}</p>
+                    <p className="text-[0.6875rem] text-gray-500 font-mono">{selected.vessel ? fmt.vesselId(selected.vessel) : selected.kind}</p>
                   </div>
                   <ProvenanceBadge p={selected.provenance} />
                 </div>
@@ -299,7 +301,7 @@ export default function OffenderRegistry() {
                     ['PSC detentions', selected.vessel.pscDetentions != null ? String(selected.vessel.pscDetentions) : 'Needs Equasis'],
                   ]} />
                 )}
-                {selected.vessel?.note && <p className="text-[11px] text-gray-500 leading-normal">{selected.vessel.note}</p>}
+                {selected.vessel?.note && <p className="text-[0.6875rem] text-gray-500 leading-normal">{selected.vessel.note}</p>}
 
                 {selected.vessel?.sanctioned && (
                   <InfoBanner tone="red" icon={<Ban className="w-3.5 h-3.5" />}>
@@ -312,13 +314,13 @@ export default function OffenderRegistry() {
                   const applied = selected.vessel.provenance === 'synthetic' || selected.vessel.registryVerified;
                   return (
                     <div className="bg-violet-50 border border-violet-200 rounded p-3">
-                      <p className="text-[11px] font-bold text-violet-900 uppercase mb-1.5">Contribution to attribution scoring</p>
+                      <p className="text-[0.6875rem] font-bold text-violet-900 uppercase mb-1.5">Contribution to attribution scoring</p>
                       <ScoreBar label="Registry prior (raw)" value={applied ? prior.total : 0} tone="violet" />
-                      <div className="mt-2 space-y-1.5 text-[11px] text-violet-800">
+                      <div className="mt-2 space-y-1.5 text-[0.6875rem] text-violet-800">
                         {!applied && <p>Registry history not verified, so no prior is applied.</p>}
                         {applied && prior.parts.map((p) => <Row key={p.label} label={p.label} value={`+${p.value.toFixed(2)}`} />)}
                       </div>
-                      <div className="mt-2 pt-2 border-t border-violet-200 flex justify-between text-[11px]">
+                      <div className="mt-2 pt-2 border-t border-violet-200 flex justify-between text-[0.6875rem]">
                         <span className="font-semibold text-violet-900">Effective score contribution</span>
                         <span className="font-mono font-black text-violet-900">+{((applied ? prior.total : 0) * weights.vesselPrior * 100).toFixed(1)} of 100</span>
                       </div>
@@ -327,7 +329,7 @@ export default function OffenderRegistry() {
                 })()}
 
                 <div>
-                  <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5">Cases</p>
+                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Cases</p>
                   <div className="space-y-2">
                     {selected.caseIds.map((id) => {
                       const c = world.cases.find((x) => x.id === id);
@@ -338,14 +340,14 @@ export default function OffenderRegistry() {
                           className="w-full text-left border border-gray-200 rounded p-2 hover:border-blue-400 hover:bg-blue-50/40">
                           <div className="flex justify-between items-start gap-2">
                             <div className="min-w-0">
-                              <p className="text-[11.5px] font-bold text-gray-900">{c?.title ?? h?.name ?? id}</p>
-                              <p className="text-[11px] text-gray-500 truncate">{c?.subRegion ?? h?.location}</p>
-                              <p className="text-[10.5px] text-gray-400">{c ? fmt.precise(c.incidentTime, c.facts.incident.timePrecision) : h?.date}</p>
+                              <p className="text-[0.71875rem] font-bold text-gray-900">{c?.title ?? h?.name ?? id}</p>
+                              <p className="text-[0.6875rem] text-gray-500 truncate">{c?.subRegion ?? h?.location}</p>
+                              <p className="text-[0.65625rem] text-gray-400">{c ? fmt.precise(c.incidentTime, c.facts.incident.timePrecision) : h?.date}</p>
                             </div>
                             {score && (
                               <div className="text-right flex-shrink-0">
                                 <div className={`text-sm font-black leading-none ${score.rank === 1 ? 'text-red-600' : 'text-gray-500'}`}>{(score.total * 100).toFixed(0)}</div>
-                                <div className="text-[10.5px] text-gray-400">rank {score.rank}</div>
+                                <div className="text-[0.65625rem] text-gray-400">rank {score.rank}</div>
                               </div>
                             )}
                           </div>
@@ -356,9 +358,9 @@ export default function OffenderRegistry() {
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5">Legal and regulatory actions</p>
+                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Legal and regulatory actions</p>
                   {selected.actions.length === 0 ? (
-                    <p className="text-[11.5px] text-gray-500">No action found in the public record.</p>
+                    <p className="text-[0.71875rem] text-gray-500">No action found in the public record.</p>
                   ) : (
                     <div className="space-y-2">
                       {selected.actions.map((a) => (
@@ -367,10 +369,10 @@ export default function OffenderRegistry() {
                             <Badge tone={a.type === 'Fine Issued' ? 'red' : 'blue'}>{a.type}</Badge>
                             <div className="flex gap-1"><Badge tone={a.status === 'Concluded' ? 'green' : a.status === 'Reported' ? 'blue' : 'amber'}>{a.status}</Badge><ProvenanceBadge p={a.provenance} /></div>
                           </div>
-                          <p className="text-[11px] text-gray-600">{a.authority} → {a.party}</p>
-                          {a.amountInr ? <p className="text-[11px] font-bold text-gray-900 mt-0.5">{fmt.inr(a.amountInr)}</p> : null}
-                          {a.outcome && <p className="text-[11px] text-gray-600 mt-1 leading-normal">{a.outcome}</p>}
-                          {a.source && <a href={a.source} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">Source</a>}
+                          <p className="text-[0.6875rem] text-gray-600">{a.authority} → {a.party}</p>
+                          {a.amountInr ? <p className="text-[0.6875rem] font-bold text-gray-900 mt-0.5">{fmt.inr(a.amountInr)}</p> : null}
+                          {a.outcome && <p className="text-[0.6875rem] text-gray-600 mt-1 leading-normal">{a.outcome}</p>}
+                          {a.source && <a href={a.source} target="_blank" rel="noreferrer" className="text-[0.6875rem] text-blue-600 hover:underline">Source</a>}
                         </div>
                       ))}
                     </div>
@@ -379,10 +381,13 @@ export default function OffenderRegistry() {
               </div>
 
               <div className="p-3 border-t border-gray-200 flex gap-2">
-                <Button size="sm" className="flex-1 justify-center" disabled={!selected.vessel} onClick={() => selected.vessel && navigate({ tab: 'Vessel Analysis', mmsi: selected.vessel.mmsi })} icon={<Ship className="w-3 h-3" />}>
+                <Button size="sm" className="flex-1 justify-center" disabled={!selected.vessel}
+                  title={selected.vessel ? 'Open this vessel in Vessel Analysis' : 'No vessel is linked to this party, so there is no track to open'}
+                  onClick={() => selected.vessel && navigate({ tab: 'Vessel Analysis', mmsi: selected.vessel.mmsi })} icon={<Ship className="w-3 h-3" />}>
                   Track
                 </Button>
-                <Button size="sm" variant="primary" className="flex-1 justify-center" onClick={() => setActionFor(selected.key)} icon={<Building2 className="w-3 h-3" />}>
+                <Button size="sm" variant="primary" className="flex-1 justify-center" disabled={!canEdit('Offender Registry')}
+                  title={canEdit('Offender Registry') ? undefined : READ_ONLY_HINT} onClick={() => setActionFor(selected.key)} icon={<Building2 className="w-3 h-3" />}>
                   Record action
                 </Button>
               </div>
@@ -438,14 +443,14 @@ function RegulatoryActionModal({ open, onClose, party }: { open: boolean; onClos
           <Select value={caseId} onChange={setCaseId}
             options={relatedCases.map((c) => ({ value: c.id, label: c.title }))} />
         </Field>
-        {relatedCases.length === 0 && <p className="text-[11.5px] text-amber-700">This party has no analysed case to attach an action to.</p>}
+        {relatedCases.length === 0 && <p className="text-[0.71875rem] text-amber-700">This party has no analysed case to attach an action to.</p>}
         <Field label="Action">
           <Select value={type} onChange={(v) => setType(v as EnforcementAction['type'])}
             options={['Inspection Ordered', 'Detention', 'Fine Issued', 'Insurance Flagged', 'Blacklist Recommended', 'Prosecution Referred'].map((t) => ({ value: t, label: t }))} />
         </Field>
         <Field label="Notes"><TextArea value={notes} onChange={setNotes} rows={3} placeholder="Basis for the action and any conditions attached…" /></Field>
         <InfoBanner tone="blue" icon={<Flag className="w-3.5 h-3.5" />}>
-          In a deployment a confirmed action would feed the registry prior used in future attribution. Session records do not change the prior.
+          Actions recorded here do not change the registry prior used in scoring.
         </InfoBanner>
       </div>
     </Modal>

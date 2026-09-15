@@ -13,6 +13,28 @@ import { CORRIDORS, ECOLOGICAL_AREAS } from './data/geography';
 import { analyseBehaviour, interpolateTrack } from './engine/attribution';
 import type { Vessel } from './data/types';
 
+const REGISTRY_LABELS: Record<string, string> = {
+  grosstonnage: 'Gross tonnage', yearofbuild: 'Year of build', registeredowner: 'Registered owner',
+  ismmanager: 'ISM manager', shipmanager: 'Ship manager', classificationsociety: 'Classification society',
+  pandiclub: 'P&I club', pscinspections: 'PSC inspections', pscperiod: 'PSC inspection period',
+  pscdetentions: 'PSC detentions', callsign: 'Call sign', deadweight: 'Deadweight',
+};
+
+/** Readable registry field names ("psc_inspections" or "PscInspections" → "PSC inspections"). */
+function registryLabel(key: string): string {
+  const norm = key.replace(/[\s_-]/g, '').toLowerCase();
+  if (REGISTRY_LABELS[norm]) return REGISTRY_LABELS[norm];
+  const words = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim().toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+const TRACK_LABEL: Record<string, string> = {
+  real: 'AIS track',
+  'synthetic-anchored': 'Estimated from reported positions',
+  synthetic: 'Synthetic track',
+  'facility-position': 'Fixed site',
+};
+
 export default function VesselAnalysis() {
   const { world, selectedMmsi, setSelectedMmsi, selectedCaseId, setSelectedCaseId, navigate, getAnalysis, revision } = useStore();
   const [query, setQuery] = useState('');
@@ -71,6 +93,11 @@ export default function VesselAnalysis() {
     () => (selectedTrack ? analyseBehaviour(selectedTrack, windowBounds.min, windowBounds.max) : null),
     [selectedTrack, windowBounds]
   );
+  // Period actually covered by AIS reports inside the window, not the window itself.
+  const aisSpanHours = useMemo(() => {
+    const pts = selectedTrack?.pings.filter((p) => p.t >= windowBounds.min && p.t <= windowBounds.max) ?? [];
+    return pts.length > 1 ? (pts[pts.length - 1].t - pts[0].t) / 3600_000 : 0;
+  }, [selectedTrack, windowBounds]);
 
   const mapData = useMemo(() => {
     const markers: MapMarker[] = [];
@@ -100,7 +127,7 @@ export default function VesselAnalysis() {
       if (!track) continue;
       const isSel = selected?.mmsi === v.mmsi;
       const hasGap = darkMmsis.has(v.mmsi);
-      const color = isSel ? '#22d3ee' : v.provenance === 'real' ? '#f59e0b' : hasGap ? '#ef4444' : rankOf.get(v.mmsi)?.rank === 1 ? '#f97316' : '#94a3b8';
+      const color = isSel ? '#22d3ee' : hasGap ? '#ef4444' : rankOf.get(v.mmsi)?.rank === 1 ? '#f97316' : track.provenance === 'real' ? '#f59e0b' : '#94a3b8';
 
       if (layers.tracks) {
         const pts = track.pings.filter((p) => p.t <= playback.value);
@@ -124,9 +151,9 @@ export default function VesselAnalysis() {
           markers.push({
             id: v.mmsi, position: pos, kind: 'vessel', color: darkNow ? '#ef4444' : color,
             size: isSel ? 8 : v.provenance === 'real' ? 6.5 : 5, headingDeg: pos.cog, selected: isSel, pulse: darkNow,
-            label: v.name, sublabel: `${v.type} · ${v.provenance === 'real' ? 'real vessel' : 'synthetic'}${darkNow ? ' · AIS DARK' : ''}`,
+            label: v.name, sublabel: `${v.type} · ${TRACK_LABEL[track.provenance]}${darkNow ? ' · AIS dark' : ''}`,
             z: isSel ? 9 : 6,
-            meta: { ID: fmt.vesselId(v), Speed: `${pos.sog.toFixed(1)} kn`, Course: `${pos.cog.toFixed(0)}°`, Track: track.provenance },
+            meta: { ID: fmt.vesselId(v), Speed: `${pos.sog.toFixed(1)} kn`, Course: `${pos.cog.toFixed(0)}°`, Track: TRACK_LABEL[track.provenance] },
           });
         }
       }
@@ -153,7 +180,7 @@ export default function VesselAnalysis() {
             <ProvenanceBadge p={v.provenance} />
             {darkMmsis.has(v.mmsi) && <Badge tone="red">GAP</Badge>}
           </div>
-          <div className="text-[11px] text-gray-500 font-mono">{fmt.vesselId(v)}</div>
+          <div className="text-[0.6875rem] text-gray-500 font-mono">{fmt.vesselId(v)}</div>
         </div>
       ),
     },
@@ -171,15 +198,14 @@ export default function VesselAnalysis() {
     return pts.filter((_, i) => i % step === 0).map((p) => p.sog);
   }, [selectedTrack, windowBounds]);
 
-  const windowHours = (windowBounds.max - windowBounds.min) / 3600_000;
 
   return (
     <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
       <aside className="w-full lg:w-[300px] xl:w-[360px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Anchor className="w-4 h-4 text-blue-600" /> Vessel traffic</h2>
-          <p className="text-[11px] text-gray-500 mt-0.5">
-            {caseVessels.filter((v) => v.provenance === 'real').length} real · {caseVessels.filter((v) => v.provenance === 'synthetic').length} synthetic · {darkMmsis.size} with AIS gaps
+          <p className="text-[0.6875rem] text-gray-500 mt-0.5">
+            {caseVessels.length} vessels{caseVessels.some((v) => v.provenance === 'synthetic') ? ` (${caseVessels.filter((v) => v.provenance === 'synthetic').length} synthetic)` : ''} · {darkMmsis.size} with AIS gaps
           </p>
         </div>
         <div className="p-2 space-y-3 border-b border-gray-200">
@@ -201,7 +227,7 @@ export default function VesselAnalysis() {
             initialSort={{ key: 'rank', dir: 'asc' }} />
         </div>
         <div className="p-2 border-t border-gray-200 flex items-center justify-between gap-2">
-          <span className="text-[11px] text-gray-500">AIS: {activeCase?.aisProvider}</span>
+          <span className="text-[0.6875rem] text-gray-500">AIS: {activeCase?.aisProvider}</span>
           <ExportButton onExport={() => downloadCsv(`oceanspill-vessels-${caseId}.csv`, columns.filter((c) => c.value), filtered)} />
         </div>
       </aside>
@@ -242,14 +268,15 @@ export default function VesselAnalysis() {
               </div>
             }
             legend={
-              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[11px] shadow-lg max-w-[220px]">
+              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-3 text-[0.6875rem] shadow-lg max-w-[220px]">
                 <h4 className="font-bold mb-1.5 text-gray-700 uppercase">Traffic</h4>
                 <Dot color="#22d3ee" label="Selected vessel" />
-                <Dot color="#f59e0b" label="Real vessel (synthetic track)" />
+                <Dot color="#f97316" label="Leading suspect" />
                 <Dot color="#ef4444" label="AIS gap in window" />
-                <Dot color="#94a3b8" label="Synthetic background traffic" />
-                <Dot color="#10b981" label="Reported real position" />
-                <p className="text-[10.5px] text-gray-500 mt-1.5 leading-normal">Tracks are synthetic, passing through reported real positions where available.</p>
+                <Dot color="#f59e0b" label="AIS track" />
+                <Dot color="#94a3b8" label="Estimated from reported positions" />
+                <Dot color="#10b981" label="Reported position" />
+                <p className="text-[0.65625rem] text-gray-500 mt-1.5 leading-normal">AIS: Global Fishing Watch hourly positions.</p>
               </div>
             }
           />
@@ -275,7 +302,7 @@ export default function VesselAnalysis() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="font-bold text-gray-900 text-sm truncate">{selected.name}</h3>
-                  <p className="text-[11px] text-gray-500 font-mono">{fmt.vesselId(selected)}</p>
+                  <p className="text-[0.6875rem] text-gray-500 font-mono">{fmt.vesselId(selected)}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   <ProvenanceBadge p={selected.provenance} />
@@ -304,11 +331,11 @@ export default function VesselAnalysis() {
               {tab === 'particulars' && (
                 <>
                   <KeyValue cols={2} items={[
-                    ['MMSI', selected.mmsiNumber ?? 'Not public'], ['IMO', selected.imo ?? '—'],
+                    ['MMSI', fmt.ident(selected.mmsiNumber, 'Not public')], ['IMO', fmt.ident(selected.imo)],
                     ['Flag', selected.flag ?? '—'], ['Operator', selected.operator ?? 'Not published'],
                     ['Role in case', selected.role], ['Facility', selected.isFacility ? 'Yes' : 'No'],
                   ]} />
-                  {selected.note && <p className="text-[11px] text-gray-600 leading-normal">{selected.note}</p>}
+                  {selected.note && <p className="text-[0.6875rem] text-gray-600 leading-normal">{selected.note}</p>}
 
                   {selected.provenance === 'synthetic' && (
                     <InfoBanner tone="amber" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
@@ -319,17 +346,17 @@ export default function VesselAnalysis() {
 
                   {selected.anchors.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Reported positions</p>
+                      <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Reported positions</p>
                       <div className="space-y-1.5">
                         {selected.anchors.map((a, i) => (
                           <button key={i} onClick={() => playback.setValue(Math.max(windowBounds.min, Math.min(windowBounds.max, Date.parse(a.time))))}
                             className="w-full text-left bg-emerald-50/60 border border-emerald-200 rounded px-2 py-1.5 hover:border-emerald-400">
                             <div className="flex justify-between gap-2">
-                              <span className="text-[11.5px] font-bold text-gray-900">{a.event}</span>
+                              <span className="text-[0.71875rem] font-bold text-gray-900">{a.event}</span>
                               <ProvenanceBadge p="real" />
                             </div>
-                            <p className="text-[11px] font-mono text-gray-600">{fmt.utcShort(Date.parse(a.time))} · {a.lat.toFixed(3)}, {a.lon.toFixed(3)} ± {a.positionPrecisionKm} km</p>
-                            <p className="text-[10.5px] text-gray-500">{a.source}{a.after ? ` · then ${a.after}` : ''}</p>
+                            <p className="text-[0.6875rem] font-mono text-gray-600">{fmt.utcShort(Date.parse(a.time))} · {a.lat.toFixed(3)}, {a.lon.toFixed(3)} ± {a.positionPrecisionKm} km</p>
+                            <p className="text-[0.65625rem] text-gray-500">{a.source}{a.after ? ` · then ${a.after}` : ''}</p>
                           </button>
                         ))}
                       </div>
@@ -338,16 +365,16 @@ export default function VesselAnalysis() {
 
                   {selectedTrack && (
                     <div className="bg-gray-50 border border-gray-200 rounded p-3">
-                      <p className="text-[11px] font-bold text-gray-700 uppercase mb-1 flex items-center gap-1.5">AIS track <ProvenanceBadge p={selectedTrack.provenance} /></p>
+                      <p className="text-[0.6875rem] font-bold text-gray-700 uppercase mb-1 flex items-center gap-1.5">AIS track <ProvenanceBadge p={selectedTrack.provenance} /></p>
                       <ul className="space-y-0.5">
-                        {selectedTrack.notes.map((n) => <li key={n} className="text-[11px] text-gray-600 leading-normal">• {n}</li>)}
+                        {selectedTrack.notes.map((n) => <li key={n} className="text-[0.6875rem] text-gray-600 leading-normal">• {n}</li>)}
                       </ul>
                     </div>
                   )}
 
                   {!selected.isFacility && (
                     <div className="rounded border p-3 bg-gray-50 border-gray-200">
-                      <p className="text-[11px] font-bold text-gray-700 uppercase mb-1.5 flex items-center gap-1.5"><Shield className="w-3 h-3" /> Registry and sanctions</p>
+                      <p className="text-[0.6875rem] font-bold text-gray-700 uppercase mb-1.5 flex items-center gap-1.5"><Shield className="w-3 h-3" /> Registry and sanctions</p>
                       <KeyValue cols={2} items={[
                         ['Registry', selected.provenance === 'synthetic' ? 'Synthetic' : selected.registryVerified ? 'Verified' : 'Not verified'],
                         ['Sanctions', selected.sanctionsChecked ? (selected.sanctioned ? 'Listed' : 'Not listed (UNSC, IMO match)') : selected.sanctioned ? 'Synthetic listing' : 'Not checked'],
@@ -356,12 +383,13 @@ export default function VesselAnalysis() {
                       ]} />
                       {selected.registryDetails && (
                         <div className="mt-1.5 pt-1.5 border-t border-gray-200">
-                          <KeyValue cols={2} items={Object.entries(selected.registryDetails).map(([k, val]) => [
-                            k.replace(/([A-Z])/g, ' $1').replace(/^./, (x) => x.toUpperCase()), String(val),
-                          ])} />
+                          <KeyValue cols={2} items={Object.entries(selected.registryDetails)
+                            // Skip blanks and fields already shown above (flag, type) so values never contradict.
+                            .filter(([k, val]) => val != null && !/^not known$/i.test(String(val)) && !['flag', 'shiptype'].includes(k.replace(/[\s_]/g, '').toLowerCase()))
+                            .map(([k, val]) => [registryLabel(k), String(val)])} />
                         </div>
                       )}
-                      {selected.registrySource && <p className="text-[11px] text-gray-500 mt-1">{selected.registrySource}</p>}
+                      {selected.registrySource && <p className="text-[0.6875rem] text-gray-500 mt-1">{selected.registrySource}</p>}
                     </div>
                   )}
                   {selected.sanctioned && (
@@ -375,45 +403,47 @@ export default function VesselAnalysis() {
               {tab === 'behaviour' && behaviour && selectedTrack && (
                 <>
                   <div className="grid grid-cols-2 gap-2">
-                    <StatCard icon={<Gauge className="w-4 h-4" />} title="Mean speed" value={`${behaviour.meanSpeedKn.toFixed(1)}`} trend={`knots over ${windowHours.toFixed(0)} h`} />
+                    <StatCard icon={<Gauge className="w-4 h-4" />} title="Mean speed" value={`${behaviour.meanSpeedKn.toFixed(1)}`} trend={`knots over ${fmt.hoursOrDays(aisSpanHours)} of AIS`} />
                     <StatCard icon={<TrendingDown className="w-4 h-4" />} title="Min speed" value={`${behaviour.minSpeedKn.toFixed(1)}`} trend="knots" accent={behaviour.minSpeedKn < 8 ? 'amber' : 'blue'} />
                     <StatCard icon={<EyeOff className="w-4 h-4" />} title="AIS dark" value={`${behaviour.darkMinutes}`} trend="minutes" accent={behaviour.darkMinutes > 0 ? 'red' : 'green'} />
                     <StatCard icon={<Clock className="w-4 h-4" />} title="Loitering" value={`${behaviour.loiterMinutes}`} trend="minutes below 2 kn" accent={behaviour.loiterMinutes > 25 ? 'amber' : 'blue'} />
                   </div>
 
                   <InfoBanner tone="amber" icon={<Radio className="w-3.5 h-3.5" />}>
-                    Behaviour is computed from the {selectedTrack.provenance} track. It demonstrates the method; it is not evidence about the real vessel.
+                    {selectedTrack.provenance === 'real'
+                      ? 'Computed from hourly AIS positions. Hourly sampling hides short manoeuvres, so treat anomalies as leads to check.'
+                      : `Computed from a track ${TRACK_LABEL[selectedTrack.provenance].toLowerCase()}; it indicates behaviour only approximately.`}
                   </InfoBanner>
 
                   <div className={`rounded border p-3 ${behaviour.score > 0.5 ? 'bg-red-50 border-red-200' : behaviour.score > 0.2 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] font-bold uppercase text-gray-700">Anomaly score</span>
+                      <span className="text-[0.6875rem] font-bold uppercase text-gray-700">Anomaly score</span>
                       <span className="text-base font-black text-gray-900">{(behaviour.score * 100).toFixed(0)}</span>
                     </div>
                     <ul className="space-y-1.5 mt-1.5">
                       {behaviour.flags.map((f, i) => (
-                        <li key={i} className="text-[11px] text-gray-700 flex gap-1.5 leading-normal"><span className="text-gray-400">•</span><span>{f}</span></li>
+                        <li key={i} className="text-[0.6875rem] text-gray-700 flex gap-1.5 leading-normal"><span className="text-gray-400">•</span><span>{f}</span></li>
                       ))}
                     </ul>
                   </div>
 
                   <div>
-                    <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Speed over ground</p>
+                    <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">Speed over ground</p>
                     <LineChart height={110} series={[{ name: 'sog', color: '#2563eb', points: speedSeries }]} yFormat={(v) => `${v.toFixed(0)} kn`} showArea />
                   </div>
 
                   {selectedTrack.gaps.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold text-red-700 uppercase mb-1.5 flex items-center gap-1.5"><EyeOff className="w-3 h-3" /> Transmission gaps</p>
+                      <p className="text-[0.6875rem] font-bold text-red-700 uppercase mb-1.5 flex items-center gap-1.5"><EyeOff className="w-3 h-3" /> Transmission gaps</p>
                       <div className="space-y-2">
                         {selectedTrack.gaps.map((g, i) => (
                           <button key={i} onClick={() => playback.setValue(g.start)} className="w-full text-left bg-red-50 border border-red-200 rounded p-2 hover:border-red-400">
-                            <div className="flex justify-between text-[11px]">
+                            <div className="flex justify-between text-[0.6875rem]">
                               <span className="font-bold text-red-900">{g.minutes} min silent</span>
                               <span className="font-mono text-red-700">{g.distanceKm} km</span>
                             </div>
-                            <p className="text-[11px] text-red-700 mt-0.5 font-mono">{fmt.utcShort(g.start)} → {fmt.utcShort(g.end)}</p>
-                            <p className="text-[11px] text-red-600 mt-0.5">
+                            <p className="text-[0.6875rem] text-red-700 mt-0.5 font-mono">{fmt.utcShort(g.start)} → {fmt.utcShort(g.end)}</p>
+                            <p className="text-[0.6875rem] text-red-600 mt-0.5">
                               Implied speed {g.impliedSpeedKn} kn{g.impliedSpeedKn > 22 && ' — implausible, suggests a position jump'}
                             </p>
                           </button>
@@ -440,33 +470,33 @@ export default function VesselAnalysis() {
                       className="w-full text-left border border-gray-200 rounded p-3 hover:border-blue-400 hover:bg-blue-50/40">
                       <div className="flex justify-between items-start gap-2">
                         <div className="min-w-0">
-                          <p className="font-bold text-[12px] text-gray-900">{activeCase.title}</p>
-                          <p className="text-[11px] text-gray-600 truncate">{activeCase.subRegion}</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">{fmt.precise(activeCase.incidentTime, activeCase.facts.incident.timePrecision)}</p>
+                          <p className="font-bold text-[0.75rem] text-gray-900">{activeCase.title}</p>
+                          <p className="text-[0.6875rem] text-gray-600 truncate">{activeCase.subRegion}</p>
+                          <p className="text-[0.6875rem] text-gray-400 mt-0.5">{fmt.precise(activeCase.incidentTime, activeCase.facts.incident.timePrecision)}</p>
                         </div>
                         {score && (
                           <div className="text-right flex-shrink-0">
                             <div className={`text-base font-black leading-none ${score.rank === 1 ? 'text-rose-600' : 'text-gray-600'}`}>{(score.total * 100).toFixed(0)}</div>
-                            <div className="text-[10.5px] text-gray-400">rank {score.rank}</div>
+                            <div className="text-[0.65625rem] text-gray-400">rank {score.rank}</div>
                           </div>
                         )}
                       </div>
                       {score && (
-                        <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex gap-3 text-[11px] text-gray-600">
+                        <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex gap-3 text-[0.6875rem] text-gray-600">
                           <span>CPA {score.cpaKm.toFixed(1)} km</span>
                           <span>Δt {score.deltaTimeMin.toFixed(0)} min</span>
                           {score.darkDuringWindow && <Badge tone="red">DARK</Badge>}
                         </div>
                       )}
-                      <div className="mt-1.5 flex items-center gap-1 text-[11px] text-blue-600 font-semibold">Open investigation <ArrowRight className="w-3 h-3" /></div>
+                      <div className="mt-1.5 flex items-center gap-1 text-[0.6875rem] text-blue-600 font-semibold">Open investigation <ArrowRight className="w-3 h-3" /></div>
                     </button>
                     {score && (
                       <ul className="space-y-1.5">
-                        {score.reasons.map((r, i) => <li key={i} className="text-[11px] text-gray-700 leading-normal flex gap-1.5"><span className="text-gray-400">•</span>{r}</li>)}
+                        {score.reasons.map((r, i) => <li key={i} className="text-[0.6875rem] text-gray-700 leading-normal flex gap-1.5"><span className="text-gray-400">•</span>{r}</li>)}
                       </ul>
                     )}
-                    {excluded && <p className="text-[11.5px] text-gray-600">Excluded from scoring: {excluded.reason}</p>}
-                    {!score && !excluded && <p className="text-[11.5px] text-gray-500">Not evaluated for this case.</p>}
+                    {excluded && <p className="text-[0.71875rem] text-gray-600">Excluded from scoring: {excluded.reason}</p>}
+                    {!score && !excluded && <p className="text-[0.71875rem] text-gray-500">Not evaluated for this case.</p>}
                     {selected.provenance === 'real' && (
                       <Button size="sm" className="w-full justify-center" onClick={() => navigate({ tab: 'Offender Registry', mmsi: selected.mmsi })} icon={<Shield className="w-3 h-3" />}>
                         Liability register

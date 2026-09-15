@@ -2,7 +2,7 @@ import { analysePolygon } from '../lib/geo';
 import { observedSampler } from '../engine/forcing';
 import type {
   AreaOfInterest, AuditEntry, CaseArtifact, CoastArtifact, CommunityAlert, DataSource, EnforcementAction, ForcingArtifact,
-  HistoricalIncident, IndexArtifact, RiskTier, SarMeasurement, SarSpot, SatellitePass, SightingReport, SpillCase,
+  HistoricalIncident, IndexArtifact, OilQuantityBasis, RiskTier, SarMeasurement, SarSpot, SatellitePass, SightingReport, SpillCase,
   SystemUser, Vessel, VesselTrack,
 } from './types';
 
@@ -56,16 +56,21 @@ export async function loadWorld(): Promise<World> {
 
 const ms = (iso: string) => new Date(iso).getTime();
 
-/** Best-known oil quantity in tonnes: released if reported, otherwise what was on board or recovered. */
-function oilQuantityTonnes(a: CaseArtifact): number | null {
+const PROVIDER_NAMES: Record<string, string> = {
+  eos04: 'EOS-04 (Bhoonidhi)', sentinel1: 'Sentinel-1 (Copernicus)', 'openmeteo+cmems': 'Open-Meteo and Copernicus Marine',
+  openmeteo: 'Open-Meteo', cmems: 'Copernicus Marine', gfw: 'Global Fishing Watch', unsc: 'UN sanctions list',
+};
+
+/** Best-known oil quantity in tonnes and what it measures: released if reported, otherwise on board or recovered. */
+function oilQuantity(a: CaseArtifact): { tonnes: number | null; basis: OilQuantityBasis | null } {
   const oil = a.case.oil;
-  if (oil.spilledTonnes != null) return oil.spilledTonnes;
+  if (oil.spilledTonnes != null) return { tonnes: oil.spilledTonnes, basis: 'released' };
   const onboard = oil.onboard.reduce((s, o) => s + (o.tonnes ?? (o.cubicMetres != null ? o.cubicMetres * 0.95 : 0)), 0);
-  if (onboard > 0) return onboard;
+  if (onboard > 0) return { tonnes: onboard, basis: 'on board' };
   const impact = a.case.impact;
-  if (impact.oilySludgeRecoveredT) return impact.oilySludgeRecoveredT;
-  if (impact.unaccountedOilLitres) return (impact.unaccountedOilLitres / 1000) * 0.9;
-  return null;
+  if (impact.oilySludgeRecoveredT) return { tonnes: impact.oilySludgeRecoveredT, basis: 'recovered' };
+  if (impact.unaccountedOilLitres) return { tonnes: (impact.unaccountedOilLitres / 1000) * 0.9, basis: 'unaccounted' };
+  return { tonnes: null, basis: null };
 }
 
 function tierFor(quantity: number | null): RiskTier {
@@ -151,7 +156,7 @@ export function buildWorld(
     const centre = analysePolygon(polygon.ring).centroid;
     const f = forcing.get(facts.id);
     const wind = f ? observedSampler(f).wind(centre, a.reference.time) : null;
-    const quantity = oilQuantityTonnes(a);
+    const { tonnes: quantity, basis: quantityBasis } = oilQuantity(a);
     const measurements = a.sarMeasurements ?? [];
     const sarSpot = nearestSpot(measurements, facts.incident.positionPrecisionKm);
 
@@ -191,6 +196,7 @@ export function buildWorld(
       confidenceBasis: 'official-report',
       oilType: facts.oil.modelType,
       oilQuantityTonnes: quantity,
+      oilQuantityBasis: quantityBasis,
       hindcastHours: a.reference.hindcastHours,
       forecastHours: a.reference.forecastHours,
       incidentTime: ms(facts.incident.time),
@@ -246,10 +252,11 @@ export function buildWorld(
         id: `REC-${facts.id.slice(4)}-${k + 1}`,
         t: ms(ev.time),
         actor: 'Public record',
-        role: 'Source document',
+        role: 'Case timeline',
         action: ev.event,
         target: facts.id,
-        detail: facts.sources.map((s) => s.title).slice(0, 2).join('; '),
+        // The timeline has no per-event citation; the case's sources are listed once with the case.
+        detail: '',
         category: categorise(ev.event),
         provenance: 'real',
       });
@@ -310,11 +317,11 @@ export function buildWorld(
   audit.push({
     id: 'PIPELINE-BUILD',
     t: ms(index.generatedAt),
-    actor: 'oceanspill pipeline',
+    actor: 'Data pipeline',
     role: 'Automated',
-    action: 'Artifacts generated',
-    target: 'public/data',
-    detail: `${artifacts.length} cases, ${passMap.size} catalogue scenes; providers: ${index.providers.filter((p) => p.available).map((p) => p.name).join(', ')}`,
+    action: 'Case data updated',
+    target: 'All cases',
+    detail: `${artifacts.length} cases and ${passMap.size} catalogue scenes from ${index.providers.filter((p) => p.available).map((p) => PROVIDER_NAMES[p.name] ?? p.name).join(', ')}`,
     category: 'System',
     provenance: 'real',
   });
@@ -387,26 +394,26 @@ function buildDataSources(index: IndexArtifact): DataSource[] {
     ({ id, kind, role: 'primary', name, agency, sovereign: true, status: 'Pending access', message, lastSync: null });
 
   return [
-    fromPipeline('eos04', 'SAR', 'primary'),
+    { ...fromPipeline('eos04', 'SAR', 'primary'), name: 'EOS-04 SAR', agency: 'ISRO / NRSC Bhoonidhi' },
     pending('nisar', 'SAR', 'NISAR S-SAR', 'ISRO / NRSC Bhoonidhi', 'Open data on Bhoonidhi; only covers acquisitions after June 2026'),
-    fromPipeline('sentinel1', 'SAR', 'fallback'),
+    { ...fromPipeline('sentinel1', 'SAR', 'fallback'), name: 'Sentinel-1 SAR', agency: 'ESA Copernicus Data Space Ecosystem' },
     pending('incois', 'Metocean', 'INCOIS HOOFS currents', 'INCOIS', 'Needs INCOIS data portal registration and API details'),
     pending('eos06-scat', 'Metocean', 'Oceansat-3 (EOS-06) scatterometer winds', 'ISRO / NRSC Bhoonidhi',
       'Listed per case from the Bhoonidhi catalogue (EOS-06_SCAT_3WW); products are offline and must be requested via the portal'),
-    fromPipeline('openmeteo', 'Metocean', 'fallback'),
+    { ...fromPipeline('openmeteo', 'Metocean', 'fallback'), name: 'ERA5 wind, waves and SMOC currents', agency: 'Open-Meteo', message: 'ERA5 reanalysis wind and waves; Météo-France SMOC currents from 2022' },
     pipeline.has('cmems')
       ? { ...fromPipeline('cmems', 'Metocean', 'fallback'), name: 'Copernicus Marine GLORYS12 currents', agency: 'Copernicus Marine Service', message: 'Reanalysis currents fill cells Open-Meteo lacks (all dates before 2022)' }
       : { id: 'cmems', kind: 'Metocean', role: 'fallback', name: 'Copernicus Marine GLORYS12 currents', agency: 'Copernicus Marine Service', sovereign: false, status: 'Not configured', message: 'Adapter ready: METOCEAN_PROVIDER=openmeteo,cmems and CMEMS login', lastSync: null },
     pending('dgll', 'AIS', 'National AIS Network', 'DGLL / Indian Coast Guard / IFC-IOR', 'Needs government data access'),
     pipeline.has('gfw')
-      ? fromPipeline('gfw', 'AIS', 'fallback')
+      ? { ...fromPipeline('gfw', 'AIS', 'fallback'), name: 'Global Fishing Watch AIS', agency: 'Global Fishing Watch', message: 'Hourly vessel positions and vessel identity for every case window' }
       : { id: 'gfw', kind: 'AIS', role: 'fallback', name: 'Global Fishing Watch AIS', agency: 'Global Fishing Watch', sovereign: false, status: 'Not configured', message: 'Adapter ready: set AIS_PROVIDER=gfw and GFW_API_TOKEN (free, non-commercial)', lastSync: null },
     pipeline.has('synthetic')
       ? fromPipeline('synthetic', 'AIS', 'fallback')
-      : { id: 'synthetic', kind: 'AIS', role: 'fallback', name: 'Synthetic AIS generator', agency: 'OceanSpill', sovereign: true, status: 'Not configured', message: 'Used for interpolation between real event positions', lastSync: null },
+      : { id: 'synthetic', kind: 'AIS', role: 'fallback', name: 'Estimated tracks from reported positions', agency: 'OceanSpill (built in)', sovereign: true, status: 'Interim fallback', message: 'Used only where a vessel has no AIS in the window, between its officially reported positions', lastSync: built },
     pending('dgs-registry', 'Registry', 'Vessel registry and PSC history', 'DG Shipping', 'Needs government access; Equasis account as interim'),
     pending('mea', 'Sanctions', 'Watchlists', 'MEA / DG Shipping', 'Needs government access'),
-    fromPipeline('unsc', 'Sanctions', 'fallback'),
+    { ...fromPipeline('unsc', 'Sanctions', 'fallback'), name: 'UN Security Council Consolidated List', agency: 'United Nations', message: 'Public sanctions list, checked by vessel name and IMO number' },
     pending('sachet', 'Alerting', 'SACHET CAP gateway', 'NDMA', 'Publishing needs NDMA authorisation; alerts are drafted locally'),
     pending('imac', 'Operating picture', 'IMAC common operating picture', 'Indian Navy', 'Needs Navy integration; payloads generated locally'),
   ];
@@ -426,4 +433,24 @@ function nearestSpot(measurements: SarMeasurement[], precisionKm: number): (SarS
 
 export function dataUrl(path: string): string {
   return `${DATA_BASE}/${path}`;
+}
+
+/**
+ * Legal actions on record from public sources, counted the same way on every page:
+ * individual actions, and the distinct incidents they relate to.
+ */
+export function legalSummary(world: Pick<World, 'enforcement'>) {
+  const published = world.enforcement.filter((e) => e.provenance === 'real');
+  const incidentIds = new Set(published.map((e) => e.caseId));
+  return {
+    actions: published.length,
+    incidents: incidentIds.size,
+    incidentIds,
+    penaltiesInr: published.reduce((s, e) => s + (e.amountInr ?? 0), 0),
+  };
+}
+
+/** The party authorities named as the source of a case, if any (a vessel, facility or pipeline). */
+export function reportedSource(world: Pick<World, 'vessels'>, caseId: string) {
+  return world.vessels.find((v) => v.caseId === caseId && v.role === 'source') ?? null;
 }

@@ -3,6 +3,7 @@ import {
   Archive, FileText, Lock, Download, Clock, Hash, BookOpen, Scale, ExternalLink,
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
+import { legalSummary } from './data/world';
 import {
   Badge, Button, Tier, StatusBadge, KeyValue, Tabs, DataTable, SearchInput, Select,
   InfoBanner, EmptyState, ExportButton, downloadCsv, triggerDownload, StatCard, ProvenanceBadge, type Column,
@@ -64,10 +65,10 @@ export default function CaseArchive() {
   const caseColumns: Column<SpillCase>[] = [
     {
       key: 'id', header: 'Case', value: (c) => c.title,
-      render: (c) => <div><div className="font-bold text-gray-900">{c.title}</div><div className="text-[11px] font-mono text-gray-400">{c.id}</div></div>,
+      render: (c) => <div><div className="font-bold text-gray-900">{c.title}</div><div className="text-[0.6875rem] font-mono text-gray-400">{c.id}</div></div>,
     },
     { key: 'tier', header: 'Tier', width: '62px', align: 'center', value: (c) => ({ HIGH: 0, MEDIUM: 1, LOW: 2 }[c.tier]), render: (c) => <Tier tier={c.tier} /> },
-    { key: 'loc', header: 'Location', width: '200px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[11.5px]">{c.subRegion}</span> },
+    { key: 'loc', header: 'Location', width: '200px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[0.71875rem]">{c.subRegion}</span> },
     {
       key: 'detected', header: 'Incident', width: '130px', value: (c) => c.incidentTime,
       render: (c) => <span className="font-mono text-gray-700">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</span>,
@@ -85,21 +86,21 @@ export default function CaseArchive() {
   const auditColumns: Column<AuditEntry>[] = [
     {
       key: 't', header: 'Timestamp (UTC)', width: '140px', value: (e) => e.t,
-      render: (e) => <div><div className="font-mono text-gray-800">{fmt.utc(e.t)}</div><div className="text-[10.5px] text-gray-400">{fmt.ago(e.t, now)}</div></div>,
+      render: (e) => <div><div className="font-mono text-gray-800">{fmt.utc(e.t)}</div><div className="text-[0.65625rem] text-gray-400">{fmt.ago(e.t, now)}</div></div>,
     },
     { key: 'prov', header: 'Record', width: '84px', value: (e) => e.provenance, render: (e) => <ProvenanceBadge p={e.provenance} /> },
     {
       key: 'actor', header: 'Actor', width: '160px', value: (e) => e.actor,
-      render: (e) => <div><div className="font-semibold text-gray-900">{e.actor}</div><div className="text-[11px] text-gray-500">{e.role}</div></div>,
+      render: (e) => <div><div className="font-semibold text-gray-900">{e.actor}</div><div className="text-[0.6875rem] text-gray-500">{e.role}</div></div>,
     },
     { key: 'action', header: 'Action', width: '190px', value: (e) => e.action, render: (e) => <span className="font-semibold text-gray-800">{e.action}</span> },
     {
       key: 'target', header: 'Target', width: '150px', value: (e) => e.target,
       render: (e) => world.cases.some((c) => c.id === e.target)
         ? <button onClick={() => navigate({ tab: 'Investigation', caseId: e.target })} className="font-mono text-blue-600 hover:underline">{e.target}</button>
-        : <span className="font-mono text-gray-600 text-[11px]">{e.target}</span>,
+        : <span className="font-mono text-gray-600 text-[0.6875rem]">{e.target}</span>,
     },
-    { key: 'detail', header: 'Detail', value: (e) => e.detail, render: (e) => <span className="text-gray-600">{e.detail}</span> },
+    { key: 'detail', header: 'Detail', value: (e) => e.detail, render: (e) => e.detail ? <span className="text-gray-600">{e.detail}</span> : <span className="text-gray-400">Case timeline entry</span> },
     {
       key: 'cat', header: 'Category', width: '108px', value: (e) => e.category,
       render: (e) => <Badge tone={
@@ -212,7 +213,7 @@ export default function CaseArchive() {
   const stats = useMemo(() => ({
     total: world.cases.length,
     historical: world.historical.length,
-    legal: world.historical.filter((h) => h.legal?.length).length + world.cases.filter((c) => c.facts.legal?.length && !world.historical.some((h) => h.activeCaseId === c.id && h.legal?.length)).length,
+    legal: legalSummary(world).incidents,
     events: world.audit.length,
   }), [world.cases, world.audit, world.historical, revision]);
 
@@ -223,16 +224,16 @@ export default function CaseArchive() {
           <div className="bg-slate-700 text-white p-1.5 rounded"><Archive className="w-4 h-4" /></div>
           <div>
             <h2 className="font-bold text-gray-900 text-sm">Case archive &amp; audit trail</h2>
-            <p className="text-[12px] text-gray-500">Real case records, the historical incident register and the audit trail</p>
+            <p className="text-[0.75rem] text-gray-500">Case records, the historical incident register and the audit trail</p>
           </div>
         </div>
-        <Badge tone="slate"><Lock className="w-2.5 h-2.5" /> Immutable record</Badge>
+        <Badge tone="slate"><Lock className="w-2.5 h-2.5" /> Append-only audit trail</Badge>
       </div>
 
       <div className="bg-white border-b border-gray-200 px-3 py-2 grid grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
-        <StatCard icon={<Archive className="w-5 h-5" />} title="Analysed cases" value={stats.total} trend="real incidents with artifacts" />
+        <StatCard icon={<Archive className="w-5 h-5" />} title="Analysed cases" value={stats.total} trend="recorded incidents" />
         <StatCard icon={<BookOpen className="w-5 h-5" />} title="Historical register" value={stats.historical} trend="Indian incidents since 1970" onClick={() => setTab('historical')} accent="amber" />
-        <StatCard icon={<Scale className="w-5 h-5" />} title="With legal outcome" value={stats.legal} trend="published court or regulator action" accent="red" />
+        <StatCard icon={<Scale className="w-5 h-5" />} title="Incidents with legal action" value={stats.legal} trend="court, tribunal, police or regulator" accent="red" />
         <StatCard icon={<Hash className="w-5 h-5" />} title="Audit events" value={fmt.num(stats.events)} trend="record, pipeline and session" />
       </div>
 
@@ -244,7 +245,7 @@ export default function CaseArchive() {
 
       {tab === 'archive' && (
         <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-4 p-4">
-          <div className="flex-1 min-w-0 flex flex-col gap-2 h-[70vh] lg:h-auto">
+          <div className="flex-none h-[70vh] lg:h-auto lg:flex-1 min-w-0 flex flex-col gap-2">
             <div className="flex gap-2">
               <SearchInput value={query} onChange={setQuery} placeholder="Case ID, location, analyst…" className="flex-1" />
               <Select value={statusFilter} onChange={setStatusFilter}
@@ -270,8 +271,8 @@ export default function CaseArchive() {
                   <div className="flex justify-between items-start gap-2">
                     <div>
                       <h3 className="font-bold text-gray-900 text-sm">{active.title}</h3>
-                      <p className="text-[11px] font-mono text-gray-400">{active.id}</p>
-                      <p className="text-[11px] text-gray-500">{active.subRegion}</p>
+                      <p className="text-[0.6875rem] font-mono text-gray-400">{active.id}</p>
+                      <p className="text-[0.6875rem] text-gray-500">{active.subRegion}</p>
                     </div>
                     <Tier tier={active.tier} />
                   </div>
@@ -287,11 +288,11 @@ export default function CaseArchive() {
                     ['SAR scenes', String(active.detection.scenes.length)],
                     ['Segmentation', active.detection.modelVersion ?? 'Not run'],
                   ]} />
-                  <p className="text-[11px] text-gray-600 leading-normal">{active.facts.officialFindings}</p>
+                  <p className="text-[0.6875rem] text-gray-600 leading-normal">{active.facts.officialFindings}</p>
                   {active.facts.legal?.map((l) => (
                     <div key={l.action + l.authority} className="bg-amber-50 border border-amber-200 rounded p-2">
-                      <p className="text-[11.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
-                      <p className="text-[11px] text-amber-800">{l.authority} → {l.party}</p>
+                      <p className="text-[0.71875rem] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
+                      <p className="text-[0.6875rem] text-amber-800">{l.authority} → {l.party}</p>
                     </div>
                   ))}
 
@@ -302,15 +303,15 @@ export default function CaseArchive() {
                   )}
 
                   <div>
-                    <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5">Attribution as recorded</p>
+                    <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Attribution as recorded</p>
                     {activeAnalysis.ranked.length === 0 ? (
-                      <p className="text-[11.5px] text-gray-500">No candidate vessel — suspected dark-vessel event.</p>
+                      <p className="text-[0.71875rem] text-gray-500">No candidate vessel — suspected dark-vessel event.</p>
                     ) : (
                       <div className="space-y-1.5">
                         {activeAnalysis.ranked.slice(0, 4).map((s) => {
                           const v = world.vesselsByMmsi.get(s.mmsi);
                           return (
-                            <div key={s.mmsi} className="flex items-center gap-2 text-[11.5px] border-b border-gray-100 pb-1">
+                            <div key={s.mmsi} className="flex items-center gap-2 text-[0.71875rem] border-b border-gray-100 pb-1">
                               <span className="w-4 font-black text-gray-400">{s.rank}</span>
                               <span className="flex-1 font-semibold text-gray-800 truncate">{v?.name ?? s.mmsi}</span>
                               {v && <ProvenanceBadge p={v.provenance} />}
@@ -321,25 +322,37 @@ export default function CaseArchive() {
                         })}
                       </div>
                     )}
-                    <p className="text-[11px] text-gray-500 mt-1.5">
-                      Verdict: <b>{activeAnalysis.verdict.band}</b> — {activeAnalysis.verdict.label}
+                    <p className="text-[0.6875rem] text-gray-500 mt-1.5">
+                      Verdict: <b>{activeAnalysis.verdict.label}</b>
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
+                    <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5">
                       <Clock className="w-3 h-3" /> Decision trail
                     </p>
                     <div className="space-y-2">
                       {world.audit.filter((e) => e.target === active.id).sort((x, y) => x.t - y.t).map((e) => (
                         <div key={e.id} className="border-l-2 border-gray-200 pl-2">
-                          <p className="text-[11px] font-mono text-gray-400 flex items-center gap-1">{fmt.utc(e.t)} <ProvenanceBadge p={e.provenance} /></p>
-                          <p className="text-[11.5px] font-semibold text-gray-900">{e.action}</p>
-                          <p className="text-[11px] text-gray-600 leading-normal">{e.detail}</p>
-                          <p className="text-[10.5px] text-gray-400">{e.actor} · {e.role}</p>
+                          <p className="text-[0.6875rem] font-mono text-gray-400 flex items-center gap-1">{fmt.utc(e.t)} <ProvenanceBadge p={e.provenance} /></p>
+                          <p className="text-[0.71875rem] font-semibold text-gray-900">{e.action}</p>
+                          {e.detail && <p className="text-[0.6875rem] text-gray-600 leading-normal">{e.detail}</p>}
+                          <p className="text-[0.65625rem] text-gray-400">{e.actor} · {e.role}</p>
                         </div>
                       ))}
                     </div>
+                    {active.facts.sources.length > 0 && (
+                      <div className="mt-3 pt-2 border-t border-gray-200">
+                        <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">Sources for this case</p>
+                        <ul className="space-y-1">
+                          {active.facts.sources.map((src) => (
+                            <li key={src.url}>
+                              <a href={src.url} target="_blank" rel="noreferrer" className="text-[0.71875rem] text-blue-600 hover:underline">{src.title}</a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="p-3 border-t border-gray-200 flex gap-2">
@@ -374,8 +387,7 @@ export default function CaseArchive() {
               empty="No audit events match the current filters." />
           </div>
           <InfoBanner tone="blue" icon={<Lock className="w-3.5 h-3.5" />}>
-            REAL entries come from the published incident timelines, the pipeline build is logged once, and
-            SESSION entries are actions taken in this browser. A deployment would persist these to an append-only store.
+            Entries come from published incident timelines, data updates and actions taken here (marked SESSION). Session actions are kept in this browser.
           </InfoBanner>
         </div>
       )}
@@ -406,16 +418,16 @@ function HistoricalRegister() {
       render: (h) => (
         <div>
           <div className="font-bold text-gray-900 flex items-center gap-1.5">{h.name}{h.activeCaseId && <Badge tone="blue">Analysed</Badge>}</div>
-          <div className="text-[11px] text-gray-500">{h.location}</div>
+          <div className="text-[0.6875rem] text-gray-500">{h.location}</div>
         </div>
       ),
     },
-    { key: 'oil', header: 'Oil', width: '140px', value: (h) => h.oil ?? '', render: (h) => <span className="text-gray-700 text-[11.5px]">{h.oil ?? 'Not reported'}</span> },
+    { key: 'oil', header: 'Oil', width: '140px', value: (h) => h.oil ?? '', render: (h) => <span className="text-gray-700 text-[0.71875rem]">{h.oil ?? 'Not reported'}</span> },
     {
-      key: 'tonnes', header: 'Tonnes', width: '84px', align: 'right', value: (h) => h.tonnes ?? -1,
-      render: (h) => h.tonnes != null ? <span className="font-mono font-bold text-gray-900">{fmt.num(h.tonnes)}</span> : <span className="text-gray-300">n/r</span>,
+      key: 'tonnes', header: 'Released (t)', width: '96px', align: 'right', value: (h) => h.tonnes ?? -1,
+      render: (h) => h.tonnes != null ? <span className="font-mono font-bold text-gray-900">{fmt.num(h.tonnes)}</span> : <span className="text-gray-400 text-[0.6875rem]">Not reported</span>,
     },
-    { key: 'cause', header: 'Cause', width: '140px', value: (h) => h.cause ?? '', render: (h) => <span className="text-gray-600 text-[11.5px]">{h.cause ?? '—'}</span> },
+    { key: 'cause', header: 'Cause', width: '140px', value: (h) => h.cause ?? '', render: (h) => <span className="text-gray-600 text-[0.71875rem]">{h.cause ?? '—'}</span> },
     { key: 'legal', header: 'Legal', width: '60px', align: 'center', value: (h) => h.legal?.length ?? 0, render: (h) => h.legal?.length ? <Scale className="w-3.5 h-3.5 text-amber-600 mx-auto" /> : <span className="text-gray-300">—</span> },
   ];
 
@@ -423,14 +435,14 @@ function HistoricalRegister() {
     id: h.id, position: { lat: h.lat!, lon: h.lon! }, kind: 'case',
     color: h.activeCaseId ? '#2563eb' : '#b45309', size: h.tonnes ? Math.min(10, 3 + Math.log10(h.tonnes + 1) * 1.6) : 4,
     label: h.name, sublabel: `${h.date} · ${h.location}`, selected: h.id === selected,
-    meta: { Oil: h.oil ?? 'n/r', Tonnes: h.tonnes ?? 'n/r', 'Position ±': h.positionPrecisionKm != null ? `${h.positionPrecisionKm} km` : 'n/r' },
+    meta: { Oil: h.oil ?? 'Not reported', 'Released (t)': h.tonnes ?? 'Not reported', 'Position ±': h.positionPrecisionKm != null ? `${h.positionPrecisionKm} km` : 'Not reported' },
   })), [rows, selected]);
 
   const active = world.historical.find((h) => h.id === selected) ?? null;
 
   return (
     <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-4 p-4">
-      <div className="flex-1 min-w-0 flex flex-col gap-2 h-[70vh] lg:h-auto">
+      <div className="flex-none h-[70vh] lg:h-auto lg:flex-1 min-w-0 flex flex-col gap-2">
         <div className="flex gap-2">
           <SearchInput value={query} onChange={setQuery} placeholder="Vessel, location, oil, cause…" className="flex-1" />
           <Select value={decade} onChange={setDecade} options={[{ value: 'all', label: 'All decades' }, ...decades.map((d) => ({ value: d, label: d }))]} />
@@ -457,7 +469,7 @@ function HistoricalRegister() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="font-bold text-gray-900 text-sm">{active.name}</h3>
-                  <p className="text-[11px] text-gray-500">{active.date} · {active.location}</p>
+                  <p className="text-[0.6875rem] text-gray-500">{active.date} · {active.location}</p>
                 </div>
                 <ProvenanceBadge p="real" />
               </div>
@@ -467,16 +479,16 @@ function HistoricalRegister() {
                 ['Cause', active.cause ?? '—'],
                 ['Position ±', active.positionPrecisionKm != null ? `${active.positionPrecisionKm} km` : 'Unknown'],
               ]} />
-              {active.tonnesNote && <p className="text-[11px] text-gray-500 leading-normal">{active.tonnesNote}</p>}
+              {active.tonnesNote && <p className="text-[0.6875rem] text-gray-500 leading-normal">{active.tonnesNote}</p>}
               {active.legal?.map((l) => (
                 <div key={l.action + l.authority} className="bg-amber-50 border border-amber-200 rounded p-2">
-                  <p className="text-[11.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
-                  <p className="text-[11px] text-amber-800">{l.authority} → {l.party}</p>
-                  {l.note && <p className="text-[11px] text-amber-700 mt-0.5">{l.note}</p>}
+                  <p className="text-[0.71875rem] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
+                  <p className="text-[0.6875rem] text-amber-800">{l.authority} → {l.party}</p>
+                  {l.note && <p className="text-[0.6875rem] text-amber-700 mt-0.5">{l.note}</p>}
                 </div>
               ))}
               <div className="flex gap-2">
-                <a href={active.source} target="_blank" rel="noreferrer" className="text-[11.5px] text-blue-600 hover:underline flex items-center gap-1">
+                <a href={active.source} target="_blank" rel="noreferrer" className="text-[0.71875rem] text-blue-600 hover:underline flex items-center gap-1">
                   <ExternalLink className="w-3 h-3" /> Source
                 </a>
                 {active.activeCaseId && (

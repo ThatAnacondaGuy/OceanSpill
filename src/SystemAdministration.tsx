@@ -10,6 +10,7 @@ import {
 } from './components/ui';
 import { MODEL_STATUS } from './engine/detection';
 import type { SystemUser } from './data/types';
+import { MODULES, ROLE_MATRIX } from './data/access';
 
 const SECTIONS = [
   { id: 'users', label: 'User management', icon: Users },
@@ -21,30 +22,7 @@ const SECTIONS = [
   { id: 'health', label: 'System health', icon: Activity },
 ];
 
-const MODULES = [
-  'Dashboard & incidents', 'Investigation tools', 'Vessel analysis', 'Environmental data',
-  'Satellite tasking', 'Ecological planning', 'Community alerting', 'Workflow & enforcement',
-  'Offender registry', 'Reports & analytics', 'IMAC integration', 'Case archive', 'System administration',
-];
-
-const ROLE_MATRIX: Record<string, Record<string, 'full' | 'read' | 'none'>> = {
-  'NTRO Admin': Object.fromEntries(MODULES.map((m) => [m, 'full'])),
-  'NTRO Reviewer': Object.fromEntries(MODULES.map((m) => [m, m === 'System administration' ? 'read' : 'full'])),
-  Analyst: Object.fromEntries(MODULES.map((m) => [m,
-    ['System administration', 'IMAC integration'].includes(m) ? 'none' : 'full'])),
-  Regulator: Object.fromEntries(MODULES.map((m) => [m,
-    ['Offender registry', 'Workflow & enforcement'].includes(m) ? 'full'
-    : ['Dashboard & incidents', 'Reports & analytics', 'Case archive'].includes(m) ? 'read' : 'none'])),
-  Liaison: Object.fromEntries(MODULES.map((m) => [m,
-    m === 'IMAC integration' ? 'full'
-    : ['Dashboard & incidents', 'Investigation tools', 'Workflow & enforcement', 'Case archive'].includes(m) ? 'read' : 'none'])),
-  'Data Operator': Object.fromEntries(MODULES.map((m) => [m,
-    ['Environmental data', 'Satellite tasking'].includes(m) ? 'full'
-    : ['Dashboard & incidents', 'Reports & analytics'].includes(m) ? 'read' : 'none'])),
-  Viewer: Object.fromEntries(MODULES.map((m) => [m,
-    ['Dashboard & incidents', 'Ecological planning', 'Reports & analytics', 'Case archive'].includes(m) ? 'read' : 'none'])),
-};
-
+// The matrix shown here is the one that controls navigation and editing across the app.
 export default function SystemAdministration() {
   const { world, now, currentUser, addUser, updateUser, notify, revision, weights, getAnalysis } = useStore();
   const [section, setSection] = useState('users');
@@ -52,7 +30,8 @@ export default function SystemAdministration() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [addOpen, setAddOpen] = useState(false);
 
-  const restricted = !['NTRO Admin', 'NTRO Reviewer'].includes(currentUser.role);
+  const { canEdit, resetSession } = useStore();
+  const restricted = !canEdit('System Admin');
 
   const users = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -69,7 +48,7 @@ export default function SystemAdministration() {
       render: (u) => (
         <div>
           <div className="font-bold text-gray-900">{u.name}</div>
-          <div className="text-[11px] text-gray-500">{u.email}</div>
+          <div className="text-[0.6875rem] text-gray-500">{u.email}</div>
         </div>
       ),
     },
@@ -91,7 +70,7 @@ export default function SystemAdministration() {
     },
     {
       key: 'login', header: 'Last sign-in', width: '130px', value: (u) => u.lastLogin,
-      render: (u) => u.lastLogin ? <div><div className="font-mono text-gray-700">{fmt.utcShort(u.lastLogin)}</div><div className="text-[10.5px] text-gray-400">{fmt.ago(u.lastLogin, now)}</div></div> : <span className="text-gray-300">Never</span>,
+      render: (u) => u.lastLogin ? <div><div className="font-mono text-gray-700">{fmt.utcShort(u.lastLogin)}</div><div className="text-[0.65625rem] text-gray-400">{fmt.ago(u.lastLogin, now)}</div></div> : <span className="text-gray-300">Never</span>,
     },
     {
       key: 'actions', header: '', width: '150px', sortable: false,
@@ -121,14 +100,14 @@ export default function SystemAdministration() {
       <aside className="w-full lg:w-[210px] xl:w-[250px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2.5 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Settings className="w-4 h-4 text-blue-600" /> System administration</h2>
-          <p className="text-[11px] text-gray-500 mt-0.5">Users, sources, infrastructure</p>
+          <p className="text-[0.6875rem] text-gray-500 mt-0.5">Users, sources, infrastructure</p>
         </div>
         <nav className="flex-1 overflow-y-auto py-1">
           {SECTIONS.map((s) => {
             const Icon = s.icon;
             return (
               <button key={s.id} onClick={() => setSection(s.id)}
-                className={`w-full text-left px-3 py-2 text-[12.5px] font-semibold flex items-center gap-2.5 border-l-[3px] ${
+                className={`w-full text-left px-3 py-2 text-[0.78125rem] font-semibold flex items-center gap-2.5 border-l-[3px] ${
                   section === s.id ? 'bg-blue-50 text-blue-700 border-l-blue-600' : 'text-gray-600 hover:bg-gray-50 border-l-transparent'
                 }`}>
                 <Icon className="w-3.5 h-3.5 flex-shrink-0" />{s.label}
@@ -138,9 +117,9 @@ export default function SystemAdministration() {
         </nav>
         <div className="p-3 border-t border-gray-200">
           <div className="bg-gray-50 border border-gray-200 rounded p-2">
-            <p className="text-[11px] font-bold text-gray-600 uppercase mb-1">Signed in as</p>
-            <p className="text-[12px] font-bold text-gray-900">{currentUser.name}</p>
-            <p className="text-[11px] text-gray-500">{currentUser.role} · {currentUser.clearance}</p>
+            <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">Signed in as</p>
+            <p className="text-[0.75rem] font-bold text-gray-900">{currentUser.name}</p>
+            <p className="text-[0.6875rem] text-gray-500">{currentUser.role} · {currentUser.clearance}</p>
           </div>
         </div>
       </aside>
@@ -149,8 +128,7 @@ export default function SystemAdministration() {
         {restricted && (
           <div className="px-3 pt-3">
             <InfoBanner tone="amber" icon={<Lock className="w-3.5 h-3.5" />}>
-              You are signed in as <b>{currentUser.role}</b>. This page is visible in read-only form; changes
-              require an NTRO Admin or NTRO Reviewer role.
+              You are signed in as <b>{currentUser.role}</b>, which has read-only access here. Changes need an NTRO Admin account.
             </InfoBanner>
           </div>
         )}
@@ -158,16 +136,15 @@ export default function SystemAdministration() {
         {section === 'users' && (
           <div className="flex-1 min-h-0 flex flex-col p-4 gap-4">
             <InfoBanner tone="amber" icon={<Info className="w-3.5 h-3.5" />}>
-              These are <b>demo accounts</b> for showing role-based access. There is no authentication in the prototype;
-              a deployment would federate sign-in through the agency identity provider (e.g. Keycloak / Parichay).
+              Sign-in is not yet connected to an identity provider; accounts are switched from the header menu. Deployment will use the agency single sign-on (Parichay).
             </InfoBanner>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard icon={<Users className="w-5 h-5" />} title="Total users" value={world.users.length} trend={`${world.users.filter((u) => u.status === 'Active').length} active`} />
               <StatCard icon={<Shield className="w-5 h-5" />} title="MFA enrolled" value={world.users.filter((u) => u.mfa).length}
                 trend={`${world.users.filter((u) => !u.mfa).length} without MFA`} accent={world.users.some((u) => !u.mfa) ? 'amber' : 'green'} />
-              <StatCard icon={<Globe className="w-5 h-5" />} title="Agencies" value={new Set(world.users.map((u) => u.agency)).size} trend="represented by demo roles" />
+              <StatCard icon={<Globe className="w-5 h-5" />} title="Agencies" value={new Set(world.users.map((u) => u.agency)).size} trend="with accounts" />
               <StatCard icon={<Lock className="w-5 h-5" />} title="Secret clearance" value={world.users.filter((u) => u.clearance === 'Secret').length}
-                trend="demo clearance level" accent="red" />
+                trend="clearance level" accent="red" />
             </div>
 
             <div className="flex gap-2">
@@ -184,9 +161,7 @@ export default function SystemAdministration() {
 
             {world.users.some((u) => !u.mfa && u.status === 'Active') && (
               <InfoBanner tone="amber" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
-                {world.users.filter((u) => !u.mfa && u.status === 'Active').length} active account(s) have no
-                second factor. For a system holding vessel-attribution material, MFA should be mandatory rather
-                than optional.
+                {world.users.filter((u) => !u.mfa && u.status === 'Active').length} active account(s) have no second factor. Enable MFA for every account.
               </InfoBanner>
             )}
           </div>
@@ -196,29 +171,29 @@ export default function SystemAdministration() {
           <div className="flex-1 overflow-auto p-4 space-y-4">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-                <h3 className="text-[12px] font-bold text-gray-700">Role permission matrix</h3>
-                <p className="text-[11px] text-gray-500">What each role can reach. Navigation adapts automatically when a role is switched.</p>
+                <h3 className="text-[0.75rem] font-bold text-gray-700">Role permission matrix</h3>
+                <p className="text-[0.6875rem] text-gray-500">What each role can reach. Navigation adapts automatically when a role is switched.</p>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-[11.5px]">
+                <table className="w-full text-[0.71875rem]">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="text-left px-3 py-2 font-bold text-gray-600 uppercase text-[11px] sticky left-0 bg-gray-50">Module</th>
+                      <th className="text-left px-3 py-2 font-bold text-gray-600 uppercase text-[0.6875rem] sticky left-0 bg-gray-50">Module</th>
                       {Object.keys(ROLE_MATRIX).map((r) => (
-                        <th key={r} className="px-2 py-2 font-bold text-gray-600 text-[11px] whitespace-nowrap">{r}</th>
+                        <th key={r} className="px-2 py-2 font-bold text-gray-600 text-[0.6875rem] whitespace-nowrap">{r}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {MODULES.map((m) => (
-                      <tr key={m} className="hover:bg-gray-50">
-                        <td className="px-3 py-1.5 font-semibold text-gray-800 sticky left-0 bg-white">{m}</td>
+                      <tr key={m.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-1.5 font-semibold text-gray-800 sticky left-0 bg-white">{m.label}</td>
                         {Object.keys(ROLE_MATRIX).map((r) => {
-                          const lvl = ROLE_MATRIX[r][m];
+                          const lvl = ROLE_MATRIX[r][m.id];
                           return (
                             <td key={r} className="px-2 py-1.5 text-center">
                               {lvl === 'full' ? <Check className="w-3.5 h-3.5 text-emerald-600 mx-auto" strokeWidth={3} />
-                                : lvl === 'read' ? <span className="text-[10.5px] font-bold text-amber-600">READ</span>
+                                : lvl === 'read' ? <span className="text-[0.65625rem] font-bold text-amber-600">READ</span>
                                 : <span className="text-gray-200">—</span>}
                             </td>
                           );
@@ -230,9 +205,7 @@ export default function SystemAdministration() {
               </div>
             </div>
             <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
-              A DG Shipping regulator never sees raw SAR imagery or investigation tools. This is not only access
-              control — it limits how widely the sensing capability itself is exposed, which matters when the
-              resolution and revisit characteristics of the platforms are themselves sensitive.
+              Roles limit who sees raw SAR imagery and investigation tools; a DG Shipping regulator sees neither.
             </InfoBanner>
           </div>
         )}
@@ -240,19 +213,17 @@ export default function SystemAdministration() {
         {section === 'sources' && (
           <div className="flex-1 overflow-auto p-4 space-y-3">
             <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
-              Providers are switched in <code className="bg-white px-1 rounded">pipeline/.env</code> (<code className="bg-white px-1 rounded">SAR_PROVIDERS</code>,{' '}
-              <code className="bg-white px-1 rounded">METOCEAN_PROVIDER</code>, <code className="bg-white px-1 rounded">AIS_PROVIDER</code>,{' '}
-              <code className="bg-white px-1 rounded">SANCTIONS_PROVIDER</code>). Indian sources are listed first and used whenever configured.
+              Indian sources are listed first and used whenever they are available; foreign sources fill the gaps until then.
             </InfoBanner>
             {(['SAR', 'Metocean', 'AIS', 'Registry', 'Sanctions', 'Alerting', 'Operating picture'] as const).map((kind) => (
               <div key={kind}>
-                <p className="text-[11px] font-bold text-gray-500 uppercase mt-2 mb-1">{kind}</p>
+                <p className="text-[0.6875rem] font-bold text-gray-500 uppercase mt-2 mb-1">{kind}</p>
                 {world.dataSources.filter((d) => d.kind === kind).map((d) => (
                   <div key={d.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-2">
                     <div className="flex justify-between items-start gap-3 mb-1">
                       <div className="min-w-0">
-                        <h4 className="text-[12px] font-bold text-gray-900">{d.name}</h4>
-                        <p className="text-[11px] text-gray-500">{d.agency} · adapter id <code>{d.id}</code></p>
+                        <h4 className="text-[0.75rem] font-bold text-gray-900">{d.name}</h4>
+                        <p className="text-[0.6875rem] text-gray-500">{d.agency}</p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Badge tone={d.sovereign ? 'green' : 'gray'}>{d.sovereign ? 'Indian' : 'Foreign'}</Badge>
@@ -260,8 +231,8 @@ export default function SystemAdministration() {
                         <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Interim fallback' ? 'teal' : d.status === 'Not configured' ? 'amber' : 'gray'}>{d.status}</Badge>
                       </div>
                     </div>
-                    <p className="text-[11.5px] text-gray-600 leading-normal">{d.message}</p>
-                    <p className="text-[11px] text-gray-400 mt-1">{d.lastSync != null ? `Used in pipeline build ${fmt.ago(d.lastSync, now)}` : 'Not used in the current build'}</p>
+                    <p className="text-[0.71875rem] text-gray-600 leading-normal">{d.message}</p>
+                    <p className="text-[0.6875rem] text-gray-400 mt-1">{d.lastSync != null ? `Used in pipeline build ${fmt.ago(d.lastSync, now)}` : 'Not used in the current build'}</p>
                   </div>
                 ))}
               </div>
@@ -273,19 +244,19 @@ export default function SystemAdministration() {
           <div className="flex-1 overflow-auto p-4 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h4 className="text-[12px] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Prototype (running now) <ProvenanceBadge p="real" /></h4>
+                <h4 className="text-[0.75rem] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Current setup</h4>
                 <KeyValue cols={1} items={[
-                  ['Frontend', 'React 18 + TypeScript + Vite, static build'],
-                  ['Data pipeline', 'Python 3.12 (uv), provider adapters, disk cache'],
-                  ['Data store', 'JSON artifacts in public/data (index, cases, forcing)'],
-                  ['Last build', `${world.generatedAt} (${fmt.ago(Date.parse(world.generatedAt), now)})`],
-                  ['Build failures', world.index.failures.length ? world.index.failures.map((f) => f.id).join(', ') : 'None'],
-                  ['Drift and attribution', 'Computed in the browser from the artifacts'],
-                  ['Authentication', 'None (demo role switcher)'],
+                  ['Application', 'Web application served as a static site'],
+                  ['Data processing', 'Scheduled pipeline that fetches SAR catalogues, AIS, ocean data and coastlines'],
+                  ['Case data', 'Per-case files with forcing grids and coastlines'],
+                  ['Last update', `${fmt.utc(Date.parse(world.generatedAt))} (${fmt.ago(Date.parse(world.generatedAt), now)})`],
+                  ['Update failures', world.index.failures.length ? world.index.failures.map((f) => f.id).join(', ') : 'None'],
+                  ['Drift and attribution', 'Computed on the analyst workstation from the case data'],
+                  ['Authentication', 'Account switcher (single sign-on not yet connected)'],
                 ]} />
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h4 className="text-[12px] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Target deployment <ProvenanceBadge p="pending" /></h4>
+                <h4 className="text-[0.75rem] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Target deployment <ProvenanceBadge p="pending" /></h4>
                 <KeyValue cols={1} items={[
                   ['Hosting', 'MeghRaj / NIC government cloud (not provisioned)'],
                   ['Data residency', 'India only'],
@@ -298,8 +269,7 @@ export default function SystemAdministration() {
               </div>
             </div>
             <InfoBanner tone="amber" icon={<Shield className="w-3.5 h-3.5" />}>
-              Nothing in the right-hand column exists yet. It is the deployment plan, listed so reviewers can see what a
-              production system would need.
+              The right-hand column is the deployment plan; none of it is provisioned yet.
             </InfoBanner>
           </div>
         )}
@@ -309,8 +279,8 @@ export default function SystemAdministration() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <h4 className="text-[12px] font-bold text-gray-900">Segmentation model</h4>
-                  <p className="text-[11px] text-gray-500">{MODEL_STATUS.version ?? 'No version'}</p>
+                  <h4 className="text-[0.75rem] font-bold text-gray-900">Segmentation model</h4>
+                  <p className="text-[0.6875rem] text-gray-500">{MODEL_STATUS.version ?? 'No version'}</p>
                 </div>
                 <Badge tone="gray">Not trained</Badge>
               </div>
@@ -320,11 +290,11 @@ export default function SystemAdministration() {
                 ['Loss', MODEL_STATUS.plannedLoss],
                 ['Evaluation', MODEL_STATUS.evaluation.join('; ')],
               ]} />
-              <p className="text-[11px] text-gray-500 mt-1.5">{MODEL_STATUS.note}</p>
+              <p className="text-[0.6875rem] text-gray-500 mt-1.5">{MODEL_STATUS.note}</p>
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h4 className="text-[12px] font-bold text-gray-900 mb-2">Drift model</h4>
+              <h4 className="text-[0.75rem] font-bold text-gray-900 mb-2">Drift model</h4>
               <KeyValue cols={2} items={[
                 ['Method', 'Lagrangian particle tracking'],
                 ['Formulation', 'u = u_current + u_stokes + windage × u_wind + diffusion'],
@@ -340,7 +310,7 @@ export default function SystemAdministration() {
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h4 className="text-[12px] font-bold text-gray-900 mb-2">Attribution scoring</h4>
+              <h4 className="text-[0.75rem] font-bold text-gray-900 mb-2">Attribution scoring</h4>
               <KeyValue cols={2} items={[
                 ['Form', 'Transparent weighted sum (not a learned ranker)'],
                 ['Proximity weight', String(weights.proximity)],
@@ -351,8 +321,7 @@ export default function SystemAdministration() {
                 ['Window', 'Asymmetric: wider before the estimated release'],
               ]} />
               <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
-                A weighted sum is used because there are too few ground-truthed incident–vessel pairs to train a ranker,
-                and every term can be explained when a named vessel disputes the result.
+                Scores are a weighted sum: there are too few confirmed incident–vessel pairs to train a ranking model, and each term can be explained.
               </InfoBanner>
             </div>
           </div>
@@ -362,20 +331,20 @@ export default function SystemAdministration() {
           <div className="flex-1 min-h-0 flex flex-col p-4 gap-2">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 min-h-0 flex flex-col">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg flex justify-between items-center">
-                <h3 className="text-[12px] font-bold text-gray-700">Access and system log</h3>
-                <span className="text-[11px] text-gray-500">{accessLog.length} entries</span>
+                <h3 className="text-[0.75rem] font-bold text-gray-700">Access and system log</h3>
+                <span className="text-[0.6875rem] text-gray-500">{accessLog.length} entries</span>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto">
                 {accessLog.map((e) => (
                   <div key={e.id} className="px-3 py-2 border-b border-gray-100 hover:bg-gray-50 flex gap-3">
-                    <span className="font-mono text-[11px] text-gray-400 w-32 flex-shrink-0">{fmt.utc(e.t)}</span>
+                    <span className="font-mono text-[0.6875rem] text-gray-400 w-32 flex-shrink-0">{fmt.utc(e.t)}</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-semibold text-gray-900">{e.action}</span>
+                        <span className="text-[0.75rem] font-semibold text-gray-900">{e.action}</span>
                         <Badge tone={e.category === 'Access' ? 'violet' : 'gray'}>{e.category}</Badge>
                       </div>
-                      <p className="text-[11px] text-gray-600">{e.detail}</p>
-                      <p className="text-[11px] text-gray-400">{e.actor} · {e.role} · target {e.target}</p>
+                      <p className="text-[0.6875rem] text-gray-600">{e.detail}</p>
+                      <p className="text-[0.6875rem] text-gray-400">{e.actor} · {e.role} · target {e.target}</p>
                     </div>
                   </div>
                 ))}
@@ -386,6 +355,16 @@ export default function SystemAdministration() {
 
         {section === 'health' && (
           <div className="flex-1 overflow-auto p-4 space-y-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Changes saved in this browser</p>
+                <p className="text-[0.75rem] text-gray-600 mt-0.5">Workflow moves, drafts, reports, users and audit entries are kept locally. Clearing restores the recorded cases.</p>
+              </div>
+              <Button variant="danger" size="sm" disabled={restricted} title={restricted ? 'Needs an NTRO Admin account' : undefined}
+                onClick={() => { if (window.confirm('Clear all changes saved in this browser?')) resetSession(); }}>
+                Clear saved changes
+              </Button>
+            </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard icon={<Activity className="w-5 h-5" />} title="Sources working"
                 value={`${world.dataSources.filter((d) => d.status === 'Online' || d.status === 'Interim fallback').length}/${world.dataSources.length}`} trend="online or interim fallback" accent="green" />
@@ -394,34 +373,34 @@ export default function SystemAdministration() {
               <StatCard icon={<Key className="w-5 h-5" />} title="Pending access" value={world.dataSources.filter((d) => d.status === 'Pending access' || d.status === 'Not configured').length} trend="integrations waiting on credentials" accent="amber" />
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h4 className="text-[12px] font-bold text-gray-700 uppercase mb-2">Analysis engine, measured in this browser</h4>
+              <h4 className="text-[0.75rem] font-bold text-gray-700 uppercase mb-2">Analysis engine, measured in this browser</h4>
               <div className="space-y-1.5">
                 {runtimes.map(({ c, ms }) => (
                   <div key={c.id} className="flex items-center gap-3 py-1 border-b border-gray-100 last:border-0">
-                    <span className="text-[12px] font-semibold text-gray-800 w-64 flex-shrink-0 truncate" title={c.title}>{c.title}</span>
+                    <span className="text-[0.75rem] font-semibold text-gray-800 w-64 flex-shrink-0 truncate" title={c.title}>{c.title}</span>
                     <div className="flex-1 h-1.5 bg-gray-200 rounded overflow-hidden">
                       <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, ((ms ?? 0) / Math.max(1, ...runtimes.map((r) => r.ms ?? 0))) * 100)}%` }} />
                     </div>
-                    <span className="text-[11px] font-mono text-gray-700 w-16 text-right">{ms != null ? `${ms.toFixed(0)} ms` : '—'}</span>
+                    <span className="text-[0.6875rem] font-mono text-gray-700 w-16 text-right">{ms != null ? `${ms.toFixed(0)} ms` : '—'}</span>
                   </div>
                 ))}
               </div>
-              <p className="text-[11px] text-gray-500 mt-2">12-member hindcast, forecast, look-alike checks and candidate scoring. Cached until the weights change.</p>
+              <p className="text-[0.6875rem] text-gray-500 mt-2">12-member hindcast, forecast, look-alike checks and candidate scoring. Cached until the weights change.</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h4 className="text-[12px] font-bold text-gray-700 uppercase mb-2">Pipeline build</h4>
+              <h4 className="text-[0.75rem] font-bold text-gray-700 uppercase mb-2">Pipeline build</h4>
               <div className="space-y-3">
                 {world.index.providers.map((p) => (
                   <div key={`${p.kind}-${p.name}`} className="flex items-center gap-3 py-1.5 border-b border-gray-100 last:border-0">
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${p.available ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                    <span className="text-[12px] font-semibold text-gray-800 w-52 flex-shrink-0">{p.agency}</span>
-                    <span className="text-[11px] text-gray-500 flex-1">{p.message}</span>
+                    <span className="text-[0.75rem] font-semibold text-gray-800 w-52 flex-shrink-0">{p.agency}</span>
+                    <span className="text-[0.6875rem] text-gray-500 flex-1">{p.message}</span>
                     <Badge tone="gray">{p.kind}</Badge>
                     <Badge tone={p.available ? 'green' : 'amber'}>{p.available ? 'Available' : 'Unavailable'}</Badge>
                   </div>
                 ))}
                 {world.index.failures.map((f) => (
-                  <div key={f.id} className="flex items-center gap-3 py-1.5 text-[11px] text-red-700"><AlertTriangle className="w-3 h-3" /> {f.id}: {f.error}</div>
+                  <div key={f.id} className="flex items-center gap-3 py-1.5 text-[0.6875rem] text-red-700"><AlertTriangle className="w-3 h-3" /> {f.id}: {f.error}</div>
                 ))}
               </div>
             </div>
@@ -472,8 +451,7 @@ function AddUserModal({ open, onClose, onAdd }: { open: boolean; onClose: () => 
         </Field>
         <Toggle checked={mfa} onChange={setMfa} label="Require multi-factor authentication at first sign-in" />
         <InfoBanner tone="blue" icon={<Shield className="w-3.5 h-3.5" />}>
-          The role determines which pages appear in navigation. Switching the signed-in user from the header
-          menu demonstrates this — a Regulator sees the offender registry but not investigation tools.
+          The role decides which pages appear and whether they can be edited. For example, a Regulator sees the liability register but not investigation tools.
         </InfoBanner>
       </div>
     </Modal>

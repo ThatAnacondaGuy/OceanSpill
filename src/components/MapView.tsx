@@ -731,7 +731,7 @@ export function MapView({
 
       {hover && (
         <div
-          className="absolute z-30 pointer-events-none bg-white/95 backdrop-blur border border-gray-200 rounded-md shadow-lg px-2.5 py-1.5 text-[11px] max-w-[260px]"
+          className="absolute z-30 pointer-events-none bg-white/95 backdrop-blur border border-gray-200 rounded-md shadow-lg px-2.5 py-1.5 text-[0.6875rem] max-w-[260px]"
           style={{ left: Math.min(hover.x + 14, (hostRef.current?.clientWidth ?? 600) - 240), top: Math.max(6, hover.y - 14) }}
         >
           <div className="font-bold text-gray-900">{hover.m.label ?? hover.m.id}</div>
@@ -781,7 +781,7 @@ export function MapView({
           <div className={legendOpen ? 'contents' : 'hidden sm:contents'}>{legend}</div>
           <button
             onClick={() => setLegendOpen((o) => !o)}
-            className="sm:hidden absolute bottom-2 left-3 z-30 bg-white/95 border border-gray-200 rounded-md shadow-md px-2 py-1 text-[11px] font-semibold text-gray-700"
+            className="sm:hidden absolute bottom-2 left-3 z-30 bg-white/95 border border-gray-200 rounded-md shadow-md px-2 py-1 text-[0.6875rem] font-semibold text-gray-700"
           >
             {legendOpen ? 'Hide legend' : 'Legend'}
           </button>
@@ -791,25 +791,25 @@ export function MapView({
 
       <div className="absolute bottom-2 right-3 z-20 flex flex-col items-end gap-1 pointer-events-none">
         {frameLabel && (
-          <div className="bg-slate-900/80 text-white px-2 py-1 rounded text-[10px] font-semibold font-mono shadow">{frameLabel}</div>
+          <div className="bg-slate-900/80 text-white px-2 py-1 rounded text-[0.625rem] font-semibold font-mono shadow">{frameLabel}</div>
         )}
         <div className="flex items-center gap-1.5">
-          <div className="bg-white/90 px-1.5 py-0.5 rounded text-[10px] font-semibold text-gray-800 shadow-sm">{scaleBar.km} km</div>
+          <div className="bg-white/90 px-1.5 py-0.5 rounded text-[0.625rem] font-semibold text-gray-800 shadow-sm">{scaleBar.km} km</div>
           <div className="h-[6px] border-l-2 border-r-2 border-b-2 border-gray-800 bg-white/45" style={{ width: Math.max(18, scaleBar.px) }} />
         </div>
-        <div className="bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-mono font-medium text-gray-800 shadow-sm hidden sm:block">
+        <div className="bg-white/90 backdrop-blur px-2 py-1 rounded text-[0.625rem] font-mono font-medium text-gray-800 shadow-sm hidden sm:block">
           {cursor
             ? `${Math.abs(cursor.lat).toFixed(3)}° ${cursor.lat >= 0 ? 'N' : 'S'}  ${Math.abs(cursor.lon).toFixed(3)}° ${cursor.lon >= 0 ? 'E' : 'W'}`
             : `${Math.abs(view.lat).toFixed(3)}° N  ${Math.abs(view.lon).toFixed(3)}° E`}
           <span className="ml-2 text-gray-500">z{(view.zoom + ZOOM_OFFSET).toFixed(1)}</span>
         </div>
-        <div className="bg-white/80 px-1.5 py-0.5 rounded text-[8.5px] text-gray-600 max-w-[260px] truncate" title={ATTRIBUTION[basemap]}>
+        <div className="bg-white/80 px-1.5 py-0.5 rounded text-[0.53125rem] text-gray-600 max-w-[260px] truncate" title={ATTRIBUTION[basemap]}>
           {tilesFailed ? 'Basemap tiles unavailable offline · ' : ''}{ATTRIBUTION[basemap]}
         </div>
       </div>
 
       {vectorLabel && vectors.length > 0 && (
-        <div className={`absolute ${legend ? 'bottom-10 sm:bottom-2' : 'bottom-2'} left-3 z-20 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] font-medium text-gray-700 shadow-sm pointer-events-none max-w-[55%]`}>
+        <div className={`absolute ${legend ? 'bottom-10 sm:bottom-2' : 'bottom-2'} left-3 z-20 bg-white/90 backdrop-blur px-2 py-1 rounded text-[0.625rem] font-medium text-gray-700 shadow-sm pointer-events-none max-w-[55%]`}>
           {vectorLabel}
         </div>
       )}
@@ -826,7 +826,7 @@ export function BasemapSwitch({ value, onChange }: { value: BasemapStyle; onChan
     { v: 'dark', label: 'Dark' },
   ];
   return (
-    <div className="flex bg-white rounded-md shadow-md text-[11px] sm:text-xs font-semibold overflow-hidden border border-gray-200">
+    <div className="flex bg-white rounded-md shadow-md text-[0.6875rem] sm:text-xs font-semibold overflow-hidden border border-gray-200">
       {opts.map((o, i) => (
         <button
           key={o.v}

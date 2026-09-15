@@ -10,6 +10,7 @@ import {
 } from './components/ui';
 import { analysePolygon } from './lib/geo';
 import type { DataSource, SpillCase } from './data/types';
+import { READ_ONLY_HINT } from './data/access';
 
 /**
  * Data management and the IMAC hand-off. IMAC ingest is not integrated, so payloads are
@@ -17,7 +18,7 @@ import type { DataSource, SpillCase } from './data/types';
  * and can be downloaded. Nothing on this page claims delivery.
  */
 export default function ImacIntegration() {
-  const { world, now, pushToImac, navigate, consumeSection, notify, getAnalysis, revision } = useStore();
+  const { world, now, pushToImac, navigate, consumeSection, notify, getAnalysis, revision, canEdit } = useStore();
   const [tab, setTab] = useState('imac');
   const [query, setQuery] = useState('');
   const [kindFilter, setKindFilter] = useState('all');
@@ -46,13 +47,13 @@ export default function ImacIntegration() {
   const imacColumns: Column<SpillCase>[] = [
     {
       key: 'id', header: 'Case', value: (c) => c.title,
-      render: (c) => <div><div className="font-bold text-gray-900">{c.title}</div><div className="text-[11px] font-mono text-gray-400">{c.id}</div></div>,
+      render: (c) => <div><div className="font-bold text-gray-900">{c.title}</div><div className="text-[0.6875rem] font-mono text-gray-400">{c.id}</div></div>,
     },
-    { key: 'region', header: 'Location', width: '220px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[11.5px]">{c.subRegion}</span> },
+    { key: 'region', header: 'Location', width: '220px', value: (c) => c.subRegion, render: (c) => <span className="text-gray-700 text-[0.71875rem]">{c.subRegion}</span> },
     {
       key: 'pushed', header: 'Generated (UTC)', width: '140px', value: (c) => c.imacPushedAt ?? 0,
       render: (c) => c.imacPushedAt
-        ? <div><div className="font-mono text-gray-800">{fmt.utcShort(c.imacPushedAt)}</div><div className="text-[10.5px] text-gray-400">{fmt.ago(c.imacPushedAt, now)}</div></div>
+        ? <div><div className="font-mono text-gray-800">{fmt.utcShort(c.imacPushedAt)}</div><div className="text-[0.65625rem] text-gray-400">{fmt.ago(c.imacPushedAt, now)}</div></div>
         : <span className="text-gray-300">—</span>,
     },
     { key: 'status', header: 'Case status', width: '130px', value: (c) => c.status, render: (c) => <Badge tone="blue">{c.status}</Badge> },
@@ -72,7 +73,7 @@ export default function ImacIntegration() {
       render: (d) => (
         <div>
           <div className="font-bold text-gray-900">{d.name}</div>
-          <div className="text-[11px] text-gray-500">{d.agency} · <code>{d.id}</code></div>
+          <div className="text-[0.6875rem] text-gray-500">{d.agency}</div>
         </div>
       ),
     },
@@ -83,7 +84,7 @@ export default function ImacIntegration() {
       key: 'status', header: 'Status', width: '120px', value: (d) => ({ Online: 0, 'Interim fallback': 1, 'Not configured': 2, 'Pending access': 3 }[d.status]),
       render: (d) => <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Interim fallback' ? 'teal' : d.status === 'Not configured' ? 'amber' : 'gray'}>{d.status}</Badge>,
     },
-    { key: 'message', header: 'Detail', value: (d) => d.message, render: (d) => <span className="text-gray-600 text-[11.5px]">{d.message}</span> },
+    { key: 'message', header: 'Detail', value: (d) => d.message, render: (d) => <span className="text-gray-600 text-[0.71875rem]">{d.message}</span> },
     {
       key: 'sync', header: 'Last build', width: '104px', value: (d) => d.lastSync ?? 0,
       render: (d) => d.lastSync != null ? <span className="text-gray-600">{fmt.ago(d.lastSync, now)}</span> : <span className="text-gray-300">—</span>,
@@ -107,7 +108,7 @@ export default function ImacIntegration() {
           <div className="bg-blue-600 text-white p-1.5 rounded"><Database className="w-4 h-4" /></div>
           <div>
             <h2 className="font-bold text-gray-900 text-sm">Data management</h2>
-            <p className="text-[12px] text-gray-500">IMAC payloads and data source status · data built {fmt.ago(Date.parse(world.generatedAt), now)}</p>
+            <p className="text-[0.75rem] text-gray-500">IMAC payloads and data source status · data built {fmt.ago(Date.parse(world.generatedAt), now)}</p>
           </div>
         </div>
       </div>
@@ -127,14 +128,13 @@ export default function ImacIntegration() {
           </div>
 
           <InfoBanner tone="amber" icon={<Cable className="w-3.5 h-3.5" />}>
-            <b>IMAC is not connected.</b> Payloads are built locally in a GeoJSON-based format so the hand-off can be
-            reviewed and handed to the Navy integration team. Once access exists, only the transport needs adding.
+            <b>IMAC is not connected.</b> Payloads are prepared here in GeoJSON for review; delivery will be added once Navy access is granted.
           </InfoBanner>
 
           <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3">
-            <div className="flex-1 min-w-0 h-[70vh] lg:h-auto bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
+            <div className="flex-none h-[70vh] lg:h-auto lg:flex-1 min-w-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-                <span className="text-[12px] font-bold text-gray-700">Generated payloads</span>
+                <span className="text-[0.75rem] font-bold text-gray-700">Generated payloads</span>
               </div>
               <div className="flex-1 min-h-0">
                 <DataTable columns={imacColumns} rows={generated} rowKey={(c) => c.id} dense
@@ -146,7 +146,7 @@ export default function ImacIntegration() {
 
             <div className="w-full lg:w-[280px] xl:w-[320px] max-h-[70vh] lg:max-h-none flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-                <span className="text-[12px] font-bold text-gray-700">Open cases</span>
+                <span className="text-[0.75rem] font-bold text-gray-700">Open cases</span>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {pending.length === 0 ? (
@@ -155,21 +155,21 @@ export default function ImacIntegration() {
                   <div key={c.id} className="px-2.5 py-2 border-b border-gray-100">
                     <div className="flex justify-between items-start gap-2 mb-1">
                       <div className="min-w-0">
-                        <p className="text-[12px] font-bold text-gray-900 truncate">{c.title}</p>
-                        <p className="text-[11px] text-gray-600 truncate">{c.subRegion}</p>
+                        <p className="text-[0.75rem] font-bold text-gray-900 truncate">{c.title}</p>
+                        <p className="text-[0.6875rem] text-gray-600 truncate">{c.subRegion}</p>
                       </div>
                       <Badge tone={c.tier === 'HIGH' ? 'red' : c.tier === 'MEDIUM' ? 'amber' : 'gray'}>{c.tier}</Badge>
                     </div>
-                    <p className="text-[11px] text-gray-400 mb-1.5">{c.status} · {fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</p>
+                    <p className="text-[0.6875rem] text-gray-400 mb-1.5">{c.status} · {fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</p>
                     <div className="flex gap-1.5">
                       <Button size="sm" className="flex-1 justify-center" onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}>Review</Button>
-                      <Button size="sm" variant="primary" className="flex-1 justify-center" onClick={() => { pushToImac(c.id); setPayloadFor(c.id); }} icon={<ArrowUpRight className="w-3 h-3" />}>Generate</Button>
+                      <Button size="sm" variant="primary" className="flex-1 justify-center" disabled={!canEdit('Data Management')} title={canEdit('Data Management') ? undefined : READ_ONLY_HINT} onClick={() => { pushToImac(c.id); setPayloadFor(c.id); }} icon={<ArrowUpRight className="w-3 h-3" />}>Generate</Button>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="p-2 border-t border-gray-200">
-                <p className="text-[11px] text-gray-500 leading-normal">
+                <p className="text-[0.6875rem] text-gray-500 leading-normal">
                   Generation is a deliberate act after review. An unreviewed detection should not enter a shared operational picture.
                 </p>
               </div>
@@ -191,7 +191,7 @@ export default function ImacIntegration() {
             <SearchInput value={query} onChange={setQuery} placeholder="Source, agency or detail…" className="w-72" />
             <Select value={kindFilter} onChange={setKindFilter}
               options={[{ value: 'all', label: 'All types' }, ...Array.from(new Set(world.dataSources.map((d) => d.kind))).map((k) => ({ value: k, label: k }))]} />
-            <span className="text-[12px] text-gray-500 ml-auto">{sources.length} of {world.dataSources.length} shown</span>
+            <span className="text-[0.75rem] text-gray-500 ml-auto">{sources.length} of {world.dataSources.length} shown</span>
           </div>
 
           <div className="h-[70vh] flex-none lg:h-auto lg:flex-1 lg:min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
@@ -200,8 +200,7 @@ export default function ImacIntegration() {
           </div>
 
           <InfoBanner tone="blue" icon={<Terminal className="w-3.5 h-3.5" />}>
-            Status reflects the last pipeline build. To refresh, run <code className="bg-white px-1 rounded">cd pipeline &amp;&amp; uv run oceanspill build</code>{' '}
-            and reload. Check adapters with <code className="bg-white px-1 rounded">uv run oceanspill providers</code>.
+            Status reflects the last data update, {fmt.ago(Date.parse(world.generatedAt), now)}.
           </InfoBanner>
         </div>
       )}
@@ -236,12 +235,11 @@ export default function ImacIntegration() {
                 return <span className="flex items-center gap-1">Interpolated / synthetic <ProvenanceBadge p="synthetic" /></span>;
               })()],
             ]} />
-            <pre className="bg-slate-900 text-slate-100 rounded p-4 text-[11px] font-mono overflow-x-auto leading-relaxed max-h-80 overflow-y-auto">
+            <pre className="bg-slate-900 text-slate-100 rounded p-4 text-[0.6875rem] font-mono overflow-x-auto leading-relaxed max-h-80 overflow-y-auto">
               {payloadText}
             </pre>
             <InfoBanner tone="blue">
-              The payload carries the uncertainty (hindcast radius and time window) and the provenance of every suspect,
-              so a watch officer sees the same caveats as the analyst.
+              The payload includes the hindcast uncertainty and the data source of every suspect track.
             </InfoBanner>
           </div>
         )}
@@ -281,7 +279,7 @@ function buildPayload(c: SpillCase, world: ReturnType<typeof useStore>['world'],
     schema: 'oceanspill.cop.pollution.draft-1',
     generatedAt: new Date(c.imacPushedAt ?? now).toISOString(),
     status: 'DRAFT_NOT_TRANSMITTED',
-    source: { system: 'OceanSpill prototype', mode: 'retrospective-replay' },
+    source: { system: 'OceanSpill', mode: 'retrospective-analysis' },
     incident: {
       id: c.id,
       title: c.title,

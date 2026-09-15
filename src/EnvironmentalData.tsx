@@ -169,14 +169,14 @@ export default function EnvironmentalData() {
       <aside className="w-full lg:w-[300px] xl:w-[370px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none overflow-y-auto">
         <div className="px-3 py-2.5 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Activity className="w-4 h-4 text-blue-600" /> Environmental data</h2>
-          <p className="text-[11px] text-gray-500 mt-0.5">
-            {mode === 'case' ? 'Reanalysis forcing fetched for each real case' : 'Climatological model (fallback)'}
+          <p className="text-[0.6875rem] text-gray-500 mt-0.5">
+            {mode === 'case' ? 'Reanalysis forcing for each recorded case' : 'Climatological model (fallback)'}
           </p>
           <div className="flex rounded border border-gray-300 overflow-hidden mt-2">
             <button onClick={() => setMode('case')} disabled={!casesWithForcing.length}
-              className={`flex-1 px-2 py-1 text-[12px] font-semibold ${mode === 'case' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'} disabled:opacity-40`}>Case forcing</button>
+              className={`flex-1 px-2 py-1 text-[0.75rem] font-semibold ${mode === 'case' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'} disabled:opacity-40`}>Case forcing</button>
             <button onClick={() => setMode('model')}
-              className={`flex-1 px-2 py-1 text-[12px] font-semibold border-l border-gray-300 ${mode === 'model' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Climatology</button>
+              className={`flex-1 px-2 py-1 text-[0.75rem] font-semibold border-l border-gray-300 ${mode === 'model' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Climatology</button>
           </div>
           {mode === 'case' && (
             <div className="mt-2">
@@ -194,12 +194,12 @@ export default function EnvironmentalData() {
         {tab === 'conditions' && (
           <div className="p-4 space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded p-3">
-              <p className="text-[11px] font-bold text-blue-900 uppercase mb-1">Sampling point</p>
+              <p className="text-[0.6875rem] font-bold text-blue-900 uppercase mb-1">Sampling point</p>
               <p className="font-mono text-xs font-bold text-blue-900">
                 {Math.abs(probe.lat).toFixed(3)}° {probe.lat >= 0 ? 'N' : 'S'} &nbsp; {Math.abs(probe.lon).toFixed(3)}° {probe.lon >= 0 ? 'E' : 'W'}
               </p>
-              <p className="text-[11px] text-blue-700 mt-1">{fmt.utc(sampleTime)}</p>
-              <p className="text-[11px] text-blue-600 mt-1">Click anywhere on the map to move the probe.</p>
+              <p className="text-[0.6875rem] text-blue-700 mt-1">{fmt.utc(sampleTime)}</p>
+              <p className="text-[0.6875rem] text-blue-600 mt-1">Click anywhere on the map to move the probe.</p>
             </div>
 
             {forcing ? (
@@ -219,7 +219,7 @@ export default function EnvironmentalData() {
             )}
 
             <div>
-              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><Wind className="w-3 h-3" /> 10 m wind <ProvenanceBadge p={wind.origin} /></p>
+              <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><Wind className="w-3 h-3" /> 10 m wind <ProvenanceBadge p={wind.origin} /></p>
               <KeyValue cols={2} items={[
                 ['Speed', `${wind.speed.toFixed(1)} m/s`],
                 ['Knots', `${(wind.speed * 1.944).toFixed(1)} kn`],
@@ -229,7 +229,7 @@ export default function EnvironmentalData() {
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><Navigation className="w-3 h-3" /> Surface current <ProvenanceBadge p={current.origin} /></p>
+              <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><Navigation className="w-3 h-3" /> Surface current <ProvenanceBadge p={current.origin} /></p>
               <KeyValue cols={2} items={[
                 ['Speed', `${current.speed.toFixed(3)} m/s`],
                 ['Knots', `${(current.speed * 1.944).toFixed(2)} kn`],
@@ -237,12 +237,12 @@ export default function EnvironmentalData() {
                 ['U / V', `${current.u.toFixed(2)} / ${current.v.toFixed(2)}`],
               ]} />
               {!gridHasCurrent && (
-                <p className="text-[11px] text-amber-700 mt-1 leading-normal">No reanalysis currents for this date (SMOC starts 2022). Using the climatological model.</p>
+                <p className="text-[0.6875rem] text-amber-700 mt-1 leading-normal">No reanalysis currents for this date (SMOC starts 2022). Using the climatological model.</p>
               )}
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><Waves className="w-3 h-3" /> Sea state</p>
+              <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5 flex items-center gap-1.5"><Waves className="w-3 h-3" /> Sea state</p>
               <KeyValue cols={1} items={[
                 [<span className="flex items-center gap-1">Wave height <ProvenanceBadge p={observedHs != null ? 'observed' : 'modelled'} /></span>, `${sea.significantWaveHeightM} m`],
                 ['Peak period', `${sea.peakPeriodS} s`],
@@ -254,8 +254,8 @@ export default function EnvironmentalData() {
             </div>
 
             <div className="bg-slate-50 border border-slate-200 rounded p-3">
-              <p className="text-[11px] font-bold text-slate-700 uppercase mb-1.5">Resultant slick drift</p>
-              <p className="text-[11px] text-slate-600 mb-2 leading-normal">
+              <p className="text-[0.6875rem] font-bold text-slate-700 uppercase mb-1.5">Resultant slick drift</p>
+              <p className="text-[0.6875rem] text-slate-600 mb-2 leading-normal">
                 Current + Stokes drift (1.2% of wind) + 3% windage: the velocity the particle model integrates.
               </p>
               <div className="flex items-center gap-3">
@@ -274,30 +274,30 @@ export default function EnvironmentalData() {
                 </div>
                 <div className="flex-1">
                   <div className="text-lg font-black text-slate-900 leading-none">{(driftSpeed * 1.944).toFixed(2)} <span className="text-xs font-bold text-slate-500">kn</span></div>
-                  <div className="text-[11px] text-slate-600 mt-1">{((driftDir + 360) % 360).toFixed(0)}° toward {formatBearing((driftDir + 360) % 360)}</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">{(driftSpeed * 3.6 * 24).toFixed(1)} km per day</div>
+                  <div className="text-[0.6875rem] text-slate-600 mt-1">{((driftDir + 360) % 360).toFixed(0)}° toward {formatBearing((driftDir + 360) % 360)}</div>
+                  <div className="text-[0.6875rem] text-slate-500 mt-0.5">{(driftSpeed * 3.6 * 24).toFixed(1)} km per day</div>
                 </div>
               </div>
             </div>
 
             <div className={`border rounded p-3 ${detTone === 'green' ? 'bg-emerald-50 border-emerald-200' : detTone === 'amber' ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
               <div className="flex items-center justify-between mb-1">
-                <p className="text-[11px] font-bold uppercase text-gray-700 flex items-center gap-1.5"><Satellite className="w-3 h-3" /> SAR detectability</p>
+                <p className="text-[0.6875rem] font-bold uppercase text-gray-700 flex items-center gap-1.5"><Satellite className="w-3 h-3" /> SAR detectability</p>
                 <Badge tone={detTone}>{detectability}</Badge>
               </div>
-              <p className="text-[11px] text-gray-700 leading-normal">
+              <p className="text-[0.6875rem] text-gray-700 leading-normal">
                 Oil damps capillary waves only between roughly 3 and 12 m/s of wind. Below that the whole
                 sea surface appears dark; above it, wave breaking re-roughens the slick. Wind here is {wind.speed.toFixed(1)} m/s.
               </p>
             </div>
 
             <div className="bg-gray-50 border border-gray-200 rounded p-3">
-              <p className="text-[11px] font-bold text-gray-700 uppercase mb-1">Monsoon regime</p>
+              <p className="text-[0.6875rem] font-bold text-gray-700 uppercase mb-1">Monsoon regime</p>
               <p className="text-xs font-bold text-gray-900">{monsoonLabel(when)}</p>
               <div className="mt-1.5 h-1.5 bg-gradient-to-r from-blue-400 via-gray-200 to-orange-400 rounded relative">
                 <div className="absolute top-1/2 -translate-y-1/2 w-2 h-3 bg-gray-900 rounded-sm" style={{ left: `calc(${((phase + 1) / 2) * 100}% - 4px)` }} />
               </div>
-              <div className="flex justify-between text-[10.5px] text-gray-500 mt-0.5"><span>NE monsoon</span><span>SW monsoon</span></div>
+              <div className="flex justify-between text-[0.65625rem] text-gray-500 mt-0.5"><span>NE monsoon</span><span>SW monsoon</span></div>
             </div>
           </div>
         )}
@@ -310,7 +310,7 @@ export default function EnvironmentalData() {
                 : <>72-hour window of the climatological model at the probe, every 3 hours. Values are modelled, not observed.</>}
             </InfoBanner>
             <div>
-              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1 flex items-center gap-1.5">Wind speed (m/s) <ProvenanceBadge p={forcing ? 'observed' : 'modelled'} /></p>
+              <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1 flex items-center gap-1.5">Wind speed (m/s) <ProvenanceBadge p={forcing ? 'observed' : 'modelled'} /></p>
               <LineChart
                 series={[{ name: 'wind', color: '#2563eb', points: series.windSpeed }]}
                 xLabels={seriesLabels} showArea
@@ -319,7 +319,7 @@ export default function EnvironmentalData() {
               />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1 flex items-center gap-1.5">
+              <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1 flex items-center gap-1.5">
                 Current speed (cm/s) <ProvenanceBadge p={forcing && series.observedCurrent > 0 ? 'observed' : 'modelled'} />
               </p>
               <LineChart
@@ -329,11 +329,11 @@ export default function EnvironmentalData() {
                 yFormat={(v) => v.toFixed(0)}
               />
               {forcing && series.observedCurrent < series.times.length && (
-                <p className="text-[11px] text-gray-500 mt-0.5">{series.observedCurrent} of {series.times.length} samples observed; the rest fall back to the model.</p>
+                <p className="text-[0.6875rem] text-gray-500 mt-0.5">{series.observedCurrent} of {series.times.length} samples observed; the rest fall back to the model.</p>
               )}
             </div>
             <div>
-              <p className="text-[11px] font-bold text-gray-600 uppercase mb-1 flex items-center gap-1.5">
+              <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1 flex items-center gap-1.5">
                 Significant wave height (m) <ProvenanceBadge p={forcing && series.observedWaves > 0 ? 'observed' : 'modelled'} />
               </p>
               <LineChart
@@ -361,7 +361,7 @@ export default function EnvironmentalData() {
                 ]} />
               </div>
             )}
-            {activeCase && (() => {
+            {mode === 'case' && activeCase && (() => {
               const wc = world.artifacts.get(activeCase.id)?.windCatalog;
               if (!wc) return null;
               return (
@@ -370,17 +370,17 @@ export default function EnvironmentalData() {
                     <p className="text-xs font-bold text-gray-900">Indian scatterometer winds</p>
                     <Badge tone="green">IN</Badge>
                   </div>
-                  <p className="text-[11px] text-gray-600 leading-normal">{wc.description} · {wc.collection}</p>
-                  <p className="text-[11px] text-gray-700 mt-1">
+                  <p className="text-[0.6875rem] text-gray-600 leading-normal">{wc.description} · {wc.collection}</p>
+                  <p className="text-[0.6875rem] text-gray-700 mt-1">
                     {wc.products.length} daily product{wc.products.length === 1 ? '' : 's'} for this window · {wc.online} online
                   </p>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {wc.products.slice(0, 8).map((x) => (
-                      <span key={x.id} title={x.id} className="text-[10.5px] font-mono px-1 rounded border border-orange-200 bg-white">{(x.date ?? '').slice(0, 10)}{x.online ? '' : ' · offline'}</span>
+                      <span key={x.id} title={x.id} className="text-[0.65625rem] font-mono px-1 rounded border border-orange-200 bg-white">{(x.date ?? '').slice(0, 10)}{x.online ? '' : ' · offline'}</span>
                     ))}
                   </div>
                   {wc.online === 0 && wc.products.length > 0 && (
-                    <p className="text-[11px] text-gray-500 mt-1">Offline on Bhoonidhi: request them through the portal, then they can replace ERA5 wind for this case.</p>
+                    <p className="text-[0.6875rem] text-gray-500 mt-1">Offline on Bhoonidhi: request them through the portal, then they can replace ERA5 wind for this case.</p>
                   )}
                 </div>
               );
@@ -390,15 +390,15 @@ export default function EnvironmentalData() {
                 <div className="flex justify-between items-start gap-2 mb-1">
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-gray-900">{d.name}</span>
-                    <p className="text-[11px] text-gray-500">{d.agency}</p>
+                    <p className="text-[0.6875rem] text-gray-500">{d.agency}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Interim fallback' ? 'blue' : d.status === 'Not configured' ? 'amber' : 'gray'}>{d.status}</Badge>
                     <Badge tone={d.sovereign ? 'green' : 'gray'}>{d.sovereign ? 'IN' : 'EXT'} · {d.role}</Badge>
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-600 leading-normal">{d.message}</p>
-                {d.lastSync != null && <p className="text-[11px] text-gray-400 mt-0.5">Last pipeline build {fmt.ago(d.lastSync, now)}</p>}
+                <p className="text-[0.6875rem] text-gray-600 leading-normal">{d.message}</p>
+                {d.lastSync != null && <p className="text-[0.6875rem] text-gray-400 mt-0.5">Last pipeline build {fmt.ago(d.lastSync, now)}</p>}
               </div>
             ))}
             <InfoBanner tone="amber">
@@ -454,7 +454,7 @@ export default function EnvironmentalData() {
               </div>
             }
             legend={
-              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2 text-[11px] shadow-lg max-w-[220px]">
+              <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2 text-[0.6875rem] shadow-lg max-w-[220px]">
                 <p className="font-bold text-gray-700 mb-1">Arrow length ∝ {field === 'current' ? 'current speed' : 'wind speed'}</p>
                 <p className="text-gray-500">Arrows point in the direction of flow.</p>
                 {forcing
