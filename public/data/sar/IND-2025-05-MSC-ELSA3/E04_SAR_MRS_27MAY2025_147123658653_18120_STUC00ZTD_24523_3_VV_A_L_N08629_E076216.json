@@ -1,0 +1,62 @@
+{
+ "schemaVersion": 1,
+ "caseId": "IND-2025-05-MSC-ELSA3",
+ "scene": "E04_SAR_MRS_27MAY2025_147123658653_18120_STUC00ZTD_24523_3_VV_A_L_N08629_E076216",
+ "product": "EOS-04 MRS L2B-ARD-PRODUCT",
+ "radiometry": "Gamma-0 (noise removed, terrain corrected; dB = 10*log10(DN^2) - 67.14)",
+ "processedAt": "2026-09-15T16:23:53Z",
+ "polarisation": "VV",
+ "method": "Adaptive-threshold dark-spot detection on Lee-filtered calibrated backscatter (classical method, not a trained model)",
+ "landMask": "Natural Earth 1:10m coastline (data/reference/coastline_ne10m.json)",
+ "parameters": {
+  "leeWindow": 7,
+  "detectorWindow": 51,
+  "kSigma": 1.5,
+  "minContrastDb": 3.0,
+  "minAreaKm2": 0.5,
+  "coastBufferKm": 2.0,
+  "maxElongation": 50.0,
+  "multilookFactor": 4,
+  "pixelSpacingM": 72.0,
+  "equivalentLooks": 32.0,
+  "radiusKm": 60.0
+ },
+ "crop": {
+  "corners": [
+   {
+    "lat": 9.6228,
+    "lon": 75.59046
+   },
+   {
+    "lat": 9.6192,
+    "lon": 76.68283
+   },
+   {
+    "lat": 8.7684,
+    "lon": 76.67881
+   },
+   {
+    "lat": 8.77167,
+    "lon": 75.58905
+   }
+  ],
+  "shape": [
+   1308,
+   1666
+  ]
+ },
+ "incidenceDeg": 34.98,
+ "sea": {
+  "meanDb": -11.42,
+  "stdDb": 1.31,
+  "pixels": 1376004
+ },
+ "quicklook": "sar/IND-2025-05-MSC-ELSA3/E04_SAR_MRS_27MAY2025_147123658653_18120_STUC00ZTD_24523_3_VV_A_L_N08629_E076216.png",
+ "spots": [],
+ "limitations": [
+  "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
+  "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",
+  "Multilooking trades resolution for speckle reduction; slicks narrower than two output pixels can be missed",
+  "The quicklook is in UTM zone 43N map grid (north-up); use the outlines on the map for location"
+ ]
+}

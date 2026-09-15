@@ -130,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--case", required=True)
     pr.add_argument("--scene", help="a .zip or .SAFE path (default: every scene in downloads/<case>)")
     pr.add_argument("--radius-km", type=float, default=40.0, help="analysis radius around the incident")
-    pr.add_argument("--factor", type=int, default=8, help="multilook factor (8 gives 80 m pixels for IW GRDH)")
+    pr.add_argument("--factor", type=int, help="multilook factor (default: 8 for Sentinel-1 GRDH, 4 for EOS-04 MRS, about 75 m pixels)")
 
     args = parser.parse_args(argv)
     settings = Settings.load(Path(args.env) if args.env else None)

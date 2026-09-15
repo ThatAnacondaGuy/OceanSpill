@@ -2,9 +2,11 @@
  "schemaVersion": 1,
  "caseId": "IND-2025-05-MSC-ELSA3",
  "scene": "S1A_IW_GRDH_1SDV_20250528T004112_20250528T004137_059387_075F14_9969",
- "processedAt": "2026-09-15T14:23:26Z",
+ "product": "Sentinel-1 GRD",
+ "radiometry": "Sigma0 (thermal noise removed)",
+ "processedAt": "2026-09-15T16:23:55Z",
  "polarisation": "VV",
- "method": "Adaptive-threshold dark-spot detection on Lee-filtered, noise-corrected sigma0 (classical method, not a trained model)",
+ "method": "Adaptive-threshold dark-spot detection on Lee-filtered calibrated backscatter (classical method, not a trained model)",
  "landMask": "Natural Earth 1:10m coastline (data/reference/coastline_ne10m.json)",
  "parameters": {
   "leeWindow": 7,

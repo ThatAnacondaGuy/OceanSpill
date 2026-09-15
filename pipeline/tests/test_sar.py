@@ -217,3 +217,56 @@ def test_polygon_holes_are_water():
     lat = np.array([[2.0, 5.0]])
     lon = np.array([[2.0, 5.0]])
     assert land.mask(lat, lon).tolist() == [[True, False]]
+
+
+def test_eos04_reader_end_to_end_on_a_synthetic_ard_product(tmp_path: Path):
+    tifffile = pytest.importorskip("tifffile")
+    from oceanspill.sar.process import process_scene
+    from oceanspill.sar.utm import from_utm, to_utm
+
+    # Layout and metadata keys follow a real EOS-04 MRS L2B CEOS-ARD product from Bhoonidhi.
+    name = "E04_SAR_MRS_TEST"
+    root = tmp_path / name
+    (root / "scene_VV").mkdir(parents=True)
+    size, spacing, k_db = 600, 18.0, 67.14
+    x0, y0 = to_utm(9.35, 76.08, 43)
+    tx, ty = float(x0) - 300 * spacing, float(y0) + 300 * spacing
+    rng = np.random.default_rng(5)
+    gamma = np.full((size, size), 10 ** (-11 / 10))
+    gamma[280:320, 150:450] = 10 ** (-21 / 10)  # 0.7 x 5.4 km slick, east-west
+    power = gamma * 10 ** (k_db / 10) * rng.gamma(2.0, 0.5, gamma.shape)
+    dn = np.sqrt(power).clip(1, 65535).astype(np.uint16)
+    dn[:40, :] = 0  # outside the swath
+    geokeys = (1, 1, 0, 1, 3072, 0, 1, 32643)
+    tags = [(33550, "d", 3, (spacing, spacing, 0.0)), (33922, "d", 6, (0.0, 0.0, 0.0, tx, ty, 0.0)), (34735, "H", len(geokeys), geokeys)]
+    tifffile.imwrite(root / "scene_VV" / "imagery_VV.tif", dn, extratags=tags)
+    mask = np.where(dn > 0, 128, 0).astype(np.uint16)
+    tifffile.imwrite(root / f"{name}_mask.tif", mask, extratags=tags)
+    (root / "BAND_META.txt").write_text("SatID=EOS-04\nImagingMode=MRS \nProductType=L2B-ARD-PRODUCT\nZoneNo=43\nRangeLooks=2.000\nAzimuthLooks=1.000\nIncidenceAngle=34.97863\nSceneCenterLat=9.35\n")
+    (root / "product.xml").write_text(
+        "<Product><BackscatterMeasurementData><BackscatterMeasurement>Gamma-0</BackscatterMeasurement>"
+        f"<BackscatterConversionEq units=\"dB\">10*log10(DN^2) - {k_db}</BackscatterConversionEq></BackscatterMeasurementData></Product>"
+    )
+
+    case = {"id": "TEST-EOS04", "incident": {"position": {"lat": 9.35, "lon": 76.08}}}
+    record = process_scene(root, case, name, RingLand([]), tmp_path / "out", radius_km=6)
+    assert record["product"].startswith("EOS-04 MRS") and "Gamma-0" in record["radiometry"]
+    assert record["parameters"]["pixelSpacingM"] == 72.0
+    assert record["sea"]["meanDb"] == pytest.approx(-11, abs=1.0)
+    top = record["spots"][0]
+    assert top["distanceKm"] < 1.0 and top["contrastDb"] < -6
+    assert 70 <= top["orientationDeg"] <= 110
+    lat, lon = from_utm(tx + 300 * spacing, ty - 300 * spacing, 43)
+    assert float(lat) == pytest.approx(9.35, abs=1e-5) and float(lon) == pytest.approx(76.08, abs=1e-5)
+
+
+def test_utm_matches_eos04_product_corner_coordinates():
+    from oceanspill.sar.utm import from_utm, to_utm
+
+    # Corner pairs copied from a real EOS-04 BAND_META.txt (UTM zone 43N).
+    corners = [(9.623452, 75.348160, 538200.0, 1063800.0), (7.909241, 77.011876, 721800.0, 874800.0)]
+    for lat, lon, x, y in corners:
+        fx, fy = to_utm(lat, lon, 43)
+        assert float(fx) == pytest.approx(x, abs=1.0) and float(fy) == pytest.approx(y, abs=1.0)
+        ilat, ilon = from_utm(x, y, 43)
+        assert float(ilat) == pytest.approx(lat, abs=1e-5) and float(ilon) == pytest.approx(lon, abs=1e-5)

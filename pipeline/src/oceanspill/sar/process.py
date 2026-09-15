@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -11,18 +12,19 @@ import numpy as np
 from ..geo import haversine_km, iso
 from .calibration import parse_calibration, parse_noise, sigma0
 from .darkspot import detect_dark_spots
+from .eos04 import MASK_VALID_BIT, Eos04Product, block_mean_masked, utm_zone
 from .filters import dilate, lee_filter, multilook_power, to_db
 from .geolocation import interpolate_grid, latlon, parse_geolocation
 from .landmask import PolygonLand, RingLand
 from .quicklook import write_quicklook
 from .safe import SafeProduct, pixel_spacing_m
+from .utm import from_utm, to_utm
 
-METHOD = "Adaptive-threshold dark-spot detection on Lee-filtered, noise-corrected sigma0 (classical method, not a trained model)"
+METHOD = "Adaptive-threshold dark-spot detection on Lee-filtered calibrated backscatter (classical method, not a trained model)"
 LIMITATIONS = [
     "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
     "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",
     "Multilooking trades resolution for speckle reduction; slicks narrower than two output pixels can be missed",
-    "The quicklook is in radar geometry (not north-up); use the outlines on the map for location",
 ]
 
 
@@ -47,24 +49,110 @@ def geo_shape(lat: np.ndarray, lon: np.ndarray) -> tuple[float, float]:
     return math.sqrt(max(evals[-1], 1e-12) / max(evals[0], 1e-12)), bearing
 
 
-def analyse_image(
-    power: np.ndarray,
-    rows: np.ndarray,
-    cols: np.ndarray,
+@dataclass
+class LoadedScene:
+    """A calibrated, multilooked window around the incident, ready for detection."""
+
+    product: str
+    radiometry: str
+    polarisation: str
+    linear: np.ndarray
+    valid: np.ndarray
+    lat: np.ndarray
+    lon: np.ndarray
+    pixel_m: float
+    looks: float
+    incidence_deg: float | None
+    geometry: str
+
+
+def load_sentinel1(path: Path, incident: tuple[float, float], radius_km: float, factor: int) -> LoadedScene:
+    product = SafeProduct.open(path)
+    band = product.band()
+    annotation = product.read_text(band.annotation)
+    grid = parse_geolocation(annotation)
+    calibration = parse_calibration(product.read_text(band.calibration))
+    noise = parse_noise(product.read_text(band.noise)) if band.noise else None
+    spacing_m = pixel_spacing_m(annotation) * factor
+
+    dn = product.read_measurement(band)
+    power, rows, cols = multilook_power(dn, factor)
+    lat, lon = latlon(grid, rows, cols)
+    near = haversine_grid(lat, lon, *incident) <= radius_km
+    if not near.any():
+        raise ValueError(f"scene does not cover {radius_km:g} km around the incident")
+    r_idx = np.flatnonzero(near.any(axis=1))
+    c_idx = np.flatnonzero(near.any(axis=0))
+    rs, cs = slice(r_idx[0], r_idx[-1] + 1), slice(c_idx[0], c_idx[-1] + 1)
+    s0 = sigma0(power[rs, cs], rows[rs], cols[cs], calibration, noise)
+    return LoadedScene(
+        product="Sentinel-1 GRD", radiometry="Sigma0 (thermal noise removed)", polarisation=band.polarisation,
+        linear=s0, valid=power[rs, cs] > 0, lat=lat[rs, cs], lon=lon[rs, cs], pixel_m=spacing_m,
+        # Equivalent looks: about 4.4 for IW GRDH, multiplied by the extra block averaging.
+        looks=4.4 * factor * factor,
+        incidence_deg=float(np.nanmean(interpolate_grid(grid, grid.incidence, rows[rs], cols[cs]))),
+        geometry="radar geometry (not north-up)",
+    )
+
+
+def load_eos04(path: Path, incident: tuple[float, float], radius_km: float, factor: int) -> LoadedScene:
+    product = Eos04Product.open(path)
+    meta = product.band_meta()
+    pol = product.polarisations()[0]
+    k_db, measurement = product.conversion_constant_db(pol)
+    dn, tags = product.read_raster(product.image_member(pol))
+    zone, north = utm_zone(tags, meta)
+    sx, sy = float(tags["ModelPixelScaleTag"][0]), float(tags["ModelPixelScaleTag"][1])
+    tx, ty = float(tags["ModelTiepointTag"][3]), float(tags["ModelTiepointTag"][4])
+
+    x0, y0 = to_utm(incident[0], incident[1], zone, north)
+    col_c, row_c = (float(x0) - tx) / sx, (ty - float(y0)) / sy
+    half = radius_km * 1000.0 / sx
+    h, w = dn.shape
+    r0, r1 = max(0, int(row_c - half)), min(h, int(row_c + half))
+    c0, c1 = max(0, int(col_c - half)), min(w, int(col_c + half))
+    r1 = r0 + (r1 - r0) // factor * factor
+    c1 = c0 + (c1 - c0) // factor * factor
+    if r1 - r0 < factor * 8 or c1 - c0 < factor * 8:
+        raise ValueError(f"scene does not cover {radius_km:g} km around the incident")
+
+    window = dn[r0:r1, c0:c1]
+    valid = window > 0
+    mask_name = product.mask_member()
+    if mask_name:
+        mask, _ = product.read_raster(mask_name)
+        valid &= (mask[r0:r1, c0:c1] & MASK_VALID_BIT) > 0
+    power = window.astype(np.float64) ** 2
+    mean_power, ok = block_mean_masked(power, valid, factor)
+    linear = (mean_power * 10.0 ** (-k_db / 10.0)).astype(np.float32)
+
+    rows = r0 + (np.arange(linear.shape[0]) + 0.5) * factor
+    cols = c0 + (np.arange(linear.shape[1]) + 0.5) * factor
+    xx, yy = np.meshgrid(tx + cols * sx, ty - rows * sy)
+    lat, lon = from_utm(xx, yy, zone, north)
+    looks = float(meta.get("RangeLooks", 1)) * float(meta.get("AzimuthLooks", 1)) * factor * factor
+    incidence = float(meta["IncidenceAngle"]) if meta.get("IncidenceAngle") else None
+    return LoadedScene(
+        product=f"{meta.get('SatID', 'EOS-04')} {meta.get('ImagingMode', '').strip()} {meta.get('ProductType', 'L2B')}".strip(),
+        radiometry=f"{measurement} (noise removed, terrain corrected; dB = 10*log10(DN^2) - {k_db:g})",
+        polarisation=pol, linear=linear, valid=ok & (mean_power > 0), lat=lat, lon=lon, pixel_m=sx * factor,
+        looks=looks, incidence_deg=incidence, geometry=f"UTM zone {zone}{'N' if north else 'S'} map grid (north-up)",
+    )
+
+
+def analyse_linear(
+    linear: np.ndarray,
+    valid: np.ndarray,
     lat: np.ndarray,
     lon: np.ndarray,
-    calibration,
-    noise,
     land_source: RingLand | PolygonLand,
     pixel_km: float,
     incident: tuple[float, float],
     looks: float,
     params: dict[str, Any],
 ) -> dict[str, Any]:
-    """Calibrate, filter, mask and detect over an already cropped multilooked window."""
-    valid = power > 0
-    s0 = sigma0(power, rows, cols, calibration, noise)
-    filtered = lee_filter(s0, int(params["leeWindow"]), looks)
+    """Filter, mask and detect over a calibrated multilooked window (linear backscatter)."""
+    filtered = lee_filter(linear, int(params["leeWindow"]), looks)
     db = to_db(filtered)
     land = land_source.mask(lat, lon)
     buffer_px = int(round(params["coastBufferKm"] / pixel_km))
@@ -96,75 +184,59 @@ def analyse_image(
     out_spots.sort(key=lambda s: (s["distanceKm"], -s["areaKm2"]))
     sea_db = db[sea]
     return {
-        "db": db, "land": near_land, "labels": labels, "spots": out_spots,
+        "db": db, "land": near_land | ~valid, "labels": labels, "spots": out_spots,
         "sea": {"meanDb": round(float(sea_db.mean()), 2) if sea_db.size else None,
                 "stdDb": round(float(sea_db.std()), 2) if sea_db.size else None, "pixels": int(sea_db.size)},
     }
 
 
 def process_scene(
-    safe_path: Path,
+    path: Path,
     case: dict[str, Any],
     scene_name: str,
     land_source: RingLand | PolygonLand,
     out_dir: Path,
     radius_km: float = 40.0,
-    factor: int = 8,
+    factor: int | None = None,
     params: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     # 2 km is enough with the Natural Earth coastline; the coarse fallback outlines need about 8 km.
     params = {"leeWindow": 7, "detectorWindow": 51, "kSigma": 1.5, "minContrastDb": 3.0, "minAreaKm2": 0.5,
               "coastBufferKm": 2.0 if isinstance(land_source, PolygonLand) else 8.0, "maxElongation": 50.0, **(params or {})}
-    product = SafeProduct.open(safe_path)
-    band = product.band()
-    annotation = product.read_text(band.annotation)
-    grid = parse_geolocation(annotation)
-    calibration = parse_calibration(product.read_text(band.calibration))
-    noise = parse_noise(product.read_text(band.noise)) if band.noise else None
-    spacing_m = pixel_spacing_m(annotation) * factor
-    pixel_km = spacing_m / 1000.0
-
-    dn = product.read_measurement(band)
-    power, rows, cols = multilook_power(dn, factor)
-    lat, lon = latlon(grid, rows, cols)
-
     inc = case["incident"]["position"]
     incident = (inc["lat"], inc["lon"])
-    dist = haversine_grid(lat, lon, *incident)
-    near = dist <= radius_km
-    if not near.any():
-        raise ValueError(f"{scene_name} does not cover {radius_km:g} km around the incident")
-    r_idx = np.flatnonzero(near.any(axis=1))
-    c_idx = np.flatnonzero(near.any(axis=0))
-    rs = slice(r_idx[0], r_idx[-1] + 1)
-    cs = slice(c_idx[0], c_idx[-1] + 1)
-
-    # Equivalent looks: about 4.4 for IW GRDH, multiplied by the extra block averaging.
-    looks = 4.4 * factor * factor
-    result = analyse_image(power[rs, cs], rows[rs], cols[cs], lat[rs, cs], lon[rs, cs], calibration, noise,
-                           land_source, pixel_km, incident, looks, params)
+    # Default multilooking brings both products to roughly 75 m pixels (EOS-04 MRS 18 m, Sentinel-1 GRDH 10 m).
+    if Eos04Product.detect(path):
+        factor = factor or 4
+        scene = load_eos04(path, incident, radius_km, factor)
+    else:
+        factor = factor or 8
+        scene = load_sentinel1(path, incident, radius_km, factor)
+    pixel_km = scene.pixel_m / 1000.0
+    result = analyse_linear(scene.linear, scene.valid, scene.lat, scene.lon, land_source, pixel_km, incident, scene.looks, params)
 
     case_dir = out_dir / "sar" / case["id"]
     quicklook = write_quicklook(case_dir / f"{scene_name}.png", result["db"], result["land"], result["labels"])
-    crop_lat, crop_lon = lat[rs, cs], lon[rs, cs]
     corners = [(0, 0), (0, -1), (-1, -1), (-1, 0)]
     record = {
         "schemaVersion": 1,
         "caseId": case["id"],
         "scene": scene_name,
+        "product": scene.product,
+        "radiometry": scene.radiometry,
         "processedAt": iso(datetime.now(timezone.utc)),
-        "polarisation": band.polarisation,
+        "polarisation": scene.polarisation,
         "method": METHOD,
         "landMask": land_source.source,
-        "parameters": {**params, "multilookFactor": factor, "pixelSpacingM": round(spacing_m, 1), "equivalentLooks": looks,
-                       "radiusKm": radius_km},
-        "crop": {"corners": [{"lat": round(float(crop_lat[r, c]), 5), "lon": round(float(crop_lon[r, c]), 5)} for r, c in corners],
+        "parameters": {**params, "multilookFactor": factor, "pixelSpacingM": round(scene.pixel_m, 1),
+                       "equivalentLooks": scene.looks, "radiusKm": radius_km},
+        "crop": {"corners": [{"lat": round(float(scene.lat[r, c]), 5), "lon": round(float(scene.lon[r, c]), 5)} for r, c in corners],
                  "shape": list(result["db"].shape)},
-        "incidenceDeg": round(float(np.nanmean(interpolate_grid(grid, grid.incidence, rows[rs], cols[cs]))), 2),
+        "incidenceDeg": round(scene.incidence_deg, 2) if scene.incidence_deg is not None else None,
         "sea": result["sea"],
         "quicklook": str(quicklook.relative_to(out_dir)).replace("\\", "/"),
         "spots": result["spots"][:20],
-        "limitations": LIMITATIONS,
+        "limitations": [*LIMITATIONS, f"The quicklook is in {scene.geometry}; use the outlines on the map for location"],
     }
     (case_dir / f"{scene_name}.json").write_text(json.dumps(record, indent=1))
     return record

@@ -163,6 +163,8 @@ export interface SarMeasurement {
   schemaVersion: 1;
   caseId: string;
   scene: string;
+  product?: string;
+  radiometry?: string;
   processedAt: string;
   polarisation: string;
   method: string;

@@ -42,7 +42,7 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
     det.meanBackscatterDb != null && det.backgroundBackscatterDb != null ? det.meanBackscatterDb - det.backgroundBackscatterDb : null;
   const wind = det.windSpeedMs;
   const sceneNote = det.sarMeasurements.length
-    ? `${det.sarMeasurements.length} scene${det.sarMeasurements.length === 1 ? '' : 's'} processed; no dark spot within 10 km of the incident`
+    ? `No dark spot within 10 km of the incident in ${det.sarMeasurements.length} processed scene${det.sarMeasurements.length === 1 ? '' : 's'}, so there is no slick contrast to measure`
     : det.scenes.length
     ? `${det.scenes.length} catalogue scene${det.scenes.length === 1 ? '' : 's'} identified; download and processing pending`
     : 'No SAR scene found in the search window';
@@ -62,7 +62,7 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
   }
 
   if (contrastDb == null) {
-    checks.push({ name: 'Backscatter contrast', status: 'pending', weight: 0.22, detail: `Needs Sigma0 from a processed scene. ${sceneNote}.` });
+    checks.push({ name: 'Backscatter contrast', status: 'pending', weight: 0.22, detail: det.sarMeasurements.length ? `${sceneNote}.` : `Needs calibrated backscatter from a processed scene. ${sceneNote}.` });
   } else if (contrastDb <= -9) {
     checks.push({ name: 'Backscatter contrast', status: 'passed', weight: 0.22, detail: `${contrastDb.toFixed(1)} dB damping, deeper than biogenic films typically produce${measured}` });
   } else if (contrastDb <= -6) {

@@ -574,6 +574,8 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
                 className="w-full rounded border border-gray-200 bg-gray-900" />
               <p className="text-[9.5px] text-gray-500 mt-1 leading-snug">{m.method}</p>
               <KeyValue cols={2} items={[
+                ['Product', m.product ?? 'Sentinel-1 GRD'],
+                ['Radiometry', m.radiometry ?? 'Sigma0'],
                 ['Polarisation', m.polarisation],
                 ['Pixel spacing', `${m.parameters.pixelSpacingM} m`],
                 ['Sea background', m.sea.meanDb != null ? `${m.sea.meanDb} dB` : '—'],

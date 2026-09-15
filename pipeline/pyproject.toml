@@ -15,6 +15,7 @@ oceanspill-train = "oceanspill.ml.train:main"
 
 [project.optional-dependencies]
 sar = [
+    "imagecodecs>=2024.1",
     "tifffile>=2024.8",
 ]
 ml = [
