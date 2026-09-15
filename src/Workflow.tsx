@@ -115,8 +115,8 @@ export default function Workflow() {
   }), [byStage, world.enforcement, revision]);
 
   return (
-    <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden">
+      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0 flex-wrap gap-y-2">
         <div className="flex items-center gap-2.5">
           <div className="bg-blue-600 text-white p-1.5 rounded"><CheckSquare className="w-4 h-4" /></div>
           <div>
@@ -124,8 +124,8 @@ export default function Workflow() {
             <p className="text-[11px] text-gray-500">Tracks human action, not model output</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <SearchInput value={query} onChange={setQuery} placeholder="Case, location, analyst…" className="w-56" />
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput value={query} onChange={setQuery} placeholder="Case, location, analyst…" className="w-full sm:w-56" />
           <Select value={tierFilter} onChange={setTierFilter}
             options={[{ value: 'all', label: 'All tiers' }, { value: 'HIGH', label: 'High' }, { value: 'MEDIUM', label: 'Medium' }, { value: 'LOW', label: 'Low' }]} />
           <div className="flex rounded border border-gray-300 overflow-hidden">
@@ -145,7 +145,7 @@ export default function Workflow() {
       </div>
 
       {view === 'board' ? (
-        <div className="flex-1 min-h-0 overflow-x-auto p-3">
+        <div className="h-[80vh] flex-none lg:h-auto lg:flex-1 lg:min-h-0 overflow-x-auto p-3">
           <div className="flex gap-3 h-full" style={{ minWidth: 'max-content' }}>
             {STAGES.map((stage, si) => {
               const items = byStage.get(stage.id) ?? [];
@@ -211,7 +211,7 @@ export default function Workflow() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 p-3">
+        <div className="h-[80vh] flex-none lg:h-auto lg:flex-1 lg:min-h-0 p-3">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
             <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
               <span className="text-[11px] font-bold text-gray-700">Enforcement register — {world.enforcement.length} actions</span>
@@ -277,7 +277,7 @@ export default function Workflow() {
               })}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-[10px] font-bold text-gray-600 uppercase mb-1.5">Case</p>
                 <KeyValue cols={1} items={[

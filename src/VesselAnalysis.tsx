@@ -88,7 +88,7 @@ export default function VesselAnalysis() {
       }
     }
     if (activeCase) {
-      polygons.push({ id: 'slick', rings: [activeCase.detection.polygon.ring], fill: 'rgba(15,23,42,0.6)', stroke: '#f8fafc', strokeWidth: 1.2, z: 3 });
+      polygons.push({ id: 'slick', rings: [activeCase.detection.polygon.ring], fill: 'rgba(15,23,42,0.6)', stroke: '#f8fafc', strokeWidth: 1.2, z: 3, effect: 'oil' });
       markers.push({
         id: `case-${activeCase.id}`, position: activeCase.facts.incident.position, kind: 'origin', color: '#f59e0b', size: 7,
         label: activeCase.title, sublabel: `Reported incident ± ${activeCase.facts.incident.positionPrecisionKm} km`, z: 8,
@@ -174,8 +174,8 @@ export default function VesselAnalysis() {
   const windowHours = (windowBounds.max - windowBounds.min) / 3600_000;
 
   return (
-    <main className="flex-1 min-h-0 flex overflow-hidden">
-      <aside className="w-[330px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+      <aside className="w-full lg:w-[280px] xl:w-[330px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Anchor className="w-4 h-4 text-blue-600" /> Vessel traffic</h2>
           <p className="text-[10px] text-gray-500 mt-0.5">
@@ -206,7 +206,7 @@ export default function VesselAnalysis() {
         </div>
       </aside>
 
-      <section className="flex-1 min-w-0 flex flex-col">
+      <section className="flex-1 min-w-0 min-h-[72vh] lg:min-h-0 flex flex-col flex-shrink-0 lg:flex-shrink">
         <div className="flex-1 min-h-0 relative">
           <MapView
             basemap={basemap}
@@ -266,7 +266,7 @@ export default function VesselAnalysis() {
         />
       </section>
 
-      <aside className="w-[360px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
+      <aside className="w-full lg:w-[300px] xl:w-[360px] bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col flex-shrink-0 h-[82vh] lg:h-auto">
         {!selected ? (
           <EmptyState icon={<Ship className="w-10 h-10" />} title="No vessel selected" body="Pick a vessel from the list or the map." />
         ) : (

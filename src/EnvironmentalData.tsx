@@ -165,8 +165,8 @@ export default function EnvironmentalData() {
   const gridHasCurrent = !forcing || forcing.coverage.current > 0;
 
   return (
-    <main className="flex-1 min-h-0 flex overflow-hidden">
-      <aside className="w-[340px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0 overflow-y-auto">
+    <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+      <aside className="w-full lg:w-[290px] xl:w-[340px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none overflow-y-auto">
         <div className="px-3 py-2.5 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Activity className="w-4 h-4 text-blue-600" /> Environmental data</h2>
           <p className="text-[10px] text-gray-500 mt-0.5">
@@ -408,7 +408,7 @@ export default function EnvironmentalData() {
         )}
       </aside>
 
-      <section className="flex-1 min-w-0 flex flex-col">
+      <section className="flex-1 min-w-0 min-h-[72vh] lg:min-h-0 flex flex-col flex-shrink-0 lg:flex-shrink">
         <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-3 flex-wrap">
           <StatCard icon={<Wind className="w-5 h-5" />} title="Wind" value={`${wind.speed.toFixed(1)} m/s`} trend={`${formatBearing(wind.dirFrom)} · ${wind.origin}`} />
           <StatCard icon={<Navigation className="w-5 h-5" />} title="Current" value={`${(current.speed * 1.944).toFixed(2)} kn`} trend={`toward ${formatBearing(current.dirTo)} · ${current.origin}`} />

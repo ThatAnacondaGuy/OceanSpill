@@ -3,6 +3,7 @@ import {
   Bell, HelpCircle, LogOut, Search, Satellite, Home, AlertTriangle, FileText, Anchor,
   Database, Activity, ChevronDown, Map as MapIcon, Megaphone, CheckSquare, Shield, Archive,
   Settings, Clock, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship, Waves,
+  Menu, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import { StoreProvider, useStore, fmt } from './store/store';
 import Dashboard from './Dashboard';
@@ -37,6 +38,16 @@ const NAV: { label: string; icon: ReactNode }[] = [
   { label: 'System Admin', icon: <Settings className="w-4 h-4" /> },
 ];
 
+/** Sidebar sections, in workflow order. */
+const NAV_GROUPS: { title: string; items: string[] }[] = [
+  { title: 'Operations', items: ['Dashboard', 'Spill Incidents', 'Investigation', 'Vessel Analysis'] },
+  { title: 'Environment', items: ['Environmental Data', 'Satellite Tasking', 'NCSCM Ecological'] },
+  { title: 'Response', items: ['SACHET / SAMUDRA', 'Workflow', 'Offender Registry'] },
+  { title: 'Records', items: ['Reports', 'Data Management', 'Case Archive', 'System Admin'] },
+];
+
+const NAV_COLLAPSED_KEY = 'oceanspill.navCollapsed';
+
 /** Pages a role is permitted to open. Anything else is hidden from the nav entirely. */
 const ROLE_ACCESS: Record<string, string[] | 'all'> = {
   'NTRO Admin': 'all',
@@ -56,7 +67,20 @@ function Shell() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileSearch, setMobileSearch] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(() => {
+    const saved = localStorage.getItem(NAV_COLLAPSED_KEY);
+    return saved === null ? window.innerWidth < 1536 : saved === '1';
+  });
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const toggleCollapsed = () => {
+    setNavCollapsed((c) => {
+      localStorage.setItem(NAV_COLLAPSED_KEY, c ? '0' : '1');
+      return !c;
+    });
+  };
 
   const allowed = useMemo(() => {
     const a = ROLE_ACCESS[currentUser.role];
@@ -100,19 +124,26 @@ function Shell() {
 
   return (
     <div className="h-screen flex flex-col bg-[#f0f4f8] overflow-hidden">
-      <header className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between flex-shrink-0 gap-4">
-        <div className="flex items-center gap-3 cursor-pointer flex-shrink-0" onClick={() => navigate({ tab: 'Dashboard' })}>
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-full w-10 h-10 flex items-center justify-center text-white shadow-sm">
+      <header className="relative bg-white border-b border-gray-200 px-3 sm:px-4 h-14 flex items-center gap-2 sm:gap-4 flex-shrink-0 z-30">
+        <button onClick={() => setNavOpen(true)} aria-label="Open navigation" className="lg:hidden p-1.5 -ml-1 rounded text-gray-700 hover:bg-gray-100">
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-2.5 cursor-pointer flex-shrink-0 min-w-0" onClick={() => navigate({ tab: 'Dashboard' })}>
+          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-full w-9 h-9 flex items-center justify-center text-white shadow-sm flex-shrink-0">
             <Waves className="w-5 h-5" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">OceanSpill</h1>
-            <p className="text-[10px] text-gray-500 font-medium leading-tight">Forensic Oil Spill Detection &amp; Vessel Attribution</p>
-            <p className="text-[9px] text-gray-400 leading-tight">SIH PS 26143 prototype · real Indian cases</p>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">OceanSpill</h1>
+            <p className="hidden md:block text-[10px] text-gray-500 font-medium leading-tight truncate">Forensic Oil Spill Detection &amp; Vessel Attribution</p>
+            <p className="hidden xl:block text-[9px] text-gray-400 leading-tight">SIH PS 26143 prototype · real Indian cases</p>
           </div>
         </div>
 
-        <div className="flex-1 max-w-md relative" ref={searchRef}>
+        <div
+          ref={searchRef}
+          className={`${mobileSearch ? 'absolute left-0 right-0 top-full block bg-white border-b border-gray-200 p-2 shadow-md' : 'hidden'} lg:static lg:block lg:p-0 lg:border-0 lg:shadow-none lg:bg-transparent flex-1 max-w-md lg:relative`}
+        >
+          <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
             value={search}
@@ -126,7 +157,7 @@ function Shell() {
               {results.map((r, i) => (
                 <button
                   key={i}
-                  onClick={() => { r.go(); setSearchOpen(false); setSearch(''); }}
+                  onClick={() => { r.go(); setSearchOpen(false); setSearch(''); setMobileSearch(false); }}
                   className="w-full text-left px-3 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-0 flex items-center gap-2.5"
                 >
                   {r.kind === 'Case' ? <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /> : <Ship className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
@@ -143,9 +174,13 @@ function Shell() {
               No cases or vessels match “{search}”.
             </div>
           )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0 ml-auto">
+          <button onClick={() => setMobileSearch((o) => !o)} aria-label="Search" className="lg:hidden p-1.5 rounded text-gray-600 hover:bg-gray-100">
+            {mobileSearch ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+          </button>
           <div
             title={`Case data generated ${fmt.utc(new Date(world.generatedAt).getTime())}`}
             className="hidden xl:flex flex-col items-end leading-tight"
@@ -154,7 +189,7 @@ function Shell() {
               RETROSPECTIVE REPLAY · {world.cases.length} REAL CASES
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-gray-700 bg-gray-50 px-2.5 py-1.5 rounded border border-gray-200">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs font-mono font-semibold text-gray-700 bg-gray-50 px-2.5 py-1.5 rounded border border-gray-200 whitespace-nowrap">
             <Clock className="w-3 h-3" />
             {fmt.utc(now)}
           </div>
@@ -169,7 +204,7 @@ function Shell() {
               )}
             </button>
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+              <div className="absolute -right-24 sm:right-0 top-full mt-2 w-[calc(100vw-24px)] max-w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
                 <div className="px-3 py-2 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
                   <span className="text-xs font-bold text-gray-800">Recent system activity</span>
                   <button onClick={() => setNotifOpen(false)}><X className="w-3.5 h-3.5 text-gray-400" /></button>
@@ -197,23 +232,23 @@ function Shell() {
             )}
           </div>
 
-          <button onClick={() => setHelpOpen(true)} className="flex items-center gap-1 text-gray-600 hover:text-blue-600">
-            <HelpCircle className="w-5 h-5" /><span className="text-xs font-medium">Help</span>
+          <button onClick={() => setHelpOpen(true)} aria-label="Help" className="flex items-center gap-1 p-1 text-gray-600 hover:text-blue-600">
+            <HelpCircle className="w-5 h-5" /><span className="hidden md:inline text-xs font-medium">Help</span>
           </button>
 
           <div className="relative">
             <button
               onClick={() => { setUserMenu((o) => !o); setNotifOpen(false); }}
-              className="flex items-center gap-2 hover:bg-gray-50 px-2 py-1 rounded border border-transparent hover:border-gray-200"
+              className="flex items-center gap-2 hover:bg-gray-50 px-1 sm:px-2 py-1 rounded border border-transparent hover:border-gray-200"
             >
               <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
                 <UserIcon className="w-4 h-4" />
               </div>
-              <div className="text-left">
+              <div className="hidden md:block text-left">
                 <div className="text-xs font-bold text-gray-800 leading-tight">{currentUser.name}</div>
                 <div className="text-[9px] text-gray-500 leading-tight">{currentUser.role}</div>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+              <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-gray-500" />
             </button>
             {userMenu && (
               <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
@@ -253,45 +288,80 @@ function Shell() {
         </div>
       </header>
 
-      <nav className="bg-[#0b1c3c] text-white px-2 overflow-x-auto flex-shrink-0">
-        <ul className="flex items-center gap-0.5 text-xs font-medium whitespace-nowrap">
-          {NAV.filter((n) => allowed.includes(n.label)).map((n) => (
-            <li key={n.label}>
-              <button
-                onClick={() => navigate({ tab: n.label })}
-                aria-current={activeTab === n.label ? 'page' : undefined}
-                className={`flex items-center gap-1.5 px-3 py-2.5 border-b-2 transition-colors ${
-                  activeTab === n.label
-                    ? 'bg-[#153468] border-blue-400 text-white'
-                    : 'border-transparent text-gray-300 hover:text-white hover:bg-[#153468]/60'
-                }`}
-              >
-                {n.icon}
-                <span>{n.label}</span>
-                {n.label === 'Spill Incidents' && openCases > 0 && (
-                  <span className="bg-amber-500 text-[9px] font-bold px-1 rounded text-white ml-0.5">{openCases}</span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <div className="flex-1 min-h-0 flex">
+        {navOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setNavOpen(false)} />}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:transition-[width] ${
+            navOpen ? 'translate-x-0' : '-translate-x-full'
+          } ${navCollapsed ? 'lg:w-[60px]' : 'lg:w-[212px]'} bg-[#0b1c3c] text-white flex flex-col flex-shrink-0`}
+        >
+          <div className="lg:hidden h-14 px-3 flex items-center justify-between border-b border-white/10 flex-shrink-0">
+            <span className="flex items-center gap-2 font-bold"><Waves className="w-5 h-5 text-blue-300" /> OceanSpill</span>
+            <button onClick={() => setNavOpen(false)} aria-label="Close navigation" className="p-1.5 rounded hover:bg-white/10"><X className="w-5 h-5" /></button>
+          </div>
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2">
+            {NAV_GROUPS.map((g) => {
+              const items = NAV.filter((n) => g.items.includes(n.label) && allowed.includes(n.label));
+              if (!items.length) return null;
+              return (
+                <div key={g.title} className="mb-2">
+                  <p className={`px-4 pt-2 pb-1 text-[9.5px] font-bold uppercase tracking-wider text-blue-200/60 ${navCollapsed ? 'lg:hidden' : ''}`}>{g.title}</p>
+                  {navCollapsed && <div className="hidden lg:block mx-3 my-1.5 border-t border-white/10" />}
+                  <ul className="px-2 space-y-0.5">
+                    {items.map((n) => {
+                      const current = activeTab === n.label;
+                      return (
+                        <li key={n.label}>
+                          <button
+                            onClick={() => { navigate({ tab: n.label }); setNavOpen(false); }}
+                            aria-current={current ? 'page' : undefined}
+                            title={n.label}
+                            className={`relative w-full flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium transition-colors ${
+                              navCollapsed ? 'lg:justify-center lg:px-0' : ''
+                            } ${current ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:text-white hover:bg-white/10'}`}
+                          >
+                            <span className="flex-shrink-0">{n.icon}</span>
+                            <span className={`truncate ${navCollapsed ? 'lg:hidden' : ''}`}>{n.label}</span>
+                            {n.label === 'Spill Incidents' && openCases > 0 && (
+                              <span className={`bg-amber-500 text-[9px] font-bold px-1.5 rounded text-white ml-auto ${
+                                navCollapsed ? 'lg:absolute lg:top-0.5 lg:right-1 lg:ml-0 lg:px-1' : ''
+                              }`}>{openCases}</span>
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+          </nav>
+          <button
+            onClick={toggleCollapsed}
+            aria-label={navCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={navCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden lg:flex items-center gap-2 px-4 py-2.5 border-t border-white/10 text-[11px] text-slate-300 hover:text-white hover:bg-white/10 flex-shrink-0"
+          >
+            {navCollapsed ? <ChevronsRight className="w-4 h-4 mx-auto" /> : <><ChevronsLeft className="w-4 h-4" /> Collapse</>}
+          </button>
+        </aside>
 
-      <div className="flex-1 min-h-0 flex flex-col">
-        {activeTab === 'Dashboard' && <Dashboard />}
-        {activeTab === 'Spill Incidents' && <SpillIncidents />}
-        {activeTab === 'Investigation' && <Investigation />}
-        {activeTab === 'Vessel Analysis' && <VesselAnalysis />}
-        {activeTab === 'Environmental Data' && <EnvironmentalData />}
-        {activeTab === 'Satellite Tasking' && <SatelliteTasking />}
-        {activeTab === 'NCSCM Ecological' && <NcscmEcological />}
-        {activeTab === 'SACHET / SAMUDRA' && <SachetSamudra />}
-        {activeTab === 'Workflow' && <Workflow />}
-        {activeTab === 'Offender Registry' && <OffenderRegistry />}
-        {activeTab === 'Reports' && <AnalyticsReporting />}
-        {activeTab === 'Data Management' && <ImacIntegration />}
-        {activeTab === 'Case Archive' && <CaseArchive />}
-        {activeTab === 'System Admin' && <SystemAdministration />}
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+          {activeTab === 'Dashboard' && <Dashboard />}
+          {activeTab === 'Spill Incidents' && <SpillIncidents />}
+          {activeTab === 'Investigation' && <Investigation />}
+          {activeTab === 'Vessel Analysis' && <VesselAnalysis />}
+          {activeTab === 'Environmental Data' && <EnvironmentalData />}
+          {activeTab === 'Satellite Tasking' && <SatelliteTasking />}
+          {activeTab === 'NCSCM Ecological' && <NcscmEcological />}
+          {activeTab === 'SACHET / SAMUDRA' && <SachetSamudra />}
+          {activeTab === 'Workflow' && <Workflow />}
+          {activeTab === 'Offender Registry' && <OffenderRegistry />}
+          {activeTab === 'Reports' && <AnalyticsReporting />}
+          {activeTab === 'Data Management' && <ImacIntegration />}
+          {activeTab === 'Case Archive' && <CaseArchive />}
+          {activeTab === 'System Admin' && <SystemAdministration />}
+        </div>
       </div>
 
       <ToastHost />
@@ -313,7 +383,7 @@ function ToastHost() {
     warn: 'border-l-amber-500', error: 'border-l-red-500',
   };
   return (
-    <div className="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 w-80 pointer-events-none">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto z-[60] flex flex-col gap-2 sm:w-80 pointer-events-none">
       {toasts.map((t) => (
         <div key={t.id} className={`bg-white rounded shadow-lg border border-gray-200 border-l-4 ${tones[t.kind]} px-3 py-2.5 flex gap-2.5 items-start pointer-events-auto animate-[slideIn_0.2s_ease-out]`}>
           <div className="flex-shrink-0 mt-0.5">{icons[t.kind]}</div>

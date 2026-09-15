@@ -103,11 +103,11 @@ export default function NcscmEcological() {
       if (layers.slick) {
         polygons.push({
           id: 'slick', rings: [activeCase.detection.polygon.ring, ...(activeCase.detection.polygon.fragments ?? [])],
-          fill: 'rgba(15,23,42,0.75)', stroke: '#0f172a', strokeWidth: 1.4, z: 5,
+          fill: 'rgba(15,23,42,0.75)', stroke: '#0f172a', strokeWidth: 1.4, z: 5, effect: 'oil',
         });
       }
       if (layers.forecast) {
-        paths.push({ id: 'fc', points: analysis.forecast.path, stroke: '#06b6d4', strokeWidth: 2.4, arrow: true, z: 4 });
+        paths.push({ id: 'fc', points: analysis.forecast.path, stroke: '#06b6d4', strokeWidth: 2.4, arrow: true, flow: true, z: 4 });
         for (const h of analysis.forecast.horizons) {
           circles.push({
             id: `h-${h.hours}`, centre: h.centroid, radiusKm: Math.max(h.spreadKm, 1.5),
@@ -171,8 +171,8 @@ export default function NcscmEcological() {
   const selected = ECOLOGICAL_AREAS.find((a) => a.id === selectedArea);
 
   return (
-    <main className="flex-1 min-h-0 flex overflow-hidden">
-      <aside className="w-[340px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+      <aside className="w-full lg:w-[290px] xl:w-[340px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Leaf className="w-4 h-4 text-emerald-600" /> Ecological sensitivity</h2>
           <p className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1.5">{ECOLOGICAL_AREAS.length} sites · approximate outlines <ProvenanceBadge p="modelled" /></p>
@@ -284,7 +284,7 @@ export default function NcscmEcological() {
         )}
       </aside>
 
-      <section className="flex-1 min-w-0 flex flex-col">
+      <section className="flex-1 min-w-0 min-h-[72vh] lg:min-h-0 flex flex-col flex-shrink-0 lg:flex-shrink">
         <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-3 flex-wrap">
           <StatCard icon={<Shield className="w-4 h-4" />} title="Critical sites" value={ECOLOGICAL_AREAS.filter((a) => a.sensitivity >= 5).length}
             trend="sensitivity 5 of 5" accent="red" />

@@ -101,8 +101,8 @@ export default function ImacIntegration() {
   const payloadText = payloadCase ? buildPayload(payloadCase, world, getAnalysis(payloadCase.id), now) : '';
 
   return (
-    <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden">
+      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0 flex-wrap gap-y-2">
         <div className="flex items-center gap-2.5">
           <div className="bg-blue-600 text-white p-1.5 rounded"><Database className="w-4 h-4" /></div>
           <div>
@@ -118,8 +118,8 @@ export default function ImacIntegration() {
       ]} />
 
       {tab === 'imac' && (
-        <div className="flex-1 min-h-0 flex flex-col p-3 gap-3">
-          <div className="grid grid-cols-4 gap-3 flex-shrink-0">
+        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col p-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
             <StatCard icon={<Radio className="w-5 h-5" />} title="Payloads generated" value={generated.length} trend="this session" accent="green" />
             <StatCard icon={<Send className="w-5 h-5" />} title="Not yet generated" value={pending.length} trend="open cases" accent={pending.length > 0 ? 'amber' : 'blue'} />
             <StatCard icon={<CheckCircle2 className="w-5 h-5" />} title="Delivered" value={0} trend="IMAC ingest not integrated" />
@@ -131,8 +131,8 @@ export default function ImacIntegration() {
             reviewed and handed to the Navy integration team. Once access exists, only the transport needs adding.
           </InfoBanner>
 
-          <div className="flex-1 min-h-0 flex gap-3">
-            <div className="flex-1 min-w-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
+          <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3">
+            <div className="flex-1 min-w-0 h-[70vh] lg:h-auto bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
                 <span className="text-[11px] font-bold text-gray-700">Generated payloads</span>
               </div>
@@ -144,7 +144,7 @@ export default function ImacIntegration() {
               </div>
             </div>
 
-            <div className="w-[320px] flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
+            <div className="w-full lg:w-[280px] xl:w-[320px] max-h-[70vh] lg:max-h-none flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
               <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
                 <span className="text-[11px] font-bold text-gray-700">Open cases</span>
               </div>
@@ -179,8 +179,8 @@ export default function ImacIntegration() {
       )}
 
       {tab === 'sources' && (
-        <div className="flex-1 min-h-0 flex flex-col p-3 gap-3">
-          <div className="grid grid-cols-4 gap-3 flex-shrink-0">
+        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col p-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
             <StatCard icon={<Server className="w-5 h-5" />} title="Online" value={health.online} trend={`of ${world.dataSources.length} listed`} accent="green" />
             <StatCard icon={<CheckCircle2 className="w-5 h-5" />} title="Interim fallback" value={health.fallback} trend="working stand-ins for pending sources" />
             <StatCard icon={<AlertTriangle className="w-5 h-5" />} title="Not configured" value={health.notConfigured} trend="adapter ready, credentials missing" accent="amber" />
@@ -194,7 +194,7 @@ export default function ImacIntegration() {
             <span className="text-[11px] text-gray-500 ml-auto">{sources.length} of {world.dataSources.length} shown</span>
           </div>
 
-          <div className="flex-1 min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="h-[70vh] flex-none lg:h-auto lg:flex-1 lg:min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
             <DataTable columns={sourceColumns} rows={sources} rowKey={(d) => d.id} dense
               initialSort={{ key: 'status', dir: 'asc' }} />
           </div>

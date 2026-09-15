@@ -217,8 +217,8 @@ export default function CaseArchive() {
   }), [world.cases, world.audit, world.historical, revision]);
 
   return (
-    <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden">
+      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0 flex-wrap gap-y-2">
         <div className="flex items-center gap-2.5">
           <div className="bg-slate-700 text-white p-1.5 rounded"><Archive className="w-4 h-4" /></div>
           <div>
@@ -229,7 +229,7 @@ export default function CaseArchive() {
         <Badge tone="slate"><Lock className="w-2.5 h-2.5" /> Immutable record</Badge>
       </div>
 
-      <div className="bg-white border-b border-gray-200 px-3 py-2 grid grid-cols-4 gap-3 flex-shrink-0">
+      <div className="bg-white border-b border-gray-200 px-3 py-2 grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
         <StatCard icon={<Archive className="w-5 h-5" />} title="Analysed cases" value={stats.total} trend="real incidents with artifacts" />
         <StatCard icon={<BookOpen className="w-5 h-5" />} title="Historical register" value={stats.historical} trend="Indian incidents since 1970" onClick={() => setTab('historical')} accent="amber" />
         <StatCard icon={<Scale className="w-5 h-5" />} title="With legal outcome" value={stats.legal} trend="published court or regulator action" accent="red" />
@@ -243,8 +243,8 @@ export default function CaseArchive() {
       ]} />
 
       {tab === 'archive' && (
-        <div className="flex-1 min-h-0 flex gap-3 p-3">
-          <div className="flex-1 min-w-0 flex flex-col gap-2">
+        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3 p-3">
+          <div className="flex-1 min-w-0 flex flex-col gap-2 h-[70vh] lg:h-auto">
             <div className="flex gap-2">
               <SearchInput value={query} onChange={setQuery} placeholder="Case ID, location, analyst…" className="flex-1" />
               <Select value={statusFilter} onChange={setStatusFilter}
@@ -260,7 +260,7 @@ export default function CaseArchive() {
             </div>
           </div>
 
-          <div className="w-[360px] flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
+          <div className="w-full lg:w-[320px] xl:w-[360px] h-[80vh] lg:h-auto flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
             {!active || !activeAnalysis ? (
               <EmptyState icon={<FileText className="w-10 h-10" />} title="No case selected"
                 body="Select an archived case to view its chain-of-custody record." />
@@ -359,7 +359,7 @@ export default function CaseArchive() {
       {tab === 'historical' && <HistoricalRegister />}
 
       {tab === 'audit' && (
-        <div className="flex-1 min-h-0 flex flex-col p-3 gap-2">
+        <div className="h-[85vh] flex-none lg:h-auto lg:flex-1 lg:min-h-0 flex flex-col p-3 gap-2">
           <div className="flex gap-2">
             <SearchInput value={auditQuery} onChange={setAuditQuery} placeholder="Action, target, actor or detail…" className="flex-1" />
             <Select value={auditCategory} onChange={setAuditCategory}
@@ -429,8 +429,8 @@ function HistoricalRegister() {
   const active = world.historical.find((h) => h.id === selected) ?? null;
 
   return (
-    <div className="flex-1 min-h-0 flex gap-3 p-3">
-      <div className="flex-1 min-w-0 flex flex-col gap-2">
+    <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3 p-3">
+      <div className="flex-1 min-w-0 flex flex-col gap-2 h-[70vh] lg:h-auto">
         <div className="flex gap-2">
           <SearchInput value={query} onChange={setQuery} placeholder="Vessel, location, oil, cause…" className="flex-1" />
           <Select value={decade} onChange={setDecade} options={[{ value: 'all', label: 'All decades' }, ...decades.map((d) => ({ value: d, label: d }))]} />
@@ -442,14 +442,14 @@ function HistoricalRegister() {
         </div>
         <InfoBanner tone="amber">{world.index.historical.note}</InfoBanner>
       </div>
-      <div className="w-[400px] flex-shrink-0 flex flex-col gap-3">
+      <div className="w-full lg:w-[340px] xl:w-[400px] flex-shrink-0 flex flex-col gap-3">
         <div className="h-[300px] bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <MapView initialCentre={{ lat: 16, lon: 80 }} initialZoom={3.6} markers={markers}
             onMarkerClick={(m) => setSelected(m.id)}
             fitTo={active?.lat != null && active.lon != null ? [{ lat: active.lat - 1.5, lon: active.lon - 1.5 }, { lat: active.lat + 1.5, lon: active.lon + 1.5 }] : undefined}
             fitKey={selected ?? 'all'} />
         </div>
-        <div className="flex-1 min-h-0 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto">
+        <div className="max-h-[60vh] lg:max-h-none lg:flex-1 lg:min-h-0 bg-white rounded-lg shadow-sm border border-gray-200 overflow-y-auto">
           {!active ? (
             <EmptyState icon={<BookOpen className="w-10 h-10" />} title="Select an incident" body="Every entry cites its public source." />
           ) : (

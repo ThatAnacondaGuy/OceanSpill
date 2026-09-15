@@ -146,8 +146,8 @@ export default function SpillIncidents() {
   const clearAll = () => { setQuery(''); setRegion('all'); setStatus('all'); setTier('all'); setSource('all'); setYear('all'); };
 
   return (
-    <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden">
+      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0 flex-wrap gap-y-2">
         <div className="flex items-center gap-2.5">
           <div className="bg-amber-500 text-white p-1.5 rounded"><AlertTriangle className="w-4 h-4" /></div>
           <div>
@@ -155,7 +155,7 @@ export default function SpillIncidents() {
             <p className="text-[11px] text-gray-500">{filtered.length} of {world.cases.length} real cases · {world.historical.length} incidents in the historical register</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded border border-gray-300 overflow-hidden">
             <button onClick={() => setView('table')} className={`px-2.5 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 ${view === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}><List className="w-3.5 h-3.5" /> Table</button>
             <button onClick={() => setView('map')} className={`px-2.5 py-1.5 text-[11px] font-semibold flex items-center gap-1.5 border-l border-gray-300 ${view === 'map' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}><MapIcon className="w-3.5 h-3.5" /> Map</button>
@@ -185,8 +185,8 @@ export default function SpillIncidents() {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 flex gap-3 p-3">
-        <div className="flex-1 min-w-0 flex flex-col gap-3">
+      <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3 p-3">
+        <div className="flex-1 min-w-0 flex flex-col gap-3 h-[75vh] lg:h-auto">
           <Panel className="flex-1" bodyClass="min-h-0">
             {view === 'table' ? (
               <DataTable columns={columns} rows={filtered} rowKey={(c) => c.id} dense onRowClick={(c) => navigate({ tab: 'Investigation', caseId: c.id })}
@@ -200,7 +200,7 @@ export default function SpillIncidents() {
           </Panel>
         </div>
 
-        <div className="w-[280px] flex-shrink-0 flex flex-col gap-3">
+        <div className="w-full lg:w-[260px] xl:w-[280px] flex-shrink-0 flex flex-col gap-3">
           <Panel title="Suggested next tasking" subtitle="Recorded incidents per planning area" dense>
             {suggestion && (
               <div className="p-3">

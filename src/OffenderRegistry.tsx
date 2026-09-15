@@ -184,8 +184,8 @@ export default function OffenderRegistry() {
   ];
 
   return (
-    <main className="flex-1 min-h-0 flex flex-col overflow-hidden bg-gray-50">
-      <div className="bg-white border-b-2 border-blue-600 px-4 py-3 flex items-center justify-between gap-4 flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden bg-gray-50">
+      <div className="bg-white border-b-2 border-blue-600 px-4 py-3 flex items-center justify-between gap-4 flex-shrink-0 flex-wrap gap-y-2">
         <div className="flex items-center gap-3">
           <div className="bg-blue-50 text-blue-700 p-2 rounded"><Shield className="w-5 h-5" /></div>
           <div>
@@ -193,8 +193,8 @@ export default function OffenderRegistry() {
             <p className="text-xs text-gray-500">Parties in Indian oil pollution incidents and their published legal outcomes</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <SearchInput value={query} onChange={setQuery} placeholder="Name, IMO, MMSI, flag, operator…" className="w-64" />
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput value={query} onChange={setQuery} placeholder="Name, IMO, MMSI, flag, operator…" className="w-full sm:w-64" />
           <Select value={kindFilter} onChange={setKindFilter}
             options={[{ value: 'all', label: 'All parties' }, ...['Vessel', 'Facility', 'Company / crew'].map((k) => ({ value: k, label: k }))]} />
           <ExportButton onExport={() => (tab === 'synthetic'
@@ -203,15 +203,15 @@ export default function OffenderRegistry() {
         </div>
       </div>
 
-      <div className="px-4 py-3 grid grid-cols-4 gap-3 flex-shrink-0">
+      <div className="px-4 py-3 grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
         <StatCard icon={<Ship className="w-5 h-5" />} title="Parties on register" value={stats.parties} trend="reported sources and legal parties" />
         <StatCard icon={<Scale className="w-5 h-5" />} title="With published action" value={stats.withAction} trend="court, NGT, police or regulator" accent="red" />
         <StatCard icon={<Building2 className="w-5 h-5" />} title="Published penalties" value={fmt.inr(stats.penalties)} trend="as reported, not recovery status" accent="amber" />
         <StatCard icon={<Flag className="w-5 h-5" />} title="Registry unverified" value={stats.unverified} trend="needs DG Shipping / Equasis" />
       </div>
 
-      <div className="flex-1 min-h-0 flex gap-3 px-4 pb-4">
-        <div className="flex-1 min-w-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
+      <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-3 px-4 pb-4">
+        <div className="flex-1 min-w-0 h-[75vh] lg:h-auto bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
           <Tabs active={tab} onChange={setTab} tabs={[
             { id: 'register', label: 'Register', count: register.length },
             { id: 'analysis', label: 'Legal outcomes' },
@@ -275,7 +275,7 @@ export default function OffenderRegistry() {
           )}
         </div>
 
-        <div className="w-[370px] flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
+        <div className="w-full lg:w-[320px] xl:w-[370px] h-[80vh] lg:h-auto flex-shrink-0 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col">
           {!selected ? (
             <EmptyState icon={<Shield className="w-10 h-10" />} title="No party selected" />
           ) : (

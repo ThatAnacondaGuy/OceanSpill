@@ -416,7 +416,7 @@ export function TimeScrubber({
 }) {
   const span = Math.max(1, max - min);
   return (
-    <div className="bg-white border-t border-gray-200 px-3 py-2 flex items-center gap-3">
+    <div className="bg-white border-t border-gray-200 px-3 py-2 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1.5">
       <div className="flex items-center gap-1">
         <button onClick={() => onChange(min)} title="Jump to start" className="p-1.5 hover:bg-gray-100 rounded text-gray-700"><SkipBack className="w-3.5 h-3.5" /></button>
         <button onClick={onPlayToggle} title={playing ? 'Pause' : 'Play'} className="p-1.5 bg-blue-600 hover:bg-blue-700 rounded text-white">
@@ -425,7 +425,7 @@ export function TimeScrubber({
         <button onClick={() => onChange(max)} title="Jump to end" className="p-1.5 hover:bg-gray-100 rounded text-gray-700"><SkipForward className="w-3.5 h-3.5" /></button>
       </div>
 
-      <div className="flex-1 relative">
+      <div className="flex-1 min-w-[140px] relative">
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 bg-gray-200 rounded pointer-events-none" />
         {marks.map((m, i) => (
           <div

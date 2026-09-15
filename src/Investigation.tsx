@@ -4,7 +4,7 @@ import {
   Send, Radio, Scale, Sliders, ChevronRight, EyeOff, Beaker, Leaf, Info, Layers, FlaskConical,
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
-import { MapView, BasemapSwitch, type BasemapStyle, type MapMarker, type MapPolygon, type MapPath, type MapCircle } from './components/MapView';
+import { MapView, BasemapSwitch, type BasemapStyle, type MapMarker, type MapPolygon, type MapPath, type MapCircle, type MapParticles } from './components/MapView';
 import {
   Tabs, Tier, StatusBadge, Badge, Button, ScoreBar, KeyValue, SearchInput, Toggle,
   InfoBanner, Modal, Field, Select, TextArea, Slider, EmptyState, TimeScrubber, usePlayback, ProvenanceBadge,
@@ -88,7 +88,7 @@ export default function Investigation() {
     if (layers.slick) {
       polygons.push({
         id: 'slick', rings: [active.detection.polygon.ring, ...(active.detection.polygon.fragments ?? [])],
-        fill: 'rgba(15,23,42,0.72)', stroke: '#f8fafc', strokeWidth: 1.6, z: 6,
+        fill: 'rgba(15,23,42,0.72)', stroke: '#f8fafc', strokeWidth: 1.6, z: 6, effect: 'oil',
       });
     }
 
@@ -110,9 +110,9 @@ export default function Investigation() {
     }
 
     if (layers.hindcast) {
-      paths.push({ id: 'hindcast', points: analysis.hindcast.path, stroke: '#f59e0b', strokeWidth: 2.6, dash: '8 4', arrow: true, z: 4 });
+      paths.push({ id: 'hindcast', points: analysis.hindcast.path, stroke: '#f59e0b', strokeWidth: 2.6, dash: '8 4', arrow: true, flow: true, z: 4 });
       markers.push({
-        id: 'origin', position: analysis.hindcast.estimatedOrigin, kind: 'origin', color: '#f59e0b', size: 9,
+        id: 'origin', position: analysis.hindcast.estimatedOrigin, kind: 'origin', color: '#f59e0b', size: 9, pulse: true,
         label: 'Hindcast origin', sublabel: fmt.utc(analysis.hindcast.estimatedTime), z: 8,
         meta: {
           'Uncertainty': `±${analysis.hindcast.uncertaintyRadiusKm.toFixed(1)} km`,
@@ -134,7 +134,7 @@ export default function Investigation() {
     }
 
     if (layers.forecast) {
-      paths.push({ id: 'forecast', points: analysis.forecast.path, stroke: '#06b6d4', strokeWidth: 2.4, arrow: true, z: 4 });
+      paths.push({ id: 'forecast', points: analysis.forecast.path, stroke: '#06b6d4', strokeWidth: 2.4, arrow: true, flow: true, z: 4 });
       for (const h of analysis.forecast.horizons) {
         circles.push({
           id: `fc-${h.hours}`, centre: h.centroid, radiusKm: Math.max(h.spreadKm, 1.5),
@@ -207,6 +207,26 @@ export default function Investigation() {
     return { markers, polygons, paths, circles };
   }, [active, analysis, shape, layers, playback.value, focusMmsi, world, replayBounds.min]);
 
+  // Replays the modelled particle clouds on the map. Display only: frames are the engine's own steps.
+  const driftParticles = useMemo<MapParticles[]>(() => {
+    if (!analysis) return [];
+    const frames = (steps: { time: number; particles: LatLon[] }[], sign: string, t0: number) => {
+      const stride = Math.max(1, Math.ceil(steps.length / 96));
+      return steps.filter((_, i) => i % stride === 0 || i === steps.length - 1).map((s) => ({
+        points: s.particles,
+        label: `${sign}${(Math.abs(s.time - t0) / 3600_000).toFixed(1)} h`,
+      }));
+    };
+    const out: MapParticles[] = [];
+    if (layers.forecast) {
+      out.push({ id: 'forecast', tone: 'oil', frames: frames(analysis.forecast.steps, 'Forecast +', analysis.forecast.steps[0]?.time ?? 0), durationMs: 10000 });
+    }
+    if (layers.hindcast) {
+      out.push({ id: 'hindcast', tone: 'hindcast', frames: frames(analysis.hindcast.steps, 'Hindcast −', analysis.hindcast.steps[0]?.time ?? 0), durationMs: 10000 });
+    }
+    return out;
+  }, [analysis, layers.forecast, layers.hindcast]);
+
   if (!active || !analysis || !shape) {
     return (
       <main className="flex-1 flex items-center justify-center">
@@ -220,9 +240,9 @@ export default function Investigation() {
   const topVessel = topScore ? world.vesselsByMmsi.get(topScore.mmsi) : null;
 
   return (
-    <main className="flex-1 min-h-0 flex overflow-hidden">
+    <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
       {/* Case rail */}
-      <aside className="w-[220px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+      <aside className="w-full lg:w-[200px] xl:w-[220px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="p-2 border-b border-gray-200">
           <SearchInput value={query} onChange={setQuery} placeholder="Filter cases…" />
         </div>
@@ -252,18 +272,18 @@ export default function Investigation() {
       </aside>
 
       {/* Map */}
-      <section className="flex-1 min-w-0 flex flex-col">
-        <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between gap-3 flex-shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="font-bold text-sm text-gray-900">{active.title}</span>
-            <span className="text-[10px] text-gray-400 font-mono">{active.id}</span>
-            <Tier tier={active.tier} />
-            <StatusBadge status={active.status} />
-            <span className="text-[11px] text-gray-500 truncate">{active.subRegion}</span>
+      <section className="flex-1 min-w-0 min-h-[72vh] lg:min-h-0 flex flex-col flex-shrink-0 lg:flex-shrink">
+        <div className="bg-white border-b border-gray-200 px-3 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 flex-shrink-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="font-bold text-sm text-gray-900 truncate" title={active.title}>{active.title}</span>
+            <span className="hidden 2xl:inline text-[10px] text-gray-400 font-mono flex-shrink-0">{active.id}</span>
+            <span className="flex-shrink-0"><Tier tier={active.tier} /></span>
+            <span className="hidden sm:inline flex-shrink-0"><StatusBadge status={active.status} /></span>
+            <span className="hidden 2xl:inline text-[11px] text-gray-500 truncate">{active.subRegion}</span>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Button size="sm" onClick={() => setWeightsOpen(true)} icon={<Sliders className="w-3 h-3" />}>Scoring weights</Button>
-            <Button size="sm" onClick={() => setLookalikeOpen(true)} icon={<EyeOff className="w-3 h-3" />}>Reclassify</Button>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <Button size="sm" title="Scoring weights" onClick={() => setWeightsOpen(true)} icon={<Sliders className="w-3 h-3" />}><span className="hidden 2xl:inline">Scoring weights</span></Button>
+            <Button size="sm" title="Reclassify" onClick={() => setLookalikeOpen(true)} icon={<EyeOff className="w-3 h-3" />}><span className="hidden 2xl:inline">Reclassify</span></Button>
             <Button size="sm" variant="primary" onClick={() => setDispatchOpen(true)} icon={<Send className="w-3 h-3" />}>Actions</Button>
           </div>
         </div>
@@ -275,6 +295,7 @@ export default function Investigation() {
             polygons={mapLayers.polygons}
             paths={mapLayers.paths}
             circles={mapLayers.circles}
+            particles={driftParticles}
             fitTo={[...active.detection.polygon.ring, analysis.hindcast.estimatedOrigin, ...analysis.forecast.horizons.map((h) => h.centroid)]}
             fitKey={active.id}
             onMarkerClick={(m) => {
@@ -318,9 +339,10 @@ export default function Investigation() {
             legend={
               <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2.5 text-[10px] shadow-lg">
                 <h4 className="font-bold mb-1.5 text-gray-700 uppercase tracking-wide">Analysis legend</h4>
-                <LegendLine color="#f8fafc" fill="rgba(15,23,42,0.72)" label={active.detection.extentReported ? 'Reported slick extent' : 'Reported location'} swatch />
+                <LegendLine color="#8b6b9e" fill="radial-gradient(circle, #1a130d 40%, #5a3d22 70%, #9c8fb8 100%)" label={active.detection.extentReported ? 'Reported slick extent' : 'Reported location'} swatch />
                 <LegendLine color="#f59e0b" label="Hindcast (backward)" dash />
                 <LegendLine color="#06b6d4" label="Forecast (forward)" />
+                <LegendLine color="#6b4a2b" fill="radial-gradient(circle, #1c140e 35%, #6b4a2b 65%, #a78bca 90%)" label="Modelled oil drift (animated)" swatch />
                 <LegendLine color="#f43f5e" label="Leading suspect track" />
                 <LegendLine color="#dc2626" label="AIS gap (inferred)" dash />
                 <LegendLine color="#64748b" label="Other candidate traffic" />
@@ -345,7 +367,7 @@ export default function Investigation() {
       </section>
 
       {/* Inspector */}
-      <aside className="w-[390px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
+      <aside className="w-full lg:w-[330px] xl:w-[390px] bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col flex-shrink-0 h-[82vh] lg:h-auto">
         <Tabs
           active={tab} onChange={setTab}
           tabs={[
@@ -1144,7 +1166,7 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
     <Modal open={open} onClose={onClose} title={`Case actions — ${caseId}`} subtitle="Every action is timestamped into the audit trail."
       footer={<Button onClick={onClose}>Close</Button>}>
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Case status">
             <Select value={status} onChange={(v) => setStatus(v as any)}
               options={['New', 'Under Analysis', 'Attributed', 'Verification Dispatched', 'Verified', 'Enforcement', 'Closed'].map((s) => ({ value: s, label: s }))} />

@@ -244,8 +244,8 @@ export default function SachetSamudra() {
   const drafts = world.alerts.filter((a) => a.status === 'Draft');
 
   return (
-    <main className="flex-1 min-h-0 flex overflow-hidden">
-      <aside className="w-[380px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+      <aside className="w-full lg:w-[320px] xl:w-[380px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Megaphone className="w-4 h-4 text-amber-600" /> SACHET / SAMUDRA</h2>
           <p className="text-[10px] text-gray-500 mt-0.5">Draft CAP alerts and field observation reports</p>
@@ -371,7 +371,7 @@ export default function SachetSamudra() {
         )}
       </aside>
 
-      <section className="flex-1 min-w-0 flex flex-col">
+      <section className="flex-1 min-w-0 min-h-[72vh] lg:min-h-0 flex flex-col flex-shrink-0 lg:flex-shrink">
         <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-3 flex-wrap">
           <StatCard icon={<ShieldAlert className="w-4 h-4" />} title="Official restrictions" value={official.length} trend="from case records" accent="blue" />
           <StatCard icon={<Megaphone className="w-4 h-4" />} title="Drafts" value={drafts.length} trend="this session, not sent" accent="amber" />
@@ -488,7 +488,7 @@ function ReportModal({ open, onClose }: { open: boolean; onClose: () => void }) 
         onClose();
       }}>Log report</Button></>}>
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Reported by"><TextInput value={reporter} onChange={setReporter} placeholder="Name, boat or station" /></Field>
           <Field label="District">
             <Select value={district} onChange={setDistrict}

@@ -117,8 +117,8 @@ export default function SystemAdministration() {
   const meanRuntime = runtimes.filter((r) => r.ms != null).reduce((s, r, _, arr) => s + (r.ms ?? 0) / arr.length, 0);
 
   return (
-    <main className="flex-1 min-h-0 flex overflow-hidden">
-      <aside className="w-[250px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+      <aside className="w-full lg:w-[210px] xl:w-[250px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2.5 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Settings className="w-4 h-4 text-blue-600" /> System administration</h2>
           <p className="text-[10px] text-gray-500 mt-0.5">Users, sources, infrastructure</p>
@@ -145,7 +145,7 @@ export default function SystemAdministration() {
         </div>
       </aside>
 
-      <section className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <section className="flex-1 min-w-0 min-h-[72vh] lg:min-h-0 flex flex-col flex-shrink-0 lg:flex-shrink overflow-hidden">
         {restricted && (
           <div className="px-3 pt-3">
             <InfoBanner tone="amber" icon={<Lock className="w-3.5 h-3.5" />}>
@@ -161,7 +161,7 @@ export default function SystemAdministration() {
               These are <b>demo accounts</b> for showing role-based access. There is no authentication in the prototype;
               a deployment would federate sign-in through the agency identity provider (e.g. Keycloak / Parichay).
             </InfoBanner>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <StatCard icon={<Users className="w-5 h-5" />} title="Total users" value={world.users.length} trend={`${world.users.filter((u) => u.status === 'Active').length} active`} />
               <StatCard icon={<Shield className="w-5 h-5" />} title="MFA enrolled" value={world.users.filter((u) => u.mfa).length}
                 trend={`${world.users.filter((u) => !u.mfa).length} without MFA`} accent={world.users.some((u) => !u.mfa) ? 'amber' : 'green'} />
@@ -271,7 +271,7 @@ export default function SystemAdministration() {
 
         {section === 'infra' && (
           <div className="flex-1 overflow-auto p-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                 <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Prototype (running now) <ProvenanceBadge p="real" /></h4>
                 <KeyValue cols={1} items={[
@@ -386,7 +386,7 @@ export default function SystemAdministration() {
 
         {section === 'health' && (
           <div className="flex-1 overflow-auto p-3 space-y-3">
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <StatCard icon={<Activity className="w-5 h-5" />} title="Sources working"
                 value={`${world.dataSources.filter((d) => d.status === 'Online' || d.status === 'Interim fallback').length}/${world.dataSources.length}`} trend="online or interim fallback" accent="green" />
               <StatCard icon={<Database className="w-5 h-5" />} title="Cases loaded" value={world.cases.length} trend={`${world.index.failures.length} build failures`} accent={world.index.failures.length ? 'amber' : 'green'} />
@@ -452,11 +452,11 @@ function AddUserModal({ open, onClose, onAdd }: { open: boolean; onClose: () => 
     <Modal open={open} onClose={onClose} title="Add user" subtitle="The account is created in a pending state until first sign-in."
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!name.trim() || !email.trim()} onClick={submit}>Create account</Button></>}>
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Full name"><TextInput value={name} onChange={setName} placeholder="e.g. Cdr. A. Kulkarni" /></Field>
           <Field label="Official email"><TextInput value={email} onChange={setEmail} placeholder="name@agency.gov.in" /></Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Role">
             <Select value={role} onChange={(v) => setRole(v as SystemUser['role'])}
               options={['NTRO Admin', 'NTRO Reviewer', 'Analyst', 'Regulator', 'Liaison', 'Data Operator', 'Viewer'].map((r) => ({ value: r, label: r }))} />

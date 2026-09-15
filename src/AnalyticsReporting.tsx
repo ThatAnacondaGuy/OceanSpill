@@ -193,8 +193,8 @@ export default function AnalyticsReporting() {
   const decades = useMemo(() => byDecade.map((d) => d.label.replace('s', '')), [byDecade]);
 
   return (
-    <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0">
+    <main className="flex-1 min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden">
+      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between gap-4 flex-shrink-0 flex-wrap gap-y-2">
         <div className="flex items-center gap-2.5">
           <div className="bg-blue-600 text-white p-1.5 rounded"><BarChart2 className="w-4 h-4" /></div>
           <div>
@@ -202,7 +202,7 @@ export default function AnalyticsReporting() {
             <p className="text-[11px] text-gray-500">Computed from the historical register and the analysed cases; no invented metrics</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={period} onChange={setPeriod}
             options={[{ value: 'all', label: 'All years' }, ...decades.slice().reverse().map((d) => ({ value: d, label: `${d}s` }))]} />
           <Button size="sm" variant="primary" onClick={() => setReportOpen(true)} icon={<FileText className="w-3 h-3" />}>Build report</Button>
@@ -217,7 +217,7 @@ export default function AnalyticsReporting() {
 
       {tab === 'overview' && (
         <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
             <StatCard icon={<Activity className="w-5 h-5" />} title="Recorded incidents" value={stats.incidents} trend={period === 'all' ? 'register since 1970' : `in the ${period}s`} />
             <StatCard icon={<AlertTriangle className="w-5 h-5" />} title="Published tonnage" value={`${fmt.num(stats.tonnes)} t`}
               trend={`${stats.tonnesKnown} of ${stats.incidents} report a quantity`} accent="amber" />
@@ -226,7 +226,7 @@ export default function AnalyticsReporting() {
             <StatCard icon={<Database className="w-5 h-5" />} title="SAR scenes found" value={stats.sarScenes} trend="catalogue hits for those cases" />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             <Panel title="Recorded incidents by decade" dense>
               <div className="p-3">
                 <BarChart data={byDecade} height={150} />
@@ -247,7 +247,7 @@ export default function AnalyticsReporting() {
             </Panel>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             <Panel title="Largest published quantities (t)" dense>
               <div className="p-3">
                 {largest.length ? <BarChart horizontal data={largest} valueFormat={(v) => fmt.num(v)} /> : <p className="text-[11px] text-gray-500">No quantities published in this period.</p>}
@@ -288,8 +288,8 @@ export default function AnalyticsReporting() {
       )}
 
       {tab === 'hotspots' && (
-        <div className="flex-1 min-h-0 flex">
-          <aside className="w-[330px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+        <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row">
+          <aside className="w-full lg:w-[280px] xl:w-[330px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
             <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
               <h3 className="text-[11px] font-bold text-gray-700">Incidents near shipping routes</h3>
               <p className="text-[9.5px] text-gray-500 mt-0.5">Register incidents within 150 km of an indicative route</p>
@@ -323,7 +323,7 @@ export default function AnalyticsReporting() {
               </InfoBanner>
             </div>
           </aside>
-          <div className="flex-1 min-w-0 relative">
+          <div className="flex-1 min-w-0 relative h-[65vh] lg:h-auto">
             <MapView
               basemap={basemap} circles={hotspotMap.circles} markers={hotspotMap.markers} paths={hotspotMap.paths}
               initialCentre={{ lat: 14, lon: 80 }} initialZoom={3.7}
@@ -353,7 +353,7 @@ export default function AnalyticsReporting() {
             <b>No accuracy figures are shown.</b> {MODEL_STATUS.note}
           </InfoBanner>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Panel title="Segmentation model" subtitle="Status and evaluation plan" dense>
               <div className="p-3 space-y-3">
                 <div className="flex items-center gap-2"><ProvenanceBadge p="pending" /><span className="text-[11px] font-semibold text-gray-700">Not trained</span></div>
