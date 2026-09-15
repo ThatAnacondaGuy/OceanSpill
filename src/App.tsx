@@ -2,10 +2,11 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type React
 import {
   Bell, HelpCircle, LogOut, Search, Satellite, Home, AlertTriangle, FileText, Anchor,
   Database, Activity, ChevronDown, Map as MapIcon, Megaphone, CheckSquare, Shield, Archive,
-  Settings, Clock, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship, Waves,
+  Settings, Clock, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { StoreProvider, useStore, fmt } from './store/store';
+import { Seal } from './components/Seal';
 import Dashboard from './Dashboard';
 import SpillIncidents from './SpillIncidents';
 import Investigation from './Investigation';
@@ -134,15 +135,48 @@ function Shell() {
 
   return (
     <div className="h-screen flex flex-col bg-[#f0f4f8] overflow-hidden">
-      <header className="relative bg-white border-b border-gray-200 px-3 sm:px-4 h-14 flex items-center gap-2 sm:gap-4 flex-shrink-0 z-30">
-        <div className="flex items-center gap-2.5 cursor-pointer flex-shrink-0 min-w-0" onClick={() => navigate({ tab: 'Dashboard' })}>
-          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-full w-9 h-9 flex items-center justify-center text-white shadow-sm flex-shrink-0">
-            <Waves className="w-5 h-5" />
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[80] focus:bg-white focus:text-[#0b2a55] focus:px-3 focus:py-2 focus:rounded focus:shadow-lg text-sm font-semibold">
+        Skip to main content
+      </a>
+
+      {/* Tricolour band and utility strip, in the layout of Indian public-sector portals. */}
+      <div className="flex h-1 flex-shrink-0" aria-hidden>
+        <span className="flex-1 bg-[#FF9933]" />
+        <span className="flex-1 bg-white" />
+        <span className="flex-1 bg-[#138808]" />
+      </div>
+      <div className="bg-[#0b2a55] text-slate-200 text-[11.5px] flex-shrink-0">
+        <div className="px-3 sm:px-5 h-8 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span lang="hi" className="font-hindi whitespace-nowrap">समुद्री प्रदूषण निगरानी</span>
+            <span className="text-slate-400">|</span>
+            <span className="truncate">Maritime Pollution Surveillance</span>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-gray-900 leading-snug">OceanSpill</h1>
-            <p className="hidden md:block text-[11px] text-gray-500 font-medium leading-snug truncate">Forensic Oil Spill Detection &amp; Vessel Attribution</p>
-            <p className="hidden xl:block text-[10.5px] text-gray-400 leading-snug">SIH PS 26143 prototype · real Indian cases</p>
+          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+            <span title={`Case data generated ${fmt.utc(new Date(world.generatedAt).getTime())}`} className="hidden lg:inline whitespace-nowrap">
+              Replay mode · {world.cases.length} recorded incidents
+            </span>
+            <span className="hidden lg:inline text-slate-500">|</span>
+            <span className="hidden sm:flex items-center gap-1.5 font-mono whitespace-nowrap">
+              <Clock className="w-3 h-3" /> {fmt.utc(now)}
+            </span>
+            <span className="hidden sm:inline text-slate-500">|</span>
+            <button onClick={() => setHelpOpen(true)} className="flex items-center gap-1 hover:text-white whitespace-nowrap">
+              <HelpCircle className="w-3.5 h-3.5" /> Help
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <header className="relative bg-white border-b border-gray-200 px-3 sm:px-5 h-[68px] flex items-center gap-3 sm:gap-5 flex-shrink-0 z-30">
+        <div className="flex items-center gap-2.5 sm:gap-3 cursor-pointer min-w-0 flex-shrink lg:flex-shrink-0" onClick={() => navigate({ tab: 'Dashboard' })}>
+          <span className="sm:hidden"><Seal size={40} /></span>
+          <span className="hidden sm:block"><Seal size={50} /></span>
+          <div className="hidden sm:block w-px self-stretch my-1 bg-gray-300" aria-hidden />
+          <div className="min-w-0 leading-tight">
+            <p lang="hi" className="font-hindi text-[12px] sm:text-[13px] text-gray-700 truncate">समुद्री तेल रिसाव जाँच एवं पोत अभिनिर्धारण प्रणाली</p>
+            <h1 className="text-[17px] sm:text-[19px] font-bold text-[#0b2a55] tracking-wide uppercase">OceanSpill</h1>
+            <p className="hidden md:block text-[12px] text-gray-600 truncate">Oil Spill Detection &amp; Vessel Attribution System</p>
           </div>
         </div>
 
@@ -157,7 +191,8 @@ function Shell() {
             onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
             onFocus={() => setSearchOpen(true)}
             placeholder="Search cases, vessels, MMSI or IMO…"
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-gray-300 rounded-full bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+            aria-label="Search cases and vessels"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#0b2a55]/40 focus:border-[#0b2a55]"
           />
           {searchOpen && results.length > 0 && (
             <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
@@ -188,18 +223,6 @@ function Shell() {
           <button onClick={() => setMobileSearch((o) => !o)} aria-label="Search" className="lg:hidden p-1.5 rounded text-gray-600 hover:bg-gray-100">
             {mobileSearch ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
           </button>
-          <div
-            title={`Case data generated ${fmt.utc(new Date(world.generatedAt).getTime())}`}
-            className="hidden xl:flex flex-col items-end leading-snug"
-          >
-            <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
-              RETROSPECTIVE REPLAY · {world.cases.length} REAL CASES
-            </span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1.5 text-xs font-mono font-semibold text-gray-700 bg-gray-50 px-2.5 py-1.5 rounded border border-gray-200 whitespace-nowrap">
-            <Clock className="w-3 h-3" />
-            {fmt.utc(now)}
-          </div>
 
           <div className="relative">
             <button onClick={() => { setNotifOpen((o) => !o); setUserMenu(false); }} className="relative text-gray-600 hover:text-blue-600 p-1">
@@ -238,10 +261,6 @@ function Shell() {
               </div>
             )}
           </div>
-
-          <button onClick={() => setHelpOpen(true)} aria-label="Help" className="flex items-center gap-1 p-1 text-gray-600 hover:text-blue-600">
-            <HelpCircle className="w-5 h-5" /><span className="hidden lg:inline text-xs font-medium">Help</span>
-          </button>
 
           <div className="relative">
             <button
@@ -341,7 +360,7 @@ function Shell() {
         )}
       </nav>
 
-      <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+      <div id="main-content" tabIndex={-1} className="flex-1 min-w-0 min-h-0 flex flex-col outline-none">
         {activeTab === 'Dashboard' && <Dashboard />}
         {activeTab === 'Spill Incidents' && <SpillIncidents />}
         {activeTab === 'Investigation' && <Investigation />}
