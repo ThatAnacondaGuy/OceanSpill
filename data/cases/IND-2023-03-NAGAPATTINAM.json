@@ -1,0 +1,105 @@
+{
+  "id": "IND-2023-03-NAGAPATTINAM",
+  "title": "CPCL undersea crude pipeline leak off Pattinacherry, Nagapattinam",
+  "region": "Tamil Nadu Coast",
+  "subRegion": "Pattinacherry, Nagapattinam (Cauvery Basin Refinery pipeline)",
+  "sourceType": "pipeline",
+  "officiallyConfirmed": true,
+  "incident": {
+    "time": "2023-03-01T00:00:00Z",
+    "timePrecision": "month",
+    "timeNote": "March 2023; exact day not confirmed in public sources",
+    "position": {
+      "lat": 10.86,
+      "lon": 79.86
+    },
+    "positionPrecisionKm": 5,
+    "positionSource": "Pattinacherry village offshore (approximate)"
+  },
+  "oil": {
+    "modelType": "crudeMedium",
+    "onboard": [],
+    "spilledTonnes": null,
+    "spilledNote": "NGT noted CPCL failed to account for 1,200 litres of leaked oil."
+  },
+  "vessels": [],
+  "facilities": [
+    {
+      "role": "source",
+      "name": "CPCL CBR UNDERSEA CRUDE PIPELINE",
+      "type": "Pipeline",
+      "operator": "Chennai Petroleum Corporation Ltd",
+      "lat": 10.86,
+      "lon": 79.87,
+      "positionPrecisionKm": 5,
+      "note": "Crack in 9 km undersea pipeline from Cauvery Basin Refinery used to transfer crude to ships",
+      "source": "NGT order as reported by Khan Global Studies"
+    }
+  ],
+  "observations": [
+    {
+      "time": "2023-03-01T00:00:00Z",
+      "type": "slick",
+      "description": "Crude oil leak off Pattinacherry coast",
+      "lat": 10.86,
+      "lon": 79.86,
+      "extentKm2": null,
+      "source": "NGT order"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2023-03-01T00:00:00Z",
+      "event": "Crude leak from undersea pipeline off Pattinacherry (March 2023)"
+    },
+    {
+      "time": "2025-01-01T00:00:00Z",
+      "timePrecision": "year",
+      "event": "NGT fines CPCL Rs 5 crore under no-fault liability (reported 2025)"
+    }
+  ],
+  "response": [
+    "CPCL",
+    "Tamil Nadu Government",
+    "NGT (Southern Bench)"
+  ],
+  "impact": {
+    "unaccountedOilLitres": 1200
+  },
+  "officialFindings": "Crack in 9 km undersea pipeline. NGT fined CPCL Rs 5 crore applying no-fault liability despite external cause.",
+  "legal": [
+    {
+      "authority": "National Green Tribunal",
+      "action": "Fine Issued",
+      "amountInr": 50000000,
+      "party": "Chennai Petroleum Corporation Ltd",
+      "note": "No-fault liability",
+      "source": "https://currentaffairs.khanglobalstudies.com/nagapattinam-oil-spill/"
+    }
+  ],
+  "analysis": {
+    "hindcastHours": 24,
+    "forecastHours": 48,
+    "sarWindowDays": [
+      0,
+      31
+    ],
+    "forcingBox": {
+      "west": 79.6,
+      "south": 10.4,
+      "east": 80.6,
+      "north": 11.4
+    },
+    "forcingStepDeg": 0.2,
+    "backgroundVessels": 5,
+    "corridorIds": [
+      "COR-PALK"
+    ]
+  },
+  "sources": [
+    {
+      "title": "Nagapattinam oil spill: NGT fines CPCL (Khan Global Studies)",
+      "url": "https://currentaffairs.khanglobalstudies.com/nagapattinam-oil-spill/"
+    }
+  ]
+}

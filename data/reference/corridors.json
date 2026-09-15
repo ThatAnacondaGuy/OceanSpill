@@ -1,0 +1,195 @@
+{
+  "corridors": [
+    {
+      "id": "COR-9DEG",
+      "name": "Nine Degree Channel (Gulf \u2192 Malacca)",
+      "waypoints": [
+        {
+          "lat": 9.1,
+          "lon": 71.0
+        },
+        {
+          "lat": 9.0,
+          "lon": 73.0
+        },
+        {
+          "lat": 8.2,
+          "lon": 76.0
+        },
+        {
+          "lat": 7.2,
+          "lon": 77.8
+        },
+        {
+          "lat": 5.8,
+          "lon": 80.6
+        },
+        {
+          "lat": 6.2,
+          "lon": 85.0
+        }
+      ],
+      "density": 178,
+      "riskNote": "Primary Gulf\u2013Far East tanker artery. Persistent cluster of AIS gaps and STS transfers south of Minicoy.",
+      "highRisk": true
+    },
+    {
+      "id": "COR-KUTCH",
+      "name": "Gulf of Kachchh Approach",
+      "waypoints": [
+        {
+          "lat": 22.4,
+          "lon": 68.2
+        },
+        {
+          "lat": 22.3,
+          "lon": 69.0
+        },
+        {
+          "lat": 22.4,
+          "lon": 69.7
+        },
+        {
+          "lat": 22.7,
+          "lon": 70.1
+        }
+      ],
+      "density": 64,
+      "riskNote": "Jamnagar/Vadinar VLCC approach. Tank-washing detected on outbound legs after discharge.",
+      "highRisk": true
+    },
+    {
+      "id": "COR-MUMBAI",
+      "name": "Mumbai High Offshore Field",
+      "waypoints": [
+        {
+          "lat": 19.9,
+          "lon": 71.0
+        },
+        {
+          "lat": 19.5,
+          "lon": 71.4
+        },
+        {
+          "lat": 19.1,
+          "lon": 71.9
+        },
+        {
+          "lat": 18.9,
+          "lon": 72.6
+        }
+      ],
+      "density": 88,
+      "riskNote": "Dense platform-supply traffic mixing with commercial transits; produced-water sheens common.",
+      "highRisk": false
+    },
+    {
+      "id": "COR-BOB-N",
+      "name": "North Bay of Bengal Lane",
+      "waypoints": [
+        {
+          "lat": 21.2,
+          "lon": 88.6
+        },
+        {
+          "lat": 20.4,
+          "lon": 87.4
+        },
+        {
+          "lat": 19.6,
+          "lon": 86.4
+        },
+        {
+          "lat": 18.4,
+          "lon": 85.2
+        },
+        {
+          "lat": 17.6,
+          "lon": 84.0
+        }
+      ],
+      "density": 71,
+      "riskNote": "Paradip\u2013Haldia coastal run passing within 25 km of Gahirmatha turtle sanctuary.",
+      "highRisk": true
+    },
+    {
+      "id": "COR-PALK",
+      "name": "Palk Bay / Gulf of Mannar Transit",
+      "waypoints": [
+        {
+          "lat": 9.6,
+          "lon": 79.6
+        },
+        {
+          "lat": 9.0,
+          "lon": 79.3
+        },
+        {
+          "lat": 8.4,
+          "lon": 78.6
+        },
+        {
+          "lat": 8.0,
+          "lon": 77.9
+        }
+      ],
+      "density": 42,
+      "riskNote": "Shallow reef-adjacent route; small-tonnage traffic with poor AIS compliance.",
+      "highRisk": false
+    },
+    {
+      "id": "COR-ANDAMAN",
+      "name": "Andaman Sea Approach (Malacca Feeder)",
+      "waypoints": [
+        {
+          "lat": 13.4,
+          "lon": 94.2
+        },
+        {
+          "lat": 12.2,
+          "lon": 93.6
+        },
+        {
+          "lat": 10.8,
+          "lon": 93.2
+        },
+        {
+          "lat": 9.0,
+          "lon": 93.4
+        },
+        {
+          "lat": 7.2,
+          "lon": 94.0
+        }
+      ],
+      "density": 96,
+      "riskNote": "Malacca-bound feeder crossing the Andaman EEZ; frequent slow-steaming and loitering.",
+      "highRisk": true
+    },
+    {
+      "id": "COR-CHENNAI",
+      "name": "Chennai\u2013Ennore Approach",
+      "waypoints": [
+        {
+          "lat": 13.6,
+          "lon": 81.2
+        },
+        {
+          "lat": 13.3,
+          "lon": 80.7
+        },
+        {
+          "lat": 13.15,
+          "lon": 80.4
+        },
+        {
+          "lat": 13.05,
+          "lon": 80.32
+        }
+      ],
+      "density": 55,
+      "riskNote": "Ennore terminal approach; historical site of the 2017 Kamarajar Port collision spill.",
+      "highRisk": false
+    }
+  ]
+}

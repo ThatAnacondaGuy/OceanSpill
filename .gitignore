@@ -27,3 +27,11 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# Pipeline
+pipeline/.venv/
+pipeline/.cache/
+pipeline/downloads/
+pipeline/runs/
+__pycache__/
+*.pyc

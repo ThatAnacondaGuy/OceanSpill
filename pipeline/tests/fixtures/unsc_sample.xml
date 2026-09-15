@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONSOLIDATED_LIST><ENTITIES><ENTITY>
+      <DATAID>6908516</DATAID>
+      <VERSIONNUM>1</VERSIONNUM>
+      <FIRST_NAME>CHONGCHONGANG SHIPPING COMPANY</FIRST_NAME>
+      <UN_LIST_TYPE>DPRK</UN_LIST_TYPE>
+      <REFERENCE_NUMBER>KPe.022</REFERENCE_NUMBER>
+      <LISTED_ON>2016-03-02</LISTED_ON>
+      <COMMENTS1>IMO Number: 5342883. The Chongchongang Shipping Company, through its vessel,
+                the Chong Chon Gang, attempted to directly import the illicit shipment of
+                conventional weapons and arms to the DPRK in July 2013.</COMMENTS1>
+      <HAS_INTERPOL_LINK>NO</HAS_INTERPOL_LINK>
+      <INTERPOL_LINK/>
+      <LIST_TYPE>
+        <VALUE>UN List</VALUE>
+      </LIST_TYPE>
+      <LAST_DAY_UPDATED>
+        <VALUE>2022-07-26</VALUE>
+      </LAST_DAY_UPDATED>
+      <ENTITY_ALIAS>
+        <QUALITY>a.k.a.</QUALITY>
+        <ALIAS_NAME>Chong Chon Gang Shipping Co. Ltd.</ALIAS_NAME>
+      </ENTITY_ALIAS>
+      <ENTITY_ALIAS>
+        <QUALITY>a.k.a.</QUALITY>
+        <ALIAS_NAME>Chongchongang Shipping Co LTD</ALIAS_NAME>
+      </ENTITY_ALIAS>
+      <ENTITY_ADDRESS>
+        <STREET>817 Haeun, Donghung-dong, Central District</STREET>
+        <CITY>Pyongyang</CITY>
+        <COUNTRY>Democratic People's Republic of Korea</COUNTRY>
+      </ENTITY_ADDRESS>
+      <ENTITY_ADDRESS>
+        <STREET>817, Haeum, Tonghun-dong, Chung-gu</STREET>
+        <CITY>Pyongyang</CITY>
+        <COUNTRY>Democratic People's Republic of Korea</COUNTRY>
+      </ENTITY_ADDRESS>
+      <SORT_KEY/>
+      <SORT_KEY_LAST_MOD/>
+    </ENTITY><ENTITY>
+      <DATAID>6908402</DATAID>
+      <VERSIONNUM>1</VERSIONNUM>
+      <FIRST_NAME>ADF</FIRST_NAME>
+      <UN_LIST_TYPE>DRC</UN_LIST_TYPE>
+      <REFERENCE_NUMBER>CDe.001</REFERENCE_NUMBER>
+      <LISTED_ON>2014-06-30</LISTED_ON>
+      <COMMENTS1>ADF founder and leader, Jamil Mukulu (CDi.015), was arrested in Dar es Salaam, Tanzania in April 2015. He was subsequently extradited to Kampala, Uganda in July 2015. As of June 2016, Mukulu is reportedly being held in a police detention cell awaiting his trial. Seka Baluku (CDi.036) succeeded Jamil Mukulu (CDi.015) as the overall leader of the ADF. As highlighted in several reports from the Group of Experts on the DRC (S/2015/19, S/2015/797, S/2016/1102, S/2017/672, S/2018/531, S/2019/469, S/2019/974, S/2020/482), the ADF, including under Seka Baluku’s leadership, continued to commit the repeated targeting, killing and maiming, rape and other sexual violence, abduction of civilians, including children, as well as attacks on villages and health facilities, in particular in Mamove, Beni territory, on 12 and 24 February 2019, and Mantumbi, Beni territory, on 5 December 2019 and 30 January 2020, as well as the continuous recruitment and use of children during attacks and for forced labour in Beni territory in the DRC since at least 2015. INTERPOL-UN Security Council Special Notice:https://www.interpol.int/en/How-we-work/Notices/View-UN-Notices-Entities</COMMENTS1>
+      <HAS_INTERPOL_LINK>YES</HAS_INTERPOL_LINK>
+      <INTERPOL_LINK>https://www.interpol.int/en/How-we-work/Notices/View-UN-Notices-Entities</INTERPOL_LINK>
+      <LIST_TYPE>
+        <VALUE>UN List</VALUE>
+      </LIST_TYPE>
+      <LAST_DAY_UPDATED>
+        <VALUE>2016-10-19</VALUE>
+        <VALUE>2020-08-19</VALUE>
+      </LAST_DAY_UPDATED>
+      <ENTITY_ALIAS>
+        <QUALITY>a.k.a.</QUALITY>
+        <ALIAS_NAME>Allied Democratic Forces</ALIAS_NAME>
+      </ENTITY_ALIAS>
+      <ENTITY_ALIAS>
+        <QUALITY>f.k.a.</QUALITY>
+        <ALIAS_NAME>Forces Démocratiques Alliées-Armée Nationale de Libération de l’Ouganda</ALIAS_NAME>
+      </ENTITY_ALIAS>
+      <ENTITY_ALIAS>
+        <QUALITY>f.k.a.</QUALITY>
+        <ALIAS_NAME>ADF/NALU</ALIAS_NAME>
+      </ENTITY_ALIAS>
+      <ENTITY_ALIAS>
+        <QUALITY>f.k.a.</QUALITY>
+        <ALIAS_NAME>NALU</ALIAS_NAME>
+      </ENTITY_ALIAS>
+      <ENTITY_ADDRESS>
+        <STATE_PROVINCE>North Kivu </STATE_PROVINCE>
+        <COUNTRY>Democratic Republic of the Congo</COUNTRY>
+      </ENTITY_ADDRESS>
+      <SORT_KEY/>
+      <SORT_KEY_LAST_MOD/>
+    </ENTITY></ENTITIES></CONSOLIDATED_LIST>

@@ -1,0 +1,221 @@
+{
+  "id": "IND-2025-06-WANHAI503",
+  "title": "WAN HAI 503 container explosion and fire off Kerala",
+  "region": "Kerala Coast",
+  "subRegion": "Arabian Sea, 44 nm off Azhikkal / ~78 nm off Beypore",
+  "sourceType": "vessel",
+  "officiallyConfirmed": true,
+  "incident": {
+    "time": "2025-06-09T04:20:00Z",
+    "timePrecision": "minute",
+    "timeNote": "Explosion reported ~0950 IST 9 June 2025 (1230 SGT)",
+    "position": {
+      "lat": 11.6267,
+      "lon": 74.6233
+    },
+    "positionPrecisionKm": 0.5,
+    "positionSource": "Kerala SDMA SITREP-1: Lat 11°37.6'N, Long 074°37.4'E"
+  },
+  "oil": {
+    "modelType": "bunkerC",
+    "onboard": [
+      {
+        "product": "Fuel oil",
+        "tonnes": 2000
+      },
+      {
+        "product": "Diesel oil",
+        "tonnes": 240
+      }
+    ],
+    "spilledTonnes": null,
+    "spilledNote": "Release quantity not published. INCOIS issued drift advisories for debris and possible oil along the Kerala shoreline."
+  },
+  "vessels": [
+    {
+      "role": "source",
+      "name": "WAN HAI 503",
+      "imo": "9294862",
+      "flag": "Singapore",
+      "type": "Container Ship",
+      "operator": "Wan Hai Lines (Singapore) Pte Ltd",
+      "voyage": {
+        "from": {
+          "name": "Colombo",
+          "lat": 6.95,
+          "lon": 79.84
+        },
+        "to": {
+          "name": "Nhava Sheva",
+          "lat": 18.95,
+          "lon": 72.95
+        }
+      },
+      "cruiseSpeedKn": 15,
+      "anchors": [
+        {
+          "time": "2025-06-09T04:20:00Z",
+          "event": "Under-deck container explosion and fire (0950 IST)",
+          "lat": 11.6267,
+          "lon": 74.6233,
+          "positionPrecisionKm": 0.5,
+          "sog": 15,
+          "cog": 330,
+          "navStatus": 0,
+          "source": "SITREP-1"
+        },
+        {
+          "time": "2025-06-09T10:00:00Z",
+          "event": "Adrift, fire engulfing vessel; ICG instructed NW course away from coast",
+          "lat": 11.68,
+          "lon": 74.58,
+          "positionPrecisionKm": 15,
+          "sog": 1,
+          "cog": 315,
+          "navStatus": 2,
+          "source": "SITREP-1 narrative; position estimated"
+        }
+      ],
+      "routeWaypoints": [
+        {
+          "lat": 6.7,
+          "lon": 79.6
+        },
+        {
+          "lat": 7.2,
+          "lon": 77.6
+        },
+        {
+          "lat": 8.2,
+          "lon": 75.9
+        },
+        {
+          "lat": 10.3,
+          "lon": 75.0
+        }
+      ],
+      "routeWaypointsNote": "Estimated offshore routing to keep the synthetic track at sea"
+    },
+    {
+      "role": "responder",
+      "name": "ONE MARVEL",
+      "type": "Container Ship",
+      "note": "Picked up crew from lifeboat and life raft",
+      "anchors": [
+        {
+          "time": "2025-06-09T07:00:00Z",
+          "event": "At site recovering crew",
+          "lat": 11.61,
+          "lon": 74.6,
+          "positionPrecisionKm": 10,
+          "sog": 1,
+          "navStatus": 0,
+          "source": "SITREP-1 names vessel; time and position estimated"
+        }
+      ]
+    },
+    {
+      "role": "responder",
+      "name": "AMBRA",
+      "type": "Merchant Vessel",
+      "note": "Directed to site after SAR SURPIC",
+      "anchors": [
+        {
+          "time": "2025-06-09T08:00:00Z",
+          "event": "Proceeding to site",
+          "lat": 11.55,
+          "lon": 74.7,
+          "positionPrecisionKm": 20,
+          "sog": 8,
+          "navStatus": 0,
+          "source": "SITREP-1 names vessel; time and position estimated"
+        }
+      ]
+    }
+  ],
+  "facilities": [],
+  "observations": [
+    {
+      "time": "2025-06-09T06:00:00Z",
+      "type": "fire",
+      "description": "Vessel on fire and adrift; ~20 containers overboard",
+      "lat": 11.6267,
+      "lon": 74.6233,
+      "extentKm2": null,
+      "source": "SITREP-1; Shipping Telegraph"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2025-06-07T00:00:00Z",
+      "event": "Departed Colombo for Nhava Sheva (ETA 10 June)"
+    },
+    {
+      "time": "2025-06-09T04:20:00Z",
+      "event": "Container explosion and fire reported; DGS informs ICG and IFC-IOR"
+    },
+    {
+      "time": "2025-06-09T07:00:00Z",
+      "event": "Crew abandon ship (10 lifeboat, 8 life raft); 4 missing, 5 injured"
+    },
+    {
+      "time": "2025-06-09T11:30:00Z",
+      "event": "Indian Navy warship expected on scene (1700 IST)"
+    },
+    {
+      "time": "2025-06-10T00:00:00Z",
+      "event": "INCOIS drift advisory for containers and possible oil spill"
+    }
+  ],
+  "response": [
+    "Indian Coast Guard (2 Dornier, 5 ships)",
+    "Indian Navy (1 Dornier, warship)",
+    "DG Shipping / MRCC Mumbai",
+    "SMIT Salvage",
+    "INCOIS",
+    "Kerala SDMA"
+  ],
+  "impact": {
+    "crewAboard": 22,
+    "crewMissing": 4,
+    "crewInjured": 5,
+    "hazardousContainers": 157,
+    "containersOverboard": 20
+  },
+  "officialFindings": "Under-deck container explosion; hazardous cargo manifest included nitrocellulose, resin solution, paints and organometallic substances.",
+  "analysis": {
+    "hindcastHours": 24,
+    "forecastHours": 72,
+    "sarWindowDays": [
+      -1,
+      6
+    ],
+    "forcingBox": {
+      "west": 73.5,
+      "south": 10.5,
+      "east": 76.0,
+      "north": 13.0
+    },
+    "forcingStepDeg": 0.25,
+    "backgroundVessels": 12,
+    "corridorIds": []
+  },
+  "sources": [
+    {
+      "title": "Kerala SDMA SITREP-1, 9 June 2025",
+      "url": "https://sdma.kerala.gov.in/wp-content/uploads/2025/06/WAN-HAI-503-SITREP-01-1230-hrs-2025-Fire.pdf"
+    },
+    {
+      "title": "MPA Singapore media release",
+      "url": "https://www.mpa.gov.sg/media-centre/details/fire-onboard-singapore-registered-container-vessel-wan-hai-503-off-indian-coast"
+    },
+    {
+      "title": "INCOIS warns of possible debris and oil spill (India Shipping News)",
+      "url": "https://indiashippingnews.com/wan-hai-503-fire-partially-contained-incois-warns-of-possible-debris-and-oil-spill-along-kerala-shoreline/"
+    },
+    {
+      "title": "Fuel quantities (Insights on India)",
+      "url": "https://www.insightsonindia.com/2025/06/11/ship-m-v-wan-hai-503/"
+    }
+  ]
+}

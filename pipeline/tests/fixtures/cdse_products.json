@@ -1,0 +1,170 @@
+{
+ "value": [
+  {
+   "@odata.mediaContentType": "application/octet-stream",
+   "Id": "808ea392-e97d-424e-b6f2-2fa8791008d2",
+   "Name": "S1A_IW_GRDH_1SDV_20250528T004137_20250528T004157_059387_075F14_1A66.SAFE",
+   "ContentType": "application/octet-stream",
+   "ContentLength": 1331460376,
+   "OriginDate": "2025-05-28T02:41:49.724000Z",
+   "PublicationDate": "2025-05-28T02:44:24.828303Z",
+   "ModificationDate": "2026-09-04T03:29:42.009615Z",
+   "Online": true,
+   "EvictionDate": "9999-12-31T23:59:59.999999Z",
+   "S3Path": "/eodata/Sentinel-1/SAR/IW_GRDH_1S/2025/05/28/S1A_IW_GRDH_1SDV_20250528T004137_20250528T004157_059387_075F14_1A66.SAFE",
+   "Checksum": [
+    {
+     "Value": "d6c05a1a4f15714d38b460a3188f9655",
+     "Algorithm": "MD5",
+     "ChecksumDate": "2026-09-04T03:29:38.806281Z"
+    },
+    {
+     "Value": "3ba2ea7929a64336037f3769e532b0c11a35d52312658d8c277aadbb00ef3ef0",
+     "Algorithm": "BLAKE3",
+     "ChecksumDate": "2026-09-04T03:29:41.573525Z"
+    }
+   ],
+   "ContentDate": {
+    "Start": "2025-05-28T00:41:37.669955Z",
+    "End": "2025-05-28T00:41:57.021463Z"
+   },
+   "Footprint": "geography'SRID=4326;POLYGON ((77.557083 7.574316, 77.794769 8.745565, 75.517105 9.202539, 75.286789 8.034481, 77.557083 7.574316))'",
+   "GeoFootprint": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       77.557083,
+       7.574316
+      ],
+      [
+       77.794769,
+       8.745565
+      ],
+      [
+       75.517105,
+       9.202539
+      ],
+      [
+       75.286789,
+       8.034481
+      ],
+      [
+       77.557083,
+       7.574316
+      ]
+     ]
+    ]
+   },
+   "Attributes": [
+    {
+     "@odata.type": "#OData.CSC.StringAttribute",
+     "Name": "orbitDirection",
+     "Value": "DESCENDING",
+     "ValueType": "String"
+    },
+    {
+     "@odata.type": "#OData.CSC.StringAttribute",
+     "Name": "polarisationChannels",
+     "Value": "VV&VH",
+     "ValueType": "String"
+    },
+    {
+     "@odata.type": "#OData.CSC.StringAttribute",
+     "Name": "platformSerialIdentifier",
+     "Value": "A",
+     "ValueType": "String"
+    },
+    {
+     "@odata.type": "#OData.CSC.StringAttribute",
+     "Name": "productType",
+     "Value": "IW_GRDH_1S",
+     "ValueType": "String"
+    }
+   ]
+  },
+  {
+   "@odata.mediaContentType": "application/octet-stream",
+   "Id": "b7b14fdc-497b-4349-a564-05b4c39252f0",
+   "Name": "S1A_IW_GRDH_1SDV_20250528T004137_20250528T004157_059387_075F14_E8F1_COG.SAFE",
+   "ContentType": "application/octet-stream",
+   "ContentLength": 790793861,
+   "OriginDate": "2025-05-28T00:44:35.229335Z",
+   "PublicationDate": "2025-05-28T02:47:13.213815Z",
+   "ModificationDate": "2026-09-04T03:33:52.666841Z",
+   "Online": true,
+   "EvictionDate": "9999-12-31T23:59:59.999999Z",
+   "S3Path": "/eodata/Sentinel-1/SAR/IW_GRDH_1S-COG/2025/05/28/S1A_IW_GRDH_1SDV_20250528T004137_20250528T004157_059387_075F14_E8F1_COG.SAFE",
+   "Checksum": [
+    {
+     "Value": "a55632a2ec68186849275d6e81603a25",
+     "Algorithm": "MD5",
+     "ChecksumDate": "2026-09-04T03:33:51.060335Z"
+    },
+    {
+     "Value": "933a8ea767a44d4ec8f314c24afe0825c64d1fe064c715292e51233dee3e97cb",
+     "Algorithm": "BLAKE3",
+     "ChecksumDate": "2026-09-04T03:33:52.301525Z"
+    }
+   ],
+   "ContentDate": {
+    "Start": "2025-05-28T00:41:37.669955Z",
+    "End": "2025-05-28T00:41:57.021463Z"
+   },
+   "Footprint": "geography'SRID=4326;POLYGON ((77.557083 7.574316, 77.794769 8.745565, 75.517105 9.202539, 75.286789 8.034481, 77.557083 7.574316))'",
+   "GeoFootprint": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       77.557083,
+       7.574316
+      ],
+      [
+       77.794769,
+       8.745565
+      ],
+      [
+       75.517105,
+       9.202539
+      ],
+      [
+       75.286789,
+       8.034481
+      ],
+      [
+       77.557083,
+       7.574316
+      ]
+     ]
+    ]
+   },
+   "Attributes": [
+    {
+     "@odata.type": "#OData.CSC.StringAttribute",
+     "Name": "orbitDirection",
+     "Value": "DESCENDING",
+     "ValueType": "String"
+    },
+    {
+     "@odata.type": "#OData.CSC.StringAttribute",
+     "Name": "polarisationChannels",
+     "Value": "VV&VH",
+     "ValueType": "String"
+    },
+    {
+     "@odata.type": "#OData.CSC.StringAttribute",
+     "Name": "platformSerialIdentifier",
+     "Value": "A",
+     "ValueType": "String"
+    },
+    {
+     "@odata.type": "#OData.CSC.StringAttribute",
+     "Name": "productType",
+     "Value": "IW_GRDH_1S-COG",
+     "ValueType": "String"
+    }
+   ]
+  }
+ ]
+}

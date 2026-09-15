@@ -1,4 +1,4 @@
-import { haversineKm, axialDiff, type LatLon } from '../lib/geo';
+import { angularDiff, haversineKm, axialDiff, type LatLon } from '../lib/geo';
 import type { AisPing, AttributionScore, Vessel, VesselTrack } from '../data/types';
 
 /**
@@ -70,7 +70,6 @@ export function interpolateTrack(track: VesselTrack, t: number): AisPing | null 
         cog: a.cog,
         heading: a.heading,
         navStatus: a.navStatus,
-        rot: a.rot,
       };
     }
   }
@@ -128,7 +127,16 @@ export function analyseBehaviour(
   const speeds = inWindow.map((p) => p.sog);
   const minSpeedKn = Math.min(...speeds);
   const meanSpeedKn = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-  const maxTurnRate = Math.max(...inWindow.map((p) => Math.abs(p.rot)));
+  // Rate of turn derived from consecutive course reports, degrees per minute, ignoring
+  // near-stationary reports where COG is meaningless.
+  let maxTurnRate = 0;
+  for (let i = 1; i < inWindow.length; i++) {
+    const a = inWindow[i - 1];
+    const b = inWindow[i];
+    const minutes = (b.t - a.t) / 60000;
+    if (minutes <= 0 || a.sog < 2 || b.sog < 2) continue;
+    maxTurnRate = Math.max(maxTurnRate, angularDiff(a.cog, b.cog) / minutes);
+  }
 
   // Loitering: consecutive pings under 2 knots.
   let loiterMs = 0;
@@ -221,7 +229,9 @@ export function scoreCandidates(
     const relevant = track.pings.filter((p) => p.t >= windowStart - 3600_000 && p.t <= windowEnd + 3600_000);
     for (const p of relevant) {
       const d = haversineKm(ctx.origin, p);
-      if (d < cpaKm) {
+      // Ties (e.g. a stationary facility or an anchored wreck) resolve to the report nearest in time.
+      const tie = Math.abs(d - cpaKm) <= 0.05 && Math.abs(p.t - ctx.originTime) < Math.abs(cpaTime - ctx.originTime);
+      if (d < cpaKm - 0.05 || tie) {
         cpaKm = d;
         cpaTime = p.t;
         cpaPing = p;
@@ -229,8 +239,11 @@ export function scoreCandidates(
     }
 
     // A vessel that was dark throughout is still a candidate: absence of AIS near a slick is
-    // itself evidence. Score it from the gap geometry rather than dropping it.
-    const behaviour = analyseBehaviour(track, windowStart, windowEnd);
+    // itself evidence. Score it from the gap geometry rather than dropping it. Fixed facilities
+    // do not transmit AIS, so behavioural terms do not apply to them.
+    const behaviour = vessel.isFacility
+      ? { score: 0, flags: ['Fixed facility: behavioural anomaly terms not applicable'], darkMinutes: 0, darkDuringWindow: false, minSpeedKn: 0, meanSpeedKn: 0, maxTurnRate: 0, loiterMinutes: 0 }
+      : analyseBehaviour(track, windowStart, windowEnd);
 
     if (!cpaPing && !behaviour.darkDuringWindow) {
       excluded.push({ mmsi: vessel.mmsi, name: vessel.name, reason: 'No AIS reports within the discharge window', cpaKm: Infinity });
@@ -278,7 +291,9 @@ export function scoreCandidates(
     // major axis should align with the heading. Only meaningful for elongated slicks.
     let trajectory = 0.5;
     let courseAlignmentDeg = 90;
-    if (cpaPing) {
+    if (vessel.isFacility) {
+      reasons.push('Fixed facility: course parity not applicable (neutral score)');
+    } else if (cpaPing) {
       courseAlignmentDeg = axialDiff(cpaPing.cog, ctx.slickOrientationDeg);
       const alignment = 1 - courseAlignmentDeg / 90;
       const linearity = Math.min(1, Math.max(0, (ctx.slickElongation - 1.8) / 4.5));
@@ -292,8 +307,11 @@ export function scoreCandidates(
       }
     }
 
-    // Recidivism and registry priors.
+    // Recidivism and registry priors. Real vessels only receive a prior from verified registry data.
     let vesselPrior = 0;
+    if (vessel.provenance === 'real' && !vessel.registryVerified && !vessel.isFacility) {
+      reasons.push('Registry history not verified: no prior applied');
+    }
     if (vessel.priorOffences > 0) {
       vesselPrior += Math.min(0.62, vessel.priorOffences * 0.22);
       flags.push(`${vessel.priorOffences} prior confirmed attribution${vessel.priorOffences > 1 ? 's' : ''}`);
@@ -308,9 +326,9 @@ export function scoreCandidates(
     } else if (vessel.flagRisk === 'Grey List') {
       vesselPrior += 0.06;
     }
-    if (vessel.psc.detentions > 0) {
-      vesselPrior += Math.min(0.14, vessel.psc.detentions * 0.07);
-      flags.push(`${vessel.psc.detentions} port-state detention${vessel.psc.detentions > 1 ? 's' : ''} on record`);
+    if (vessel.pscDetentions && vessel.pscDetentions > 0) {
+      vesselPrior += Math.min(0.14, vessel.pscDetentions * 0.07);
+      flags.push(`${vessel.pscDetentions} port-state detention${vessel.pscDetentions > 1 ? 's' : ''} on record`);
     }
     const tankerTypes = ['Crude Oil Tanker', 'Product Tanker', 'Chemical Tanker'];
     if (tankerTypes.includes(vessel.type)) {

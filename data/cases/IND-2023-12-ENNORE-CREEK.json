@@ -1,0 +1,123 @@
+{
+  "id": "IND-2023-12-ENNORE-CREEK",
+  "title": "Ennore Creek oil spill during Cyclone Michaung flooding",
+  "region": "Tamil Nadu Coast",
+  "subRegion": "Ennore Creek / Kosasthalaiyar river to Kasimedu harbour, north Chennai",
+  "sourceType": "facility",
+  "officiallyConfirmed": true,
+  "incident": {
+    "time": "2023-12-04T12:00:00Z",
+    "timePrecision": "day",
+    "timeNote": "Oil released with flood water on 4-5 December 2023",
+    "position": {
+      "lat": 13.215,
+      "lon": 80.325
+    },
+    "positionPrecisionKm": 5,
+    "positionSource": "Ennore Creek mouth (approximate); reported extent from Kasimedu harbour to Kosasthalaiyar river"
+  },
+  "oil": {
+    "modelType": "crudeMedium",
+    "onboard": [],
+    "spilledTonnes": null,
+    "spilledNote": "Release quantity not published. Recovered: 105.82 kL oily water and 393.5 t oily sludge."
+  },
+  "vessels": [],
+  "facilities": [
+    {
+      "role": "source",
+      "name": "CPCL MANALI REFINERY (STORM OUTLET)",
+      "type": "Refinery",
+      "operator": "Chennai Petroleum Corporation Ltd",
+      "lat": 13.165,
+      "lon": 80.265,
+      "positionPrecisionKm": 3,
+      "note": "TNPCB found stagnant storm water with oil near CPCL storm outlet; CPCL disputed sole responsibility",
+      "source": "Mongabay India, 29 Dec 2023"
+    }
+  ],
+  "observations": [
+    {
+      "time": "2023-12-05T06:00:00Z",
+      "type": "slick",
+      "description": "Oil spread over ~20 sq km from Kasimedu harbour to Kosasthalaiyar river",
+      "extentKm2": 20,
+      "reportedExtent": {
+        "from": {
+          "lat": 13.125,
+          "lon": 80.298
+        },
+        "to": {
+          "lat": 13.228,
+          "lon": 80.326
+        }
+      },
+      "source": "Mongabay India"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2023-12-03T00:00:00Z",
+      "event": "Cyclone Michaung heavy rainfall over Chennai (3-4 Dec)"
+    },
+    {
+      "time": "2023-12-04T12:00:00Z",
+      "event": "Oil-mixed flood water enters Kosasthalaiyar river, Ennore Creek and sea"
+    },
+    {
+      "time": "2023-12-12T00:00:00Z",
+      "event": "Emergency oil recovery work begins"
+    },
+    {
+      "time": "2023-12-20T00:00:00Z",
+      "event": "Clean-up completion claimed"
+    },
+    {
+      "time": "2023-12-23T00:00:00Z",
+      "event": "Rs 8.68 crore relief package announced for affected families"
+    }
+  ],
+  "response": [
+    "Tamil Nadu Government",
+    "TNPCB",
+    "Indian Coast Guard",
+    "CPCL"
+  ],
+  "impact": {
+    "fisherFamiliesAffected": 2301,
+    "boatsDamaged": 787,
+    "areaKm2": 20,
+    "oilyWaterRecoveredKl": 105.82,
+    "oilySludgeRecoveredT": 393.5
+  },
+  "officialFindings": "TNPCB attributed oil to storm water near CPCL's outlet; land-based source, not a vessel.",
+  "analysis": {
+    "hindcastHours": 24,
+    "forecastHours": 48,
+    "sarWindowDays": [
+      -6,
+      16
+    ],
+    "forcingBox": {
+      "west": 79.8,
+      "south": 12.6,
+      "east": 81.0,
+      "north": 13.8
+    },
+    "forcingStepDeg": 0.2,
+    "backgroundVessels": 8,
+    "corridorIds": [
+      "COR-CHENNAI"
+    ]
+  },
+  "sources": [
+    {
+      "title": "Oil spill in Ennore brings fishing to a standstill (Mongabay India)",
+      "url": "https://india.mongabay.com/2023/12/oil-spill-in-ennore-brings-fishing-to-a-standstill/"
+    },
+    {
+      "title": "Emergency oil spill recovery work in Ennore completed (Deccan Herald)",
+      "url": "https://www.deccanherald.com/india/tamil-nadu/emergency-oil-spill-recovery-work-in-ennore-completed-tamil-nadu-govt-2820079"
+    }
+  ]
+}

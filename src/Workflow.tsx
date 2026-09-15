@@ -6,7 +6,7 @@ import {
 import { useStore, fmt } from './store/store';
 import {
   Badge, Button, Tier, StatusBadge, KeyValue, InfoBanner, Select, SearchInput,
-  Modal, Field, TextArea, StatCard, DataTable, type Column,
+  Modal, Field, TextArea, StatCard, DataTable, ProvenanceBadge, type Column,
 } from './components/ui';
 import type { SpillCase, WorkflowStage, EnforcementAction } from './data/types';
 
@@ -37,7 +37,7 @@ export default function Workflow() {
   const cases = useMemo(() => {
     const q = query.trim().toLowerCase();
     return world.cases.filter((c) => {
-      if (q && !`${c.id} ${c.subRegion} ${c.assignedTo}`.toLowerCase().includes(q)) return false;
+      if (q && !`${c.id} ${c.title} ${c.subRegion} ${c.assignedTo}`.toLowerCase().includes(q)) return false;
       if (tierFilter !== 'all' && c.tier !== tierFilter) return false;
       return true;
     });
@@ -63,34 +63,47 @@ export default function Workflow() {
   const activeAnalysis = active ? getAnalysis(active.id) : null;
 
   const enforcementColumns: Column<EnforcementAction>[] = [
-    { key: 'id', header: 'Reference', width: '120px', value: (a) => a.id, render: (a) => <span className="font-mono font-bold text-gray-900">{a.id}</span> },
+    {
+      key: 'id', header: 'Record', width: '120px', value: (a) => a.id,
+      render: (a) => (
+        <div className="flex flex-col gap-0.5">
+          <span className="font-mono font-bold text-gray-900">{a.id}</span>
+          <ProvenanceBadge p={a.provenance} />
+        </div>
+      ),
+    },
     {
       key: 'case', header: 'Case', width: '132px', value: (a) => a.caseId,
       render: (a) => <button onClick={() => navigate({ tab: 'Investigation', caseId: a.caseId })} className="font-mono text-blue-600 hover:underline font-semibold">{a.caseId}</button>,
     },
     {
-      key: 'vessel', header: 'Vessel', value: (a) => world.vesselsByMmsi.get(a.mmsi)?.name ?? a.mmsi,
+      key: 'vessel', header: 'Party', value: (a) => a.party,
       render: (a) => {
         const v = world.vesselsByMmsi.get(a.mmsi);
         return v ? (
           <button onClick={() => navigate({ tab: 'Vessel Analysis', mmsi: a.mmsi })} className="text-left hover:underline">
-            <div className="font-semibold text-gray-900">{v.name}</div>
-            <div className="text-[9.5px] text-gray-500 font-mono">{v.flag} · {a.mmsi}</div>
+            <div className="font-semibold text-gray-900">{a.party}</div>
+            <div className="text-[9.5px] text-gray-500 font-mono">{fmt.vesselId(v)}</div>
           </button>
-        ) : <span className="text-gray-400 font-mono">{a.mmsi || '—'}</span>;
+        ) : <span className="text-gray-800 font-semibold">{a.party}</span>;
       },
     },
     { key: 'type', header: 'Action', width: '150px', value: (a) => a.type, render: (a) => <Badge tone={a.type === 'Fine Issued' ? 'red' : a.type === 'Detention' ? 'amber' : 'blue'}>{a.type}</Badge> },
     { key: 'authority', header: 'Authority', value: (a) => a.authority, render: (a) => <span className="text-gray-600 text-[10.5px]">{a.authority}</span> },
-    { key: 'ref', header: 'File no.', width: '150px', value: (a) => a.reference, render: (a) => <span className="font-mono text-gray-600 text-[10px]">{a.reference}</span> },
+    {
+      key: 'ref', header: 'Reference / source', width: '170px', value: (a) => a.reference ?? a.source ?? '',
+      render: (a) => a.source
+        ? <a href={a.source} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-[10px] break-all">{a.reference ?? 'Public source'}</a>
+        : <span className="font-mono text-gray-500 text-[10px]">{a.reference ?? 'Not issued'}</span>,
+    },
     {
       key: 'amount', header: 'Penalty', width: '92px', align: 'right', value: (a) => a.amountInr ?? 0,
       render: (a) => a.amountInr ? <span className="font-mono font-bold text-gray-900">{fmt.inr(a.amountInr)}</span> : <span className="text-gray-300">—</span>,
     },
-    { key: 'issued', header: 'Issued', width: '104px', value: (a) => a.issuedAt, render: (a) => <span className="font-mono text-gray-600">{fmt.utcShort(a.issuedAt)}</span> },
+    { key: 'issued', header: 'Date', width: '104px', value: (a) => a.issuedAt ?? 0, render: (a) => a.issuedAt != null ? <span className="font-mono text-gray-600">{fmt.date(a.issuedAt)}</span> : <span className="text-gray-400">Not published</span> },
     {
       key: 'status', header: 'Status', width: '96px', value: (a) => a.status,
-      render: (a) => <Badge tone={a.status === 'Concluded' ? 'green' : a.status === 'Contested' ? 'red' : a.status === 'Served' ? 'blue' : 'amber'}>{a.status}</Badge>,
+      render: (a) => <Badge tone={a.status === 'Concluded' ? 'green' : a.status === 'Contested' ? 'red' : a.status === 'Served' || a.status === 'Reported' ? 'blue' : 'amber'}>{a.status}</Badge>,
     },
   ];
 
@@ -128,7 +141,7 @@ export default function Workflow() {
         <StatCard icon={<Clock className="w-4 h-4" />} title="Awaiting dispatch" value={stats.awaiting} trend="no physical confirmation yet" accent="amber" />
         <StatCard icon={<Plane className="w-4 h-4" />} title="In verification" value={stats.inProgress} trend="assets tasked or results pending" />
         <StatCard icon={<CheckCircle2 className="w-4 h-4" />} title="Concluded" value={stats.closed} trend="closed cases" accent="green" />
-        <StatCard icon={<Scale className="w-4 h-4" />} title="Penalties issued" value={fmt.inr(stats.penalties)} trend={`${world.enforcement.length} enforcement actions`} accent="red" />
+        <StatCard icon={<Scale className="w-4 h-4" />} title="Penalties (public record)" value={fmt.inr(stats.penalties)} trend={`${world.enforcement.length} legal actions recorded`} accent="red" />
       </div>
 
       {view === 'board' ? (
@@ -159,7 +172,7 @@ export default function Workflow() {
                         <div key={c.id} className="bg-white rounded border border-gray-200 p-2 shadow-sm hover:border-blue-400 hover:shadow transition-all">
                           <button onClick={() => setDetail(c.id)} className="w-full text-left">
                             <div className="flex items-center justify-between gap-1.5 mb-1">
-                              <span className="font-bold text-[11px] font-mono text-gray-900">{c.id}</span>
+                              <span className="font-bold text-[11px] text-gray-900 truncate" title={c.title}>{c.title}</span>
                               <Tier tier={c.tier} />
                             </div>
                             <p className="text-[10px] text-gray-600 truncate">{c.subRegion}</p>
@@ -167,6 +180,7 @@ export default function Workflow() {
                               <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-700">
                                 <Ship className="w-3 h-3 text-gray-400 flex-shrink-0" />
                                 <span className="truncate font-semibold">{vessel.name}</span>
+                                <ProvenanceBadge p={vessel.provenance} />
                                 {top?.darkDuringWindow && <Badge tone="red">DARK</Badge>}
                               </div>
                             )}
@@ -201,7 +215,7 @@ export default function Workflow() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
             <div className="px-3 py-2 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
               <span className="text-[11px] font-bold text-gray-700">Enforcement register — {world.enforcement.length} actions</span>
-              <span className="text-[10px] text-gray-500">Total penalties {fmt.inr(stats.penalties)}</span>
+              <span className="text-[10px] text-gray-500">Real outcomes from public records, plus actions recorded in this session · total penalties {fmt.inr(stats.penalties)}</span>
             </div>
             <div className="flex-1 min-h-0">
               <DataTable columns={enforcementColumns} rows={world.enforcement} rowKey={(a) => a.id} dense
@@ -220,7 +234,7 @@ export default function Workflow() {
         </InfoBanner>
       </div>
 
-      <Modal open={!!active} onClose={() => setDetail(null)} title={active ? `${active.id} — verification status` : ''}
+      <Modal open={!!active} onClose={() => setDetail(null)} title={active ? `${active.title} — verification status` : ''}
         subtitle={active?.subRegion} width="max-w-3xl"
         footer={
           active ? (
@@ -240,8 +254,8 @@ export default function Workflow() {
               <Tier tier={active.tier} />
               <StatusBadge status={active.status} />
               <Badge tone="blue">{active.workflowStage}</Badge>
-              {active.imacPushed && <Badge tone="teal">On IMAC</Badge>}
-              {active.alertDispatched && <Badge tone="amber">Alert issued</Badge>}
+              {active.imacPushed && <Badge tone="teal">IMAC payload</Badge>}
+              {active.alertDispatched && <Badge tone="amber">Alert drafted</Badge>}
             </div>
 
             <div className="flex items-center gap-1 overflow-x-auto pb-1">
@@ -267,10 +281,10 @@ export default function Workflow() {
               <div>
                 <p className="text-[10px] font-bold text-gray-600 uppercase mb-1.5">Case</p>
                 <KeyValue cols={1} items={[
-                  ['Detected', fmt.utc(active.detection.acquiredAt)],
-                  ['Sensor', active.detection.sensor],
-                  ['Confidence', `${fmt.pct(activeAnalysis.assessment.confidence)} — ${activeAnalysis.assessment.verdict}`],
-                  ['Volume', `${active.estimatedVolumeM3} m³`],
+                  ['Incident', fmt.precise(active.incidentTime, active.facts.incident.timePrecision)],
+                  ['Observed by', active.detection.observationSource],
+                  ['Detection', `${fmt.confidence(active)} — ${activeAnalysis.assessment.verdict}`],
+                  ['Oil quantity', active.oilQuantityTonnes != null ? `${fmt.num(active.oilQuantityTonnes)} t` : 'Not reported'],
                   ['Assigned', active.assignedTo],
                   ['Last update', fmt.ago(active.updatedAt, now)],
                 ]} />
@@ -282,10 +296,10 @@ export default function Workflow() {
                   const v = world.vesselsByMmsi.get(top.mmsi)!;
                   return (
                     <KeyValue cols={1} items={[
-                      ['Vessel', v.name], ['Flag', v.flag], ['Type', v.type],
+                      ['Vessel', <span className="flex items-center gap-1">{v.name} <ProvenanceBadge p={v.provenance} /></span>], ['Flag', v.flag ?? '—'], ['Type', v.type],
                       ['Score', `${(top.total * 100).toFixed(0)} / 100 (${activeAnalysis.verdict.band})`],
                       ['CPA', `${top.cpaKm.toFixed(1)} km`],
-                      ['Prior offences', String(v.priorOffences)],
+                      ['Prior offences', v.registryVerified ? String(v.priorOffences) : 'Not verified'],
                     ]} />
                   );
                 })() : <p className="text-[11px] text-gray-500">No candidate vessel — suspected dark-vessel event.</p>}
@@ -339,14 +353,14 @@ function EnforcementModal({ open, onClose, caseId }: { open: boolean; onClose: (
 
   return (
     <Modal open={open} onClose={onClose} title={`Raise enforcement action — ${c.id}`}
-      subtitle={vessel ? `Against ${vessel.name} (${vessel.flag}, IMO ${vessel.imo})` : 'No identified vessel'}
+      subtitle={vessel ? `Against ${vessel.name} (${vessel.flag ?? 'flag n/a'}, ${fmt.vesselId(vessel)})` : 'No identified vessel'}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="danger" onClick={() => {
             addEnforcement({
-              caseId: c.id, mmsi: top?.mmsi ?? '', type, issuedAt: now, authority,
-              reference: `MMD/POL/2025/${String(Math.floor(Math.random() * 900 + 100))}`,
+              caseId: c.id, mmsi: top?.mmsi ?? '', party: vessel?.name ?? 'Unidentified source', type, issuedAt: now, authority,
+              reference: null,
               amountInr: amount ? Number(amount) : undefined,
               status: 'Pending', outcome: outcome.trim() || undefined,
             });
@@ -359,8 +373,8 @@ function EnforcementModal({ open, onClose, caseId }: { open: boolean; onClose: (
         {vessel && (
           <div className="bg-gray-50 border border-gray-200 rounded p-2.5">
             <KeyValue cols={2} items={[
-              ['Vessel', vessel.name], ['IMO', vessel.imo],
-              ['Flag', `${vessel.flag} (${vessel.flagRisk})`], ['Operator', vessel.operator],
+              ['Vessel', vessel.name], ['IMO', vessel.imo ?? '—'],
+              ['Flag', `${vessel.flag ?? 'n/a'}${vessel.flagRisk ? ` (${vessel.flagRisk})` : ''}`], ['Operator', vessel.operator ?? 'Not published'],
               ['Attribution score', `${(top!.total * 100).toFixed(0)} / 100`],
               ['Verdict', analysis!.verdict.band],
             ]} />

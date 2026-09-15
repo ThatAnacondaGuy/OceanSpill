@@ -7,12 +7,15 @@ import { useStore, fmt } from './store/store';
 import { MapView, BasemapSwitch, type BasemapStyle, type MapMarker, type MapPolygon, type MapPath, type MapCircle } from './components/MapView';
 import {
   Tabs, Tier, StatusBadge, Badge, Button, ScoreBar, KeyValue, SearchInput, Toggle,
-  InfoBanner, Modal, Field, Select, TextArea, Slider, LineChart, EmptyState, TimeScrubber, usePlayback,
+  InfoBanner, Modal, Field, Select, TextArea, Slider, EmptyState, TimeScrubber, usePlayback, ProvenanceBadge,
 } from './components/ui';
-import { analysePolygon, formatBearing, type LatLon } from './lib/geo';
+import { analysePolygon, formatBearing, type LatLon, type PolygonShape } from './lib/geo';
 import { interpolateTrack } from './engine/attribution';
-import { OIL_TYPES } from './engine/drift';
-import { MODEL_METRICS, segmentationStats } from './engine/detection';
+import { OIL_TYPES, type OilProperties } from './engine/drift';
+import { MODEL_STATUS } from './engine/detection';
+import type { CaseAnalysis } from './store/store';
+import type { SpillCase } from './data/types';
+import { dataUrl } from './data/world';
 import { ECOLOGICAL_AREAS } from './data/geography';
 import { DEFAULT_WEIGHTS } from './engine/attribution';
 
@@ -22,10 +25,10 @@ export default function Investigation() {
 
   const [query, setQuery] = useState('');
   const [basemap, setBasemap] = useState<BasemapStyle>('satellite');
-  const [tab, setTab] = useState('detection');
+  const [tab, setTab] = useState('record');
   const [layers, setLayers] = useState({
     slick: true, hindcast: true, ensemble: true, forecast: true, tracks: true,
-    candidates: true, esa: true, uncertainty: true,
+    candidates: true, esa: true, uncertainty: true, sar: true,
   });
   const [layersOpen, setLayersOpen] = useState(false);
   const [weightsOpen, setWeightsOpen] = useState(false);
@@ -36,8 +39,8 @@ export default function Investigation() {
   const cases = useMemo(() => {
     const q = query.trim().toLowerCase();
     return world.cases
-      .filter((c) => !q || `${c.id} ${c.subRegion} ${c.status}`.toLowerCase().includes(q))
-      .sort((a, b) => b.detection.acquiredAt - a.detection.acquiredAt);
+      .filter((c) => !q || `${c.id} ${c.title} ${c.subRegion} ${c.status}`.toLowerCase().includes(q))
+      .sort((a, b) => b.incidentTime - a.incidentTime);
   }, [world.cases, query, revision]);
 
   const active = world.cases.find((c) => c.id === selectedCaseId) ?? cases[0] ?? null;
@@ -87,6 +90,17 @@ export default function Investigation() {
         id: 'slick', rings: [active.detection.polygon.ring, ...(active.detection.polygon.fragments ?? [])],
         fill: 'rgba(15,23,42,0.72)', stroke: '#f8fafc', strokeWidth: 1.6, z: 6,
       });
+    }
+
+    if (layers.sar) {
+      active.detection.sarMeasurements.forEach((m) => m.spots.forEach((spot, i) => {
+        if (spot.outline.length < 3) return;
+        const chosen = active.detection.sarSpot?.scene === m.scene && active.detection.sarSpot.distanceKm === spot.distanceKm;
+        polygons.push({
+          id: `sar-${m.scene}-${i}`, rings: [spot.outline], fill: chosen ? 'rgba(220,38,38,0.25)' : 'rgba(220,38,38,0.08)',
+          stroke: '#dc2626', strokeWidth: chosen ? 2 : 1, dash: chosen ? undefined : '3 3', z: 7,
+        });
+      }));
     }
 
     if (layers.ensemble) {
@@ -171,7 +185,7 @@ export default function Investigation() {
               headingDeg: at.cog, label: vessel.name, sublabel: `Rank ${score.rank} · score ${(score.total * 100).toFixed(0)}`,
               selected: focused, dimmed: dim, z: isTop ? 9 : 7,
               meta: {
-                MMSI: vessel.mmsi, Type: vessel.type, Speed: `${at.sog.toFixed(1)} kn`,
+                ID: fmt.vesselId(vessel), Data: vessel.provenance === 'real' ? 'Real vessel, synthetic track' : 'Synthetic vessel', Speed: `${at.sog.toFixed(1)} kn`,
                 Course: `${at.cog.toFixed(0)}°`, CPA: `${score.cpaKm.toFixed(1)} km`,
               },
             });
@@ -182,7 +196,7 @@ export default function Investigation() {
                 id: `v-dark-${score.mmsi}`, position: last, kind: 'vessel', color: '#dc2626',
                 size: 6, headingDeg: last.cog, label: `${vessel.name} (dark)`,
                 sublabel: 'Transponder silent — last known position', dimmed: dim, pulse: true, z: 8,
-                meta: { MMSI: vessel.mmsi, 'Dark for': `${score.darkMinutes} min` },
+                meta: { ID: fmt.vesselId(vessel), 'Dark for': `${score.darkMinutes} min` },
               });
             }
           }
@@ -202,7 +216,6 @@ export default function Investigation() {
   }
 
   const oil = OIL_TYPES[active.oilType];
-  const segStats = segmentationStats(active.detection, analysis.assessment);
   const topScore = analysis.ranked[0];
   const topVessel = topScore ? world.vesselsByMmsi.get(topScore.mmsi) : null;
 
@@ -222,15 +235,16 @@ export default function Investigation() {
                   c.id === active.id ? 'bg-blue-50 border-l-[3px] border-l-blue-600' : 'hover:bg-gray-50 border-l-[3px] border-l-transparent'
                 }`}>
                 <div className="flex items-center justify-between gap-1 mb-0.5">
-                  <span className="font-bold text-[11px] font-mono text-gray-900 truncate">{c.id}</span>
+                  <span className="font-bold text-[11px] text-gray-900 truncate" title={c.title}>{c.title}</span>
                   <Tier tier={c.tier} />
                 </div>
+                <p className="text-[9.5px] font-mono text-gray-400 truncate">{c.id}</p>
                 <p className="text-[10px] text-gray-600 truncate">{c.subRegion}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <StatusBadge status={c.status} />
                   {a?.ranked.some((r) => r.darkDuringWindow) && <Badge tone="red">DARK</Badge>}
                 </div>
-                <p className="text-[9px] text-gray-400 mt-0.5">{fmt.ago(c.detection.acquiredAt, now)}</p>
+                <p className="text-[9px] text-gray-400 mt-0.5">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {fmt.ago(c.incidentTime, now)}</p>
               </button>
             );
           })}
@@ -241,7 +255,8 @@ export default function Investigation() {
       <section className="flex-1 min-w-0 flex flex-col">
         <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between gap-3 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="font-bold text-sm text-gray-900 font-mono">{active.id}</span>
+            <span className="font-bold text-sm text-gray-900">{active.title}</span>
+            <span className="text-[10px] text-gray-400 font-mono">{active.id}</span>
             <Tier tier={active.tier} />
             <StatusBadge status={active.status} />
             <span className="text-[11px] text-gray-500 truncate">{active.subRegion}</span>
@@ -288,6 +303,8 @@ export default function Investigation() {
                       <Toggle checked={layers.tracks} onChange={(v) => setLayers({ ...layers, tracks: v })} label="AIS tracks" count={analysis.ranked.length} />
                       <Toggle checked={layers.candidates} onChange={(v) => setLayers({ ...layers, candidates: v })} label="Vessel positions" />
                       <Toggle checked={layers.esa} onChange={(v) => setLayers({ ...layers, esa: v })} label="Sensitive areas" />
+                      <Toggle checked={layers.sar} onChange={(v) => setLayers({ ...layers, sar: v })} label="SAR dark spots (processed)"
+                        count={active.detection.sarMeasurements.reduce((n, m) => n + m.spots.length, 0)} />
                       {focusMmsi && (
                         <button onClick={() => setFocusMmsi(null)} className="mt-2 w-full text-[10px] font-semibold text-blue-600 hover:underline">
                           Clear vessel focus
@@ -301,12 +318,13 @@ export default function Investigation() {
             legend={
               <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded p-2.5 text-[10px] shadow-lg">
                 <h4 className="font-bold mb-1.5 text-gray-700 uppercase tracking-wide">Analysis legend</h4>
-                <LegendLine color="#f8fafc" fill="rgba(15,23,42,0.72)" label="Detected slick" swatch />
+                <LegendLine color="#f8fafc" fill="rgba(15,23,42,0.72)" label={active.detection.extentReported ? 'Reported slick extent' : 'Reported location'} swatch />
                 <LegendLine color="#f59e0b" label="Hindcast (backward)" dash />
                 <LegendLine color="#06b6d4" label="Forecast (forward)" />
                 <LegendLine color="#f43f5e" label="Leading suspect track" />
                 <LegendLine color="#dc2626" label="AIS gap (inferred)" dash />
                 <LegendLine color="#64748b" label="Other candidate traffic" />
+                <p className="text-[9px] text-gray-500 mt-1.5 max-w-[190px] leading-snug">AIS: {active.aisProvider}. Drift forcing: {analysis.sampler.label}.</p>
               </div>
             }
           />
@@ -320,7 +338,8 @@ export default function Investigation() {
             { t: analysis.hindcast.estimatedTime, color: '#f59e0b', label: 'Estimated discharge' },
             { t: analysis.windowStart, color: '#94a3b8', label: 'Window opens' },
             { t: analysis.windowEnd, color: '#94a3b8', label: 'Window closes' },
-            { t: active.detection.acquiredAt, color: '#2563eb', label: 'Satellite acquisition' },
+            { t: active.detection.acquiredAt, color: '#2563eb', label: 'Reference observation' },
+            ...(['minute', 'hour'].includes(active.facts.incident.timePrecision) ? [{ t: active.incidentTime, color: '#dc2626', label: 'Reported incident' }] : []),
           ]}
         />
       </section>
@@ -330,6 +349,7 @@ export default function Investigation() {
         <Tabs
           active={tab} onChange={setTab}
           tabs={[
+            { id: 'record', label: 'Record' },
             { id: 'detection', label: 'Detection' },
             { id: 'drift', label: 'Drift' },
             { id: 'attribution', label: 'Suspects', count: analysis.ranked.length },
@@ -338,7 +358,8 @@ export default function Investigation() {
         />
 
         <div className="flex-1 overflow-y-auto">
-          {tab === 'detection' && <DetectionTab active={active} analysis={analysis} shape={shape} segStats={segStats} oil={oil} />}
+          {tab === 'record' && <RecordTab active={active} />}
+          {tab === 'detection' && <DetectionTab active={active} analysis={analysis} shape={shape} oil={oil} />}
           {tab === 'drift' && <DriftTab active={active} analysis={analysis} />}
           {tab === 'attribution' && (
             <AttributionTab
@@ -362,7 +383,7 @@ export default function Investigation() {
               <Ship className="w-4 h-4 text-rose-600 flex-shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold text-gray-900 truncate">{topVessel.name}</p>
-                <p className="text-[9.5px] text-gray-500">{topVessel.flag} · MMSI {topVessel.mmsi}</p>
+                <p className="text-[9.5px] text-gray-500 flex items-center gap-1">{topVessel.flag ?? 'Flag n/a'} · {fmt.vesselId(topVessel)} <ProvenanceBadge p={topVessel.provenance} /></p>
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="text-base font-black text-rose-600 leading-none">{(topScore.total * 100).toFixed(0)}</div>
@@ -391,26 +412,33 @@ function LegendLine({ color, label, dash, swatch, fill }: { color: string; label
   );
 }
 
-function DetectionTab({ active, analysis, shape, segStats, oil }: any) {
+function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; analysis: CaseAnalysis; shape: PolygonShape; oil: OilProperties | undefined }) {
   const a = analysis.assessment;
+  const det = active.detection;
+  const pendingCount = a.checks.filter((c) => c.status === 'pending').length;
+  const w = analysis.weathering;
   return (
     <div className="p-3 space-y-3">
       <div className={`rounded border p-2.5 ${
-        a.verdict === 'Confirmed oil' ? 'bg-red-50 border-red-200'
+        a.verdict === 'Officially confirmed' || a.verdict === 'Confirmed oil' ? 'bg-red-50 border-red-200'
         : a.verdict === 'Probable oil' ? 'bg-amber-50 border-amber-200'
         : a.verdict === 'Ambiguous' ? 'bg-yellow-50 border-yellow-200' : 'bg-slate-50 border-slate-200'}`}>
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-bold text-gray-900">{a.verdict}</span>
-          <span className="text-lg font-black text-gray-900">{(a.confidence * 100).toFixed(1)}%</span>
+          <span className="text-lg font-black text-gray-900">{a.confidenceBasis === 'official-report' ? 'Official' : fmt.pct(a.confidence, 0)}</span>
         </div>
-        <div className="h-1.5 bg-white/70 rounded overflow-hidden mb-1.5">
-          <div className={`h-full ${a.confidence > 0.8 ? 'bg-red-500' : a.confidence > 0.55 ? 'bg-amber-500' : 'bg-slate-400'}`}
-            style={{ width: `${a.confidence * 100}%` }} />
-        </div>
-        <p className="text-[10px] text-gray-700 leading-snug">
-          Raw segmentation output was {(a.rawModelConfidence * 100).toFixed(1)}%; the cross-checks below moved it
-          to {(a.confidence * 100).toFixed(1)}%.
-        </p>
+        {a.confidenceBasis === 'official-report' ? (
+          <p className="text-[10px] text-gray-700 leading-snug">
+            The spill was confirmed by an authority ({det.observationSource}). This is a report, not a model output:
+            SAR checks that need a processed scene are shown as pending below.
+          </p>
+        ) : a.rawModelConfidence != null ? (
+          <p className="text-[10px] text-gray-700 leading-snug">
+            Raw segmentation output was {fmt.pct(a.rawModelConfidence)}; the cross-checks below moved it to {fmt.pct(a.confidence)}.
+          </p>
+        ) : (
+          <p className="text-[10px] text-gray-700 leading-snug">Not officially confirmed and no SAR model output yet.</p>
+        )}
         {a.lookalikeHypothesis && (
           <p className="text-[10px] font-semibold text-slate-700 mt-1.5 pt-1.5 border-t border-slate-200">
             Most likely natural alternative: {a.lookalikeHypothesis}
@@ -420,19 +448,20 @@ function DetectionTab({ active, analysis, shape, segStats, oil }: any) {
 
       <Section title="Look-alike discrimination" icon={<FlaskConical className="w-3.5 h-3.5" />}>
         <p className="text-[10px] text-gray-500 mb-2 leading-snug">
-          Finding dark patches in SAR is easy. Separating oil from wind shadows, algal films and
-          current shear is the hard part, and it is what these checks do.
+          Separating oil from wind shadows, algal films and current shear. {pendingCount > 0 && `${pendingCount} check${pendingCount === 1 ? '' : 's'} need a downloaded and segmented SAR scene.`}
         </p>
         <div className="space-y-1.5">
-          {a.checks.map((c: any) => (
-            <div key={c.name} className={`rounded border p-2 ${c.passed ? 'bg-emerald-50/60 border-emerald-200' : 'bg-red-50/60 border-red-200'}`}>
+          {a.checks.map((c) => (
+            <div key={c.name} className={`rounded border p-2 ${
+              c.status === 'passed' ? 'bg-emerald-50/60 border-emerald-200' : c.status === 'failed' ? 'bg-red-50/60 border-red-200' : 'bg-gray-50 border-gray-200 border-dashed'}`}>
               <div className="flex items-start gap-1.5">
-                {c.passed ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  : <XCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0 mt-0.5" />}
+                {c.status === 'passed' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  : c.status === 'failed' ? <XCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0 mt-0.5" />
+                  : <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />}
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10.5px] font-bold text-gray-900">{c.name}</span>
-                    <span className="text-[9px] text-gray-400">weight {c.weight.toFixed(2)}</span>
+                    {c.status === 'pending' ? <ProvenanceBadge p="pending" /> : <span className="text-[9px] text-gray-400">weight {c.weight.toFixed(2)}</span>}
                   </div>
                   <p className="text-[10px] text-gray-600 leading-snug mt-0.5">{c.detail}</p>
                 </div>
@@ -442,89 +471,140 @@ function DetectionTab({ active, analysis, shape, segStats, oil }: any) {
         </div>
       </Section>
 
-      <Section title="Slick geometry" icon={<Crosshair className="w-3.5 h-3.5" />}>
+      <Section title="Reported geometry" icon={<Crosshair className="w-3.5 h-3.5" />}>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <Badge tone="blue">{det.geometryBasis}</Badge>
+          <ProvenanceBadge p={det.extentReported ? 'real' : 'modelled'} />
+        </div>
         <KeyValue cols={2} items={[
           ['Area', `${shape.areaKm2.toFixed(2)} km²`],
-          ['Perimeter', `${shape.perimeterKm.toFixed(1)} km`],
           ['Major axis', `${shape.majorAxisKm.toFixed(2)} km`],
-          ['Minor axis', `${shape.minorAxisKm.toFixed(2)} km`],
-          ['Elongation', `${shape.elongation.toFixed(2)} : 1`],
-          ['Compactness', shape.compactness.toFixed(3)],
-          ['Orientation', `${shape.orientationDeg.toFixed(0)}° (${formatBearing(shape.orientationDeg)})`],
-          ['Fragments', String(1 + (active.detection.polygon.fragments?.length ?? 0))],
+          ['Elongation', det.extentReported ? `${shape.elongation.toFixed(2)} : 1` : 'n/a (marker)'],
+          ['Orientation', det.extentReported ? `${shape.orientationDeg.toFixed(0)}° (${formatBearing(shape.orientationDeg)})` : 'n/a (marker)'],
+          ['Observed', fmt.utc(det.acquiredAt)],
+          ['Source', det.observationSource],
         ]} />
+        {det.geometryAssumptions.length > 0 && (
+          <ul className="mt-1.5 space-y-0.5">
+            {det.geometryAssumptions.map((s) => <li key={s} className="text-[9.5px] text-gray-500 leading-snug flex gap-1"><span>•</span><span>{s}</span></li>)}
+          </ul>
+        )}
         <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2">
-          <p className="text-[10px] font-bold text-blue-900 mb-0.5">Source inference</p>
+          <p className="text-[10px] font-bold text-blue-900 mb-0.5">Source</p>
           <p className="text-[10px] text-blue-800 leading-snug">{a.sourceInference}</p>
         </div>
       </Section>
 
-      <Section title="Weathering & age estimate" icon={<Beaker className="w-3.5 h-3.5" />}>
-        <div className="bg-gray-50 border border-gray-200 rounded p-2 mb-2">
-          <div className="flex justify-between items-baseline">
-            <span className="text-[10px] text-gray-600">Estimated age at acquisition</span>
-            <span className="text-base font-black text-gray-900">{analysis.age.ageHours.toFixed(1)} h</span>
-          </div>
-          <div className="flex justify-between text-[9.5px] text-gray-500 mt-0.5">
-            <span>Fit confidence</span>
-            <span className="font-mono">{fmt.pct(analysis.age.confidence, 0)} · residual {analysis.age.residual.toFixed(2)}</span>
-          </div>
-        </div>
-        <p className="text-[10px] text-gray-500 mb-2 leading-snug">
-          Age is recovered by inverting the weathering model — finding the age whose predicted area and
-          radar contrast best match what was observed. It is the least well-constrained output on this page.
-        </p>
+      <Section title="Weathering" icon={<Beaker className="w-3.5 h-3.5" />}>
         <KeyValue cols={2} items={[
-          ['Oil type', oil.label],
-          ['Released volume', `${active.estimatedVolumeM3} m³`],
-          ['Evaporated', `${analysis.weathering.evaporatedPct}%`],
-          ['Water content', `${analysis.weathering.waterContentPct}%`],
-          ['Film thickness', `${analysis.weathering.thicknessUm} µm`],
-          ['Viscosity', `${fmt.num(analysis.weathering.viscosityCp)} cP`],
-          ['Surface remaining', `${analysis.weathering.remainingPct}%`],
-          ['Appearance', analysis.weathering.appearance],
+          ['Oil type (model)', oil?.label ?? active.oilType],
+          ['Quantity', active.oilQuantityTonnes != null ? `${fmt.num(active.oilQuantityTonnes)} t` : 'Not reported'],
+          ['Age at observation', analysis.knownAgeHours != null ? `${analysis.knownAgeHours.toFixed(1)} h` : 'Unknown (incident time imprecise)'],
+          ['Incident time', fmt.precise(active.incidentTime, active.facts.incident.timePrecision)],
         ]} />
-        <div className="mt-2">
-          <p className="text-[10px] font-bold text-gray-600 uppercase mb-1">Predicted area vs age</p>
-          <LineChart
-            height={110}
-            series={[{ name: 'area', color: '#2563eb', points: analysis.age.curve.filter((_: any, i: number) => i % 4 === 0).map((c: any) => c.predictedAreaKm2) }]}
-            xLabels={['0 h', '24 h', '48 h', '72 h', '96 h']}
-            markers={[{ x: Math.round(analysis.age.ageHours / 2), label: 'best fit', color: '#dc2626' }]}
-            yFormat={(v) => v.toFixed(1)} showArea
-          />
-        </div>
+        {w ? (
+          <>
+            <p className="text-[10px] text-gray-500 my-1.5 leading-snug flex items-center gap-1.5">
+              <ProvenanceBadge p="modelled" /> Weathering state from the empirical model at the known age, using the observed wind.
+            </p>
+            <KeyValue cols={2} items={[
+              ['Evaporated', `${w.evaporatedPct}%`],
+              ['Water content', `${w.waterContentPct}%`],
+              ['Film thickness', `${w.thicknessUm} µm`],
+              ['Viscosity', `${fmt.num(w.viscosityCp)} cP`],
+              ['Surface remaining', `${w.remainingPct}%`],
+              ['Appearance', w.appearance],
+            ]} />
+          </>
+        ) : (
+          <p className="text-[10px] text-gray-500 mt-1.5">Weathering is not modelled because the release time is only known to the {active.facts.incident.timePrecision}.</p>
+        )}
+        {active.facts.oil.spilledNote && <p className="text-[9.5px] text-gray-500 mt-1.5 leading-snug">{active.facts.oil.spilledNote}</p>}
       </Section>
 
-      <Section title="Acquisition" icon={<Wind className="w-3.5 h-3.5" />}>
+      <Section title="Conditions at the observation" icon={<Wind className="w-3.5 h-3.5" />}>
         <KeyValue cols={2} items={[
-          ['Sensor', active.detection.sensor],
-          ['Mode', active.detection.mode],
-          ['Polarisation', active.detection.polarisation],
-          ['Resolution', `${active.detection.resolutionM} m`],
-          ['Incidence', `${active.detection.incidenceAngleDeg}°`],
-          ['Acquired', fmt.utc(active.detection.acquiredAt)],
-          ['Wind at scene', `${analysis.conditions.wind.speed.toFixed(1)} m/s ${formatBearing(analysis.conditions.wind.dirFrom)}`],
-          ['Sea state', `Bft ${analysis.conditions.sea.beaufort} · Hs ${analysis.conditions.sea.significantWaveHeightM} m`],
-          ['Mean backscatter', `${active.detection.meanBackscatterDb} dB`],
-          ['Contrast', `${analysis.assessment.contrastDb.toFixed(1)} dB`],
+          [<span className="flex items-center gap-1">Wind <ProvenanceBadge p={analysis.conditions.wind.origin} /></span>, `${analysis.conditions.wind.speed.toFixed(1)} m/s from ${formatBearing(analysis.conditions.wind.dirFrom)}`],
+          [<span className="flex items-center gap-1">Current <ProvenanceBadge p={analysis.conditions.current.origin} /></span>, `${(analysis.conditions.current.speed * 1.944).toFixed(2)} kn to ${formatBearing(analysis.conditions.current.dirTo)}`],
+          ['Sea state', `Bft ${analysis.conditions.sea.beaufort} · ${analysis.conditions.sea.beaufortLabel}`],
+          ['SAR window', analysis.conditions.sea.sarDetectability],
         ]} />
-        <p className="text-[9.5px] text-gray-500 font-mono mt-1.5 break-all">Scene: {active.detection.sceneId}</p>
         <InfoBanner tone={analysis.conditions.sea.sarDetectability === 'Optimal' ? 'green' : 'amber'} icon={<Info className="w-3 h-3" />}>
-          {analysis.assessment.detectabilityNote}
+          {a.detectabilityNote}
         </InfoBanner>
       </Section>
 
+      <Section title={`SAR catalogue (${det.scenes.length})`} icon={<Layers className="w-3.5 h-3.5" />}>
+        <div className="space-y-1 mb-2">
+          {det.sarProviders.map((p) => (
+            <div key={p.name} className="flex items-center gap-1.5 text-[10px]">
+              <Badge tone={p.sovereign ? 'green' : 'gray'}>{p.sovereign ? 'IN' : 'EXT'}</Badge>
+              <span className="font-semibold text-gray-800">{p.name}</span>
+              <span className={`ml-auto ${p.ok ? 'text-emerald-700' : 'text-amber-700'}`}>{p.ok ? `${p.count} found` : 'not searched'}</span>
+            </div>
+          ))}
+        </div>
+        {det.scenes.length === 0 ? (
+          <p className="text-[10px] text-gray-500">No scene in the search window.</p>
+        ) : (
+          <div className="space-y-1">
+            {det.scenes.map((s) => (
+              <div key={s.id} className="bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold text-gray-800">{s.platform} {s.mode} {s.productType}</span>
+                  <ProvenanceBadge p="real" />
+                </div>
+                <p className="text-[9.5px] text-gray-500">{fmt.utc(s.start)} · {s.orbitDirection ?? 'orbit n/a'} · {s.coversIncident ? 'covers incident' : 'near incident'}</p>
+                <p className="text-[9px] text-gray-400 font-mono break-all">{s.name}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {det.sarMeasurements.length > 0 && (
+        <Section title={`Processed scenes (${det.sarMeasurements.length})`} icon={<Layers className="w-3.5 h-3.5" />}>
+          {det.sarMeasurements.map((m) => (
+            <div key={m.scene} className="border border-gray-200 rounded p-2 mb-2">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-[10px] font-bold text-gray-800 truncate" title={m.scene}>{m.scene}</span>
+                <ProvenanceBadge p="observed" />
+              </div>
+              <img src={dataUrl(m.quicklook)} alt={`Calibrated ${m.polarisation} sigma0 quicklook with detected dark spots outlined`}
+                className="w-full rounded border border-gray-200 bg-gray-900" />
+              <p className="text-[9.5px] text-gray-500 mt-1 leading-snug">{m.method}</p>
+              <KeyValue cols={2} items={[
+                ['Polarisation', m.polarisation],
+                ['Pixel spacing', `${m.parameters.pixelSpacingM} m`],
+                ['Sea background', m.sea.meanDb != null ? `${m.sea.meanDb} dB` : '—'],
+                ['Incidence', `${m.incidenceDeg}°`],
+              ]} />
+              <div className="mt-1.5 space-y-1">
+                {m.spots.length === 0 && <p className="text-[10px] text-gray-500">No dark spot above the thresholds.</p>}
+                {m.spots.slice(0, 5).map((spot, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[10px]">
+                    <span className="w-14 font-mono text-gray-700">{spot.distanceKm.toFixed(1)} km</span>
+                    <span className="flex-1 text-gray-600">{spot.areaKm2.toFixed(2)} km² · {spot.elongation.toFixed(1)}:1 · {spot.orientationDeg.toFixed(0)}°</span>
+                    <span className="font-mono font-bold text-gray-900">{spot.contrastDb.toFixed(1)} dB</span>
+                  </div>
+                ))}
+              </div>
+              <ul className="mt-1.5 space-y-0.5">
+                {m.limitations.map((l) => <li key={l} className="text-[9px] text-gray-400 leading-snug">• {l}</li>)}
+              </ul>
+            </div>
+          ))}
+        </Section>
+      )}
+
       <Section title="Segmentation model" icon={<Layers className="w-3.5 h-3.5" />}>
-        <KeyValue cols={2} items={[
-          ['Version', MODEL_METRICS.version],
-          ['Oil-class IoU', MODEL_METRICS.classes[1].iou.toFixed(3)],
-          ['Look-alike IoU', MODEL_METRICS.classes[2].iou.toFixed(3)],
-          ['False positive rate', fmt.pct(MODEL_METRICS.falsePositiveRate)],
-          ['Oil pixels', fmt.num(segStats.oilPixels)],
-          ['Class imbalance', `1 : ${fmt.num(segStats.imbalanceRatio)}`],
+        <div className="flex items-center gap-1.5 mb-1.5"><ProvenanceBadge p="pending" /><span className="text-[10px] text-gray-600">Not trained</span></div>
+        <KeyValue cols={1} items={[
+          ['Architecture', MODEL_STATUS.plannedArchitecture],
+          ['Training plan', MODEL_STATUS.plannedTraining],
+          ['Loss', MODEL_STATUS.plannedLoss],
         ]} />
-        <p className="text-[9.5px] text-gray-500 mt-1.5 leading-snug">{MODEL_METRICS.note}</p>
+        <p className="text-[9.5px] text-gray-500 mt-1.5 leading-snug">{MODEL_STATUS.note}</p>
       </Section>
 
       {active.lookalikeReason && (
@@ -536,14 +616,125 @@ function DetectionTab({ active, analysis, shape, segStats, oil }: any) {
   );
 }
 
-function DriftTab({ active, analysis }: any) {
+function RecordTab({ active }: { active: SpillCase }) {
+  const f = active.facts;
+  return (
+    <div className="p-3 space-y-3">
+      <div className="bg-slate-50 border border-slate-200 rounded p-2.5">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <p className="text-xs font-bold text-gray-900">{f.title}</p>
+          <ProvenanceBadge p="real" />
+        </div>
+        <p className="text-[10px] text-gray-600 leading-snug">{f.officialFindings}</p>
+      </div>
+
+      <Section title="Incident" icon={<Info className="w-3.5 h-3.5" />}>
+        <KeyValue cols={2} items={[
+          ['Time', fmt.precise(active.incidentTime, f.incident.timePrecision)],
+          ['Precision', f.incident.timePrecision],
+          ['Position', `${f.incident.position.lat.toFixed(4)}, ${f.incident.position.lon.toFixed(4)}`],
+          ['Position ±', `${f.incident.positionPrecisionKm} km`],
+          ['Source type', f.sourceType],
+          ['Position source', f.incident.positionSource],
+        ]} />
+        {f.incident.timeNote && <p className="text-[9.5px] text-gray-500 mt-1">{f.incident.timeNote}</p>}
+      </Section>
+
+      <Section title="Oil" icon={<Beaker className="w-3.5 h-3.5" />}>
+        <div className="space-y-1">
+          {f.oil.onboard.map((o) => (
+            <div key={o.product} className="flex justify-between gap-2 text-[10.5px]">
+              <span className="text-gray-700">{o.product}{o.note && <span className="text-gray-400"> · {o.note}</span>}</span>
+              <span className="font-mono font-bold text-gray-900 flex-shrink-0">{o.tonnes != null ? `${fmt.num(o.tonnes, o.tonnes % 1 ? 1 : 0)} t` : o.cubicMetres != null ? `${fmt.num(o.cubicMetres)} m³` : 'n/r'}</span>
+            </div>
+          ))}
+          <div className="flex justify-between gap-2 text-[10.5px] pt-1 border-t border-gray-200">
+            <span className="text-gray-700 font-semibold">Released</span>
+            <span className="font-mono font-bold text-gray-900">{f.oil.spilledTonnes != null ? `${fmt.num(f.oil.spilledTonnes)} t` : 'Not published'}</span>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Observations" icon={<Crosshair className="w-3.5 h-3.5" />}>
+        <div className="space-y-1">
+          {f.observations.map((o) => (
+            <div key={`${o.time}-${o.type}`} className="bg-gray-50 border border-gray-200 rounded px-2 py-1.5">
+              <div className="flex justify-between gap-2">
+                <span className="text-[10px] font-bold text-gray-800">{o.type}</span>
+                <span className="text-[9.5px] font-mono text-gray-500">{fmt.utcShort(Date.parse(o.time))}</span>
+              </div>
+              <p className="text-[10px] text-gray-600 leading-snug">{o.description}</p>
+              <p className="text-[9px] text-gray-400">{o.source}{o.extentKm2 != null ? ` · ${o.extentKm2} km²` : ''}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Timeline" icon={<Clock className="w-3.5 h-3.5" />}>
+        <ol className="relative border-l border-gray-300 ml-1.5 space-y-2">
+          {f.timeline.map((e) => (
+            <li key={`${e.time}-${e.event}`} className="ml-3">
+              <span className="absolute -left-[4.5px] w-2 h-2 rounded-full bg-blue-500 mt-1" />
+              <p className="text-[9.5px] font-mono text-gray-500">{fmt.precise(Date.parse(e.time), e.timePrecision ?? 'minute')}</p>
+              <p className="text-[10.5px] text-gray-800 leading-snug">{e.event}</p>
+            </li>
+          ))}
+        </ol>
+      </Section>
+
+      {f.response.length > 0 && (
+        <Section title="Response" icon={<Radio className="w-3.5 h-3.5" />}>
+          <div className="flex flex-wrap gap-1">{f.response.map((r) => <Badge key={r} tone="blue">{r}</Badge>)}</div>
+        </Section>
+      )}
+
+      {Object.keys(f.impact).length > 0 && (
+        <Section title="Impact (reported)" icon={<Leaf className="w-3.5 h-3.5" />}>
+          <KeyValue cols={2} items={Object.entries(f.impact).map(([k, v]) => [k.replace(/([A-Z])/g, ' $1').replace(/^./, (x) => x.toUpperCase()), fmt.num(v)])} />
+        </Section>
+      )}
+
+      {f.legal && f.legal.length > 0 && (
+        <Section title="Legal outcome" icon={<Scale className="w-3.5 h-3.5" />}>
+          {f.legal.map((l) => (
+            <div key={`${l.authority}-${l.action}`} className="bg-amber-50 border border-amber-200 rounded p-2 mb-1">
+              <p className="text-[10.5px] font-bold text-amber-900">{l.action}{l.amountInr ? ` · ${fmt.inr(l.amountInr)}` : ''}</p>
+              <p className="text-[10px] text-amber-800">{l.authority} → {l.party}</p>
+              {l.note && <p className="text-[9.5px] text-amber-700 mt-0.5">{l.note}</p>}
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {active.warnings.length > 0 && (
+        <Section title="Data warnings" icon={<AlertTriangle className="w-3.5 h-3.5" />}>
+          <ul className="space-y-1">
+            {active.warnings.map((w) => <li key={w} className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 leading-snug">{w}</li>)}
+          </ul>
+        </Section>
+      )}
+
+      <Section title={`Sources (${f.sources.length})`} icon={<Info className="w-3.5 h-3.5" />}>
+        <ul className="space-y-1">
+          {f.sources.map((s) => (
+            <li key={s.url}>
+              <a href={s.url} target="_blank" rel="noreferrer" className="text-[10.5px] text-blue-700 hover:underline leading-snug break-words">{s.title}</a>
+            </li>
+          ))}
+        </ul>
+      </Section>
+    </div>
+  );
+}
+
+function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnalysis }) {
   const hc = analysis.hindcast;
   const fc = analysis.forecast;
   return (
     <div className="p-3 space-y-3">
       <Section title="Hindcast — where it came from" icon={<Clock className="w-3.5 h-3.5" />}>
         <p className="text-[10px] text-gray-500 mb-2 leading-snug">
-          A particle cloud is integrated backward from the observed slick under current + Stokes drift +
+          A particle cloud is integrated backward from the reported observation under current + Stokes drift +
           3% windage. Twelve ensemble members with perturbed windage and diffusivity give the uncertainty.
         </p>
         <div className="bg-amber-50 border border-amber-200 rounded p-2.5 mb-2">
@@ -564,20 +755,21 @@ function DriftTab({ active, analysis }: any) {
           </div>
         </div>
         <KeyValue cols={2} items={[
-          ['Integration', `${active.hindcastHours} h backward`],
+          ['Integration', `${((active.detection.acquiredAt - hc.estimatedTime) / 3600_000).toFixed(1)} h backward${
+            (active.detection.acquiredAt - hc.estimatedTime) / 3600_000 < active.hindcastHours - 0.01 ? ' (to reported incident)' : ''}`],
           ['Timestep', `${hc.params.stepMinutes} min`],
           ['Particles', fmt.num(hc.params.particles)],
           ['Windage', fmt.pct(hc.params.windage)],
           ['Diffusivity', `${hc.params.diffusivity} m²/s`],
           ['Ensemble', `${hc.ensemble.length} members`],
           ['Confidence', fmt.pct(hc.confidence)],
-          ['Drift distance', `${(hc.uncertaintyRadiusKm * 0 + distance(hc.path)).toFixed(1)} km`],
+          ['Drift distance', `${distance(hc.path).toFixed(1)} km`],
         ]} />
       </Section>
 
       <Section title="Forecast — where it is going" icon={<Waves className="w-3.5 h-3.5" />}>
         <div className="space-y-1.5">
-          {fc.horizons.map((h: any) => (
+          {fc.horizons.map((h) => (
             <div key={h.hours} className="flex items-center gap-2 bg-cyan-50 border border-cyan-200 rounded px-2 py-1.5">
               <div className="w-10 text-[11px] font-black text-cyan-800 flex-shrink-0">+{h.hours} h</div>
               <div className="flex-1 min-w-0">
@@ -599,21 +791,28 @@ function DriftTab({ active, analysis }: any) {
         </p>
       </Section>
 
-      <Section title="Forcing at the origin" icon={<Wind className="w-3.5 h-3.5" />}>
+      <Section title="Forcing at the observation" icon={<Wind className="w-3.5 h-3.5" />}>
         <KeyValue cols={2} items={[
-          ['Wind speed', `${analysis.conditions.wind.speed.toFixed(1)} m/s`],
+          [<span className="flex items-center gap-1">Wind <ProvenanceBadge p={analysis.conditions.wind.origin} /></span>, `${analysis.conditions.wind.speed.toFixed(1)} m/s`],
           ['Wind from', `${analysis.conditions.wind.dirFrom.toFixed(0)}° ${formatBearing(analysis.conditions.wind.dirFrom)}`],
-          ['Current', `${(analysis.conditions.current.speed * 1.944).toFixed(2)} kn`],
+          [<span className="flex items-center gap-1">Current <ProvenanceBadge p={analysis.conditions.current.origin} /></span>, `${(analysis.conditions.current.speed * 1.944).toFixed(2)} kn`],
           ['Current toward', `${analysis.conditions.current.dirTo.toFixed(0)}° ${formatBearing(analysis.conditions.current.dirTo)}`],
-          ['SST', `${analysis.conditions.sea.seaSurfaceTempC} °C`],
+          [<span className="flex items-center gap-1">SST <ProvenanceBadge p="modelled" /></span>, `${analysis.conditions.sea.seaSurfaceTempC} °C`],
           ['Wave height', `${analysis.conditions.sea.significantWaveHeightM} m`],
         ]} />
+        <div className="mt-2 space-y-0.5 text-[9.5px] text-gray-500">
+          <p><b>Wind:</b> {analysis.sampler.sources.wind}</p>
+          <p><b>Current:</b> {analysis.sampler.sources.current}</p>
+          {active.forcingCoverage && (
+            <p>Grid coverage: wind {fmt.pct(active.forcingCoverage.wind, 0)} · current {fmt.pct(active.forcingCoverage.current, 0)} · waves {fmt.pct(active.forcingCoverage.waves, 0)}</p>
+          )}
+          <p>Cells without observed values fall back to the climatological model; samples say which was used.</p>
+        </div>
       </Section>
 
       <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
-        The drift solver is the same integration used by OpenDrift's OpenOil module and NOAA GNOME.
-        The 2011 MV Rak hindcast off Mumbai used this approach against INCOIS forcing, which is the closest
-        validated Indian precedent for this method.
+        Same Lagrangian approach as OpenDrift OpenOil and NOAA GNOME, run in the browser. Operational use should
+        switch the forcing to INCOIS HOOFS currents once access is granted.
       </InfoBanner>
     </div>
   );
@@ -680,9 +879,10 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
                     <span className="font-bold text-[11.5px] text-gray-900 truncate">{v.name}</span>
                     {s.darkDuringWindow && <Badge tone="red">DARK VESSEL</Badge>}
                     {v.sanctioned && <Badge tone="slate">SANCTIONED</Badge>}
+                    <ProvenanceBadge p={v.provenance} />
                   </div>
                   <p className="text-[9.5px] text-gray-500 mt-0.5">
-                    {v.type} · {v.flag} · MMSI {v.mmsi}
+                    {v.type} · {v.flag ?? 'flag n/a'} · {fmt.vesselId(v)}
                   </p>
                   <div className="flex gap-3 mt-1 text-[9.5px] text-gray-600">
                     <span>CPA <b className="font-mono">{s.cpaKm.toFixed(1)} km</b></span>
@@ -734,12 +934,20 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
                 )}
 
                 <KeyValue cols={2} items={[
-                  ['IMO', v.imo], ['Call sign', v.callSign],
-                  ['Built', String(v.builtYear)], ['DWT', fmt.num(v.deadweightT)],
-                  ['Operator', v.operator], ['Class', v.classSociety],
-                  ['P&I club', v.piClub], ['Last port', v.lastPort],
-                  ['Detentions', String(v.psc.detentions)], ['Deficiencies', String(v.psc.deficiencies)],
+                  ['IMO', v.imo ?? '—'], ['Role', v.role],
+                  ['Operator', v.operator ?? 'Not published'], ['Flag risk', v.flagRisk ?? 'Not assessed'],
+                  ['Sanctions', v.sanctionsChecked ? (v.sanctioned ? `Listed (${v.sanctionsList ?? 'UNSC'})` : 'Not listed (UNSC)') : 'Not checked'],
+                  ['PSC detentions', v.pscDetentions != null ? String(v.pscDetentions) : 'Needs Equasis'],
                 ]} />
+                {v.note && <p className="text-[9.5px] text-gray-500 leading-snug">{v.note}</p>}
+                {(() => {
+                  const t = world.tracks.get(v.mmsi);
+                  return t ? (
+                    <p className="text-[9.5px] text-gray-500 leading-snug flex items-start gap-1">
+                      <ProvenanceBadge p={t.provenance} /> <span>{t.notes[0] ?? ''}</span>
+                    </p>
+                  ) : null;
+                })()}
 
                 <div className="flex gap-1.5">
                   <Button size="sm" onClick={() => onSeek(s.cpaTime)} icon={<Clock className="w-3 h-3" />}>Seek to CPA</Button>
@@ -828,9 +1036,9 @@ function ImpactTab({ active, analysis, navigate }: any) {
           ['Case status', active.status],
           ['Workflow stage', active.workflowStage],
           ['Published to IMAC', active.imacPushed ? 'Yes' : 'Not yet'],
-          ['Community alert', active.alertDispatched ? 'Dispatched' : 'Not issued'],
+          ['Community alert', active.alertDispatched ? 'Drafted' : 'Not drafted'],
           ['Assigned analyst', active.assignedTo],
-          ['Volume estimate', `${active.estimatedVolumeM3} m³`],
+          ['Oil quantity', active.oilQuantityTonnes != null ? `${fmt.num(active.oilQuantityTonnes)} t` : 'Not reported'],
         ]} />
       </Section>
 
@@ -925,7 +1133,7 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
               Dispatch ICG verification
             </Button>
             <Button icon={<Radio className="w-3 h-3" />} disabled={c.imacPushed} onClick={() => { pushToImac(caseId); onClose(); }}>
-              {c.imacPushed ? 'Already on IMAC' : 'Publish to IMAC'}
+              {c.imacPushed ? 'IMAC payload generated' : 'Generate IMAC payload'}
             </Button>
             <Button icon={<AlertTriangle className="w-3 h-3" />} onClick={() => { navigate({ tab: 'SACHET / SAMUDRA', caseId }); onClose(); }}>
               Compose community alert
@@ -935,10 +1143,11 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
               title={c.workflowStage === 'Awaiting Dispatch' ? 'A case cannot reach enforcement before human verification' : undefined}
               onClick={() => {
                 const top = useStoreSafeTop(world, caseId);
+                const party = top ? world.vesselsByMmsi.get(top)?.name ?? top : 'Unidentified source';
                 addEnforcement({
-                  caseId, mmsi: top ?? '', type: 'Inspection Ordered', issuedAt: Date.now(),
-                  authority: 'DG Shipping — Mercantile Marine Department', reference: `MMD/POL/2025/${Math.floor(Math.random() * 900 + 100)}`,
-                  status: 'Pending', outcome: note || 'Inspection ordered on the next Indian port call.',
+                  caseId, mmsi: top ?? '', party, type: 'Inspection Ordered', issuedAt: Date.now(),
+                  authority: 'DG Shipping — Mercantile Marine Department', reference: null,
+                  status: 'Pending', outcome: note || 'Referral recorded in this session; no order has been issued.',
                 });
                 setCaseStatus(caseId, 'Enforcement', 'Referred for regulatory action');
                 onClose();

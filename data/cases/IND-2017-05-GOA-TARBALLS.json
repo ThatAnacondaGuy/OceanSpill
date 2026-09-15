@@ -1,0 +1,105 @@
+{
+  "id": "IND-2017-05-GOA-TARBALLS",
+  "title": "Tar balls on Goa beaches traced to an offshore oil rig",
+  "region": "Goa Coast",
+  "subRegion": "Goa beaches, Arabian Sea (source offshore, unidentified at time of deposition)",
+  "sourceType": "unknown",
+  "officiallyConfirmed": true,
+  "incident": {
+    "time": "2017-05-15T00:00:00Z",
+    "timePrecision": "month",
+    "timeNote": "Tar balls collected in May 2017",
+    "position": {
+      "lat": 15.45,
+      "lon": 73.78
+    },
+    "positionPrecisionKm": 30,
+    "positionSource": "Goa coastline (beaching zone, approximate)"
+  },
+  "oil": {
+    "modelType": "crudeHeavy",
+    "onboard": [],
+    "spilledTonnes": null,
+    "spilledNote": "Weathered crude residues (tar balls). NIO multi-marker fingerprinting matched an offshore oil rig."
+  },
+  "vessels": [],
+  "facilities": [
+    {
+      "role": "candidate",
+      "name": "MUMBAI HIGH OFFSHORE FIELD",
+      "type": "Offshore Platform",
+      "operator": "ONGC",
+      "lat": 19.42,
+      "lon": 71.33,
+      "positionPrecisionKm": 20,
+      "note": "Candidate only. NIO matched 'an offshore oil rig' (not named in the reporting used here); Bombay High was the identified source for 2012 Gujarat tar balls.",
+      "source": "Mongabay India, Nov 2022 (citing NIO studies)"
+    }
+  ],
+  "observations": [
+    {
+      "time": "2017-05-15T00:00:00Z",
+      "type": "tarballs",
+      "description": "Tar balls deposited along Goa beaches (southwest monsoon onset season)",
+      "extentKm2": null,
+      "reportedExtent": {
+        "from": {
+          "lat": 15.0,
+          "lon": 73.95
+        },
+        "to": {
+          "lat": 15.75,
+          "lon": 73.72
+        }
+      },
+      "source": "Mongabay India / NIO"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2017-05-15T00:00:00Z",
+      "event": "Tar balls collected along Goa coast"
+    },
+    {
+      "time": "2019-01-01T00:00:00Z",
+      "event": "NIO study (Vasimalla et al.) matches fingerprints to an offshore oil rig",
+      "timePrecision": "year"
+    }
+  ],
+  "response": [
+    "CSIR-National Institute of Oceanography",
+    "Goa Government"
+  ],
+  "impact": {},
+  "officialFindings": "Chemical fingerprinting matched May 2017 Goa tar balls to an offshore oil rig. No vessel identified.",
+  "analysis": {
+    "hindcastHours": 240,
+    "forecastHours": 24,
+    "sarWindowDays": [
+      -20,
+      0
+    ],
+    "forcingBox": {
+      "west": 69.0,
+      "south": 13.5,
+      "east": 75.0,
+      "north": 20.5
+    },
+    "forcingStepDeg": 1.0,
+    "forcingHourStep": 3,
+    "backgroundVessels": 14,
+    "corridorIds": [
+      "COR-MUMBAI"
+    ]
+  },
+  "sources": [
+    {
+      "title": "Tarballs dot India's west coast annually (Mongabay India, Nov 2022)",
+      "url": "https://india.mongabay.com/2022/11/tarballs-dot-indias-west-coast-annually-indicating-continued-oil-spills-ship-fuel-discharge/"
+    },
+    {
+      "title": "Identifying the source of tar balls on Goa beaches in 2013 (NIO fingerprinting method, PubMed)",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/25965045/"
+    }
+  ]
+}

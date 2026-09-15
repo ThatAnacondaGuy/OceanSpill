@@ -1,0 +1,254 @@
+{
+  "id": "IND-2025-05-MSC-ELSA3",
+  "title": "MSC ELSA 3 capsized and sank off Alappuzha, Kerala",
+  "region": "Kerala Coast",
+  "subRegion": "Arabian Sea, ~13 nm off Thottappally / ~40 nm SSW of Kochi",
+  "sourceType": "vessel",
+  "officiallyConfirmed": true,
+  "incident": {
+    "time": "2025-05-25T02:20:00Z",
+    "timePrecision": "minute",
+    "timeNote": "Sank 0750 IST 25 May 2025",
+    "position": {
+      "lat": 9.3125,
+      "lon": 76.136
+    },
+    "positionPrecisionKm": 0.5,
+    "positionSource": "Kerala SDMA SITREP-3: 09 Deg 18.75N 076 Deg 08.16E"
+  },
+  "oil": {
+    "modelType": "bunkerC",
+    "onboard": [
+      {
+        "product": "Heavy Fuel Oil",
+        "tonnes": 367
+      },
+      {
+        "product": "Diesel oil",
+        "tonnes": 84.4,
+        "note": "SITREP-4 states 64 t"
+      }
+    ],
+    "spilledTonnes": null,
+    "spilledNote": "Quantity released not published. Oil sheen observed near wreck (diesel leakage per SITREP-4)."
+  },
+  "vessels": [
+    {
+      "role": "source",
+      "name": "MSC ELSA 3",
+      "imo": "9123221",
+      "mmsi": "636016814",
+      "flag": "Liberia",
+      "type": "Container Ship",
+      "operator": "MSC Ship Management Ltd",
+      "voyage": {
+        "from": {
+          "name": "Vizhinjam",
+          "lat": 8.376,
+          "lon": 76.992
+        },
+        "to": {
+          "name": "Kochi",
+          "lat": 9.965,
+          "lon": 76.255
+        }
+      },
+      "cruiseSpeedKn": 12,
+      "anchors": [
+        {
+          "time": "2025-05-24T07:30:00Z",
+          "event": "Severe starboard list reported (1300 IST)",
+          "lat": 9.18,
+          "lon": 76.1,
+          "positionPrecisionKm": 20,
+          "sog": 0.5,
+          "navStatus": 2,
+          "source": "SITREP-3 ('about 30 nm SW of Kochi'); position approximate"
+        },
+        {
+          "time": "2025-05-24T16:00:00Z",
+          "event": "Drifting 1.2 kn / 358 deg (2130 IST)",
+          "lat": 9.2,
+          "lon": 76.13,
+          "positionPrecisionKm": 10,
+          "sog": 1.2,
+          "cog": 358,
+          "navStatus": 2,
+          "source": "SITREP-4 Figure 2; position approximate"
+        },
+        {
+          "time": "2025-05-25T02:20:00Z",
+          "event": "Sank (0750 IST)",
+          "lat": 9.3125,
+          "lon": 76.136,
+          "positionPrecisionKm": 0.5,
+          "sog": 0,
+          "navStatus": 2,
+          "source": "SITREP-3",
+          "after": "sunk"
+        }
+      ],
+      "routeWaypoints": [
+        {
+          "lat": 8.45,
+          "lon": 76.8
+        },
+        {
+          "lat": 9.0,
+          "lon": 76.25
+        }
+      ],
+      "routeWaypointsNote": "Estimated offshore routing to keep the synthetic track at sea"
+    },
+    {
+      "role": "responder",
+      "name": "MSC SILVER III",
+      "type": "Container Ship",
+      "note": "Deployed from Cochin to assist",
+      "anchors": [
+        {
+          "time": "2025-05-24T20:00:00Z",
+          "event": "At incident site (assisting)",
+          "lat": 9.26,
+          "lon": 76.12,
+          "positionPrecisionKm": 15,
+          "sog": 2,
+          "navStatus": 0,
+          "source": "SITREP-3 names vessel; time and position estimated"
+        }
+      ],
+      "comeFrom": {
+        "name": "Kochi",
+        "lat": 9.965,
+        "lon": 76.255
+      }
+    },
+    {
+      "role": "responder",
+      "name": "HANE YI",
+      "type": "General Cargo",
+      "note": "Remained on standby, coordination support",
+      "anchors": [
+        {
+          "time": "2025-05-24T18:00:00Z",
+          "event": "Standing by near incident site",
+          "lat": 9.22,
+          "lon": 76.05,
+          "positionPrecisionKm": 20,
+          "sog": 1,
+          "navStatus": 0,
+          "source": "SITREP-3 names vessel; time and position estimated"
+        }
+      ]
+    }
+  ],
+  "facilities": [],
+  "observations": [
+    {
+      "time": "2025-05-25T06:00:00Z",
+      "type": "sheen",
+      "description": "Aerial surveillance: signs of oil spill in vicinity of wreck (ICG Dornier)",
+      "lat": 9.3125,
+      "lon": 76.136,
+      "extentKm2": null,
+      "source": "SITREP-3"
+    },
+    {
+      "time": "2025-05-26T10:30:00Z",
+      "type": "containers-ashore",
+      "description": "30 containers landed along 120 km coast (Kollam 29, Alappuzha 1)",
+      "lat": 8.95,
+      "lon": 76.5,
+      "extentKm2": null,
+      "source": "SITREP-4"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2025-05-24T07:30:00Z",
+      "event": "Starboard list reported en route Vizhinjam to Kochi"
+    },
+    {
+      "time": "2025-05-24T09:45:00Z",
+      "event": "List increased to 30 degrees and stabilised"
+    },
+    {
+      "time": "2025-05-24T14:30:00Z",
+      "event": "Coordination meeting: DGS, MMD Kochi, ICG, Navy, Kochi Port, MSC (2000 IST)"
+    },
+    {
+      "time": "2025-05-25T02:20:00Z",
+      "event": "Vessel sank; all deck containers adrift incl. 13 IMDG Class 4.3 (calcium carbide)"
+    },
+    {
+      "time": "2025-05-25T05:30:00Z",
+      "event": "Follow-up coordination meeting (1100 IST); T&T Salvage appointed"
+    },
+    {
+      "time": "2025-05-26T10:30:00Z",
+      "event": "30 containers ashore along 120 km; oil sheen near site; wreck at ~60 m depth"
+    }
+  ],
+  "response": [
+    "Indian Coast Guard (Dornier, ICGS Arnvesh, ICGS Saksham)",
+    "Indian Navy (INS Sujata)",
+    "DG Shipping / MMD Kochi",
+    "T&T Salvage",
+    "ITOPF",
+    "North Standard P&I"
+  ],
+  "impact": {
+    "crewRescued": 24,
+    "containersAboard": 643,
+    "hazardousContainers": 13,
+    "fishingRestrictionNm": 20,
+    "coastAffectedKm": 120
+  },
+  "officialFindings": "Flooding in one compartment led to capsize. Fort Kochi Coastal Police registered a case against the master and crew.",
+  "analysis": {
+    "hindcastHours": 24,
+    "forecastHours": 72,
+    "sarWindowDays": [
+      -1,
+      6
+    ],
+    "forcingBox": {
+      "west": 75.0,
+      "south": 8.0,
+      "east": 77.0,
+      "north": 10.5
+    },
+    "forcingStepDeg": 0.25,
+    "backgroundVessels": 10,
+    "corridorIds": [
+      "COR-9DEG"
+    ]
+  },
+  "sources": [
+    {
+      "title": "Kerala SDMA SITREP-3, 25 May 2025",
+      "url": "https://sdma.kerala.gov.in/wp-content/uploads/2025/06/MSC-ELSA3-SITREP-3-1300-hrs-25052025.pdf"
+    },
+    {
+      "title": "Kerala SDMA SITREP-4, 26 May 2025",
+      "url": "https://sdma.kerala.gov.in/wp-content/uploads/2025/06/MSC-ELSA3-SITREP-4-1600-hrs-26052025.pdf"
+    },
+    {
+      "title": "2025 Kerala oil spill (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/2025_Kerala_oil_spill"
+    },
+    {
+      "title": "MSC ELSA3 vessel particulars (MyShipTracking)",
+      "url": "https://www.myshiptracking.com/vessels/msc-elsa3-mmsi-636016814-imo-9123221"
+    }
+  ],
+  "legal": [
+    {
+      "authority": "Fort Kochi Coastal Police",
+      "action": "Prosecution Referred",
+      "party": "Master and crew, MSC ELSA 3",
+      "note": "Criminal case registered for navigation errors and environmental negligence",
+      "source": "https://en.wikipedia.org/wiki/2025_Kerala_oil_spill"
+    }
+  ]
+}

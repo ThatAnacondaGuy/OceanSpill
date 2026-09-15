@@ -1,5 +1,5 @@
 import { offsetKm, haversineKm, centroid, type LatLon } from '../lib/geo';
-import { currentAt, stokesDrift, windAt } from './ocean';
+import { MODEL_SAMPLER, type FieldSampler } from './forcing';
 
 /**
  * Lagrangian particle drift model for surface oil, in the style of OpenDrift/OpenOil and
@@ -84,7 +84,8 @@ export function runDrift(
   hours: number,
   params: Partial<DriftParams> = {},
   seed = 1337,
-  initialRadiusKm = 0.6
+  initialRadiusKm = 0.6,
+  sampler: FieldSampler = MODEL_SAMPLER
 ): DriftResult {
   const p: DriftParams = { ...DEFAULT_DRIFT_PARAMS, ...params };
   const rng = makeRng(seed);
@@ -116,9 +117,9 @@ export function runDrift(
     const when = new Date(t);
     const next: LatLon[] = [];
     for (const q of cloud) {
-      const cur = currentAt(q, when);
-      const wind = windAt(q, when);
-      const stokes = stokesDrift(q, when);
+      const cur = sampler.current(q, when.getTime());
+      const wind = sampler.wind(q, when.getTime());
+      const stokes = { u: wind.u * 0.012, v: wind.v * 0.012 };
 
       const u = cur.u + stokes.u + p.windage * wind.u;
       const v = cur.v + stokes.v + p.windage * wind.v;
@@ -171,9 +172,10 @@ export function hindcast(
   hoursBack: number,
   params: Partial<DriftParams> = {},
   members = 12,
-  seed = 20250312
+  seed = 20250312,
+  sampler: FieldSampler = MODEL_SAMPLER
 ): HindcastResult {
-  const base = runDrift(observed, observedTime, -Math.abs(hoursBack), params, seed);
+  const base = runDrift(observed, observedTime, -Math.abs(hoursBack), params, seed, 0.6, sampler);
   const ensemble: { path: LatLon[]; origin: LatLon }[] = [];
   const rng = makeRng(seed + 77);
 
@@ -185,7 +187,9 @@ export function hindcast(
       observedTime,
       -Math.abs(hoursBack),
       { ...params, windage, diffusivity, particles: 60 },
-      seed + m * 991
+      seed + m * 991,
+      0.6,
+      sampler
     );
     ensemble.push({ path: run.path, origin: run.origin });
   }
@@ -222,9 +226,10 @@ export function forecast(
   observedTime: number,
   hoursAhead: number,
   params: Partial<DriftParams> = {},
-  seed = 424242
+  seed = 424242,
+  sampler: FieldSampler = MODEL_SAMPLER
 ): ForecastResult {
-  const run = runDrift(observed, observedTime, Math.abs(hoursAhead), params, seed);
+  const run = runDrift(observed, observedTime, Math.abs(hoursAhead), params, seed, 0.6, sampler);
   const marks = [6, 12, 24, 36, 48, 72].filter((h) => h <= Math.abs(hoursAhead));
   const horizons = marks.map((h) => {
     const targetTime = observedTime + h * 3600_000;

@@ -1,5 +1,8 @@
 import type { LatLon } from '../lib/geo';
 
+/** Where a piece of data came from. Shown next to every value an analyst might act on. */
+export type Provenance = 'real' | 'synthetic' | 'modelled' | 'pending' | 'session';
+
 export type RiskTier = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export type CaseStatus =
@@ -20,159 +23,392 @@ export type WorkflowStage =
   | 'Port Inspection Requested'
   | 'Closed';
 
-export type SensorName = 'EOS-04' | 'NISAR' | 'Sentinel-1A' | 'Sentinel-1C' | 'RISAT-2BR2' | 'Oceansat-3';
+export type SourceType = 'vessel' | 'facility' | 'pipeline' | 'unknown';
+export type TimePrecision = 'minute' | 'hour' | 'day' | 'month' | 'year';
 
-export type VesselType =
-  | 'Crude Oil Tanker'
-  | 'Product Tanker'
-  | 'Chemical Tanker'
-  | 'LPG Carrier'
-  | 'Bulk Carrier'
-  | 'Container Ship'
-  | 'General Cargo'
-  | 'Fishing Vessel'
-  | 'Offshore Supply'
-  | 'Tug'
-  | 'Passenger'
-  | 'Naval / Government';
+// ---------------------------------------------------------------------------------------------
+// Pipeline artifacts (public/data). These mirror the JSON written by pipeline/src/oceanspill/build.py.
+// ---------------------------------------------------------------------------------------------
+
+export interface AnchorFact {
+  time: string;
+  event: string;
+  lat: number;
+  lon: number;
+  positionPrecisionKm: number;
+  sog?: number;
+  cog?: number;
+  navStatus?: number;
+  source: string;
+  after?: 'sunk' | 'stationary';
+}
+
+export interface ObservationFact {
+  time: string;
+  type: string;
+  description: string;
+  lat?: number;
+  lon?: number;
+  extentKm2: number | null;
+  lengthKm?: number;
+  source: string;
+}
+
+export interface CaseFacts {
+  id: string;
+  title: string;
+  region: string;
+  subRegion: string;
+  sourceType: SourceType;
+  officiallyConfirmed: boolean;
+  incident: {
+    time: string;
+    timePrecision: TimePrecision;
+    timeNote?: string;
+    position: LatLon;
+    positionPrecisionKm: number;
+    positionSource: string;
+  };
+  oil: {
+    modelType: string;
+    onboard: { product: string; tonnes?: number; cubicMetres?: number; note?: string }[];
+    spilledTonnes: number | null;
+    spilledNote?: string;
+  };
+  observations: ObservationFact[];
+  timeline: { time: string; event: string; timePrecision?: TimePrecision }[];
+  response: string[];
+  impact: Record<string, number>;
+  officialFindings: string;
+  legal?: LegalFact[];
+  sources: { title: string; url: string }[];
+}
+
+export interface SceneArtifact {
+  id: string;
+  name: string;
+  platform: string;
+  mode: string;
+  productType: string;
+  collection: string;
+  start: number;
+  end: number;
+  orbitDirection: string | null;
+  online: boolean;
+  provider: 'cdse' | 'bhoonidhi';
+  sizeBytes: number | null;
+  footprint: LatLon[];
+  coversIncident: boolean;
+}
+
+export interface VesselArtifact {
+  key: string;
+  name: string;
+  type: string;
+  role: VesselRole;
+  provenance: 'real' | 'synthetic';
+  mmsi: string | null;
+  imo: string | null;
+  flag: string | null;
+  operator: string | null;
+  isFacility: boolean;
+  registry: {
+    verified: boolean;
+    synthetic?: boolean;
+    flagRisk?: FlagRisk;
+    priorOffences?: number;
+    sanctioned?: boolean;
+    pscDetentions?: number;
+    note?: string;
+    source?: string;
+    details?: Record<string, string | number>;
+    gfw?: Record<string, string | number | boolean | null>;
+  };
+  anchors: AnchorFact[];
+  note: string | null;
+}
+
+export interface TrackArtifact {
+  key: string;
+  provenance: 'synthetic-anchored' | 'synthetic' | 'facility-position' | 'real';
+  notes: string[];
+  gaps: TrackGap[];
+  /** [secondsFromWindowStart, lat, lon, sogKn, cogDeg, headingDeg, navStatus] */
+  pings: [number, number, number, number, number, number, number][];
+}
+
+export interface ProviderEntry {
+  name: string;
+  agency: string;
+  sovereign: boolean;
+  ok: boolean;
+  message: string;
+  count: number;
+}
+
+export interface SarSpot {
+  areaKm2: number;
+  meanDb: number;
+  backgroundDb: number;
+  contrastDb: number;
+  centroid: LatLon;
+  distanceKm: number;
+  elongation: number;
+  orientationDeg: number;
+  outline: LatLon[];
+}
+
+/** Output of `oceanspill process`: calibrated scene analysed with the classical dark-spot detector. */
+export interface SarMeasurement {
+  schemaVersion: 1;
+  caseId: string;
+  scene: string;
+  processedAt: string;
+  polarisation: string;
+  method: string;
+  parameters: Record<string, number>;
+  crop: { corners: LatLon[]; shape: [number, number] };
+  incidenceDeg: number;
+  sea: { meanDb: number | null; stdDb: number | null; pixels: number };
+  quicklook: string;
+  spots: SarSpot[];
+  limitations: string[];
+}
+
+export interface CaseArtifact {
+  schemaVersion: 1;
+  generatedAt: string;
+  case: CaseFacts;
+  reference: { time: number; basis: string; hindcastHours: number; forecastHours: number };
+  reportedGeometry: {
+    ring: LatLon[];
+    basis: string;
+    assumptions: string[];
+    observationTime: string;
+    observationSource: string;
+    extentReported: boolean;
+  };
+  sar: {
+    window: { start: number; end: number };
+    bbox: { west: number; south: number; east: number; north: number };
+    providers: ProviderEntry[];
+    scenes: SceneArtifact[];
+  };
+  forcing: {
+    file: string;
+    provider: string;
+    sources: Record<string, string>;
+    coverage: { wind: number; current: number; waves: number };
+    window: { start: number; end: number };
+  } | null;
+  ais: { provider: string; agency: string; window: { start: number; end: number }; pingFormat: string[] };
+  vessels: VesselArtifact[];
+  tracks: TrackArtifact[];
+  sanctions: { key: string; name: string; imo: string | null; listed: boolean; list: string; reference: string | null; checkedAt: string }[];
+  sarMeasurements?: SarMeasurement[];
+  warnings: string[];
+}
+
+export interface ForcingArtifact {
+  lats: number[];
+  lons: number[];
+  times: number[];
+  hourStep: number;
+  shape: [number, number, number];
+  wind: { u: (number | null)[]; v: (number | null)[] };
+  current: { u: (number | null)[]; v: (number | null)[] };
+  waveHs: (number | null)[];
+  sources: Record<string, string>;
+  coverage: { wind: number; current: number; waves: number };
+}
+
+export interface HistoricalIncident {
+  id: string;
+  date: string;
+  name: string;
+  location: string;
+  lat: number | null;
+  lon: number | null;
+  positionPrecisionKm: number | null;
+  oil: string | null;
+  tonnes: number | null;
+  tonnesNote?: string;
+  cause: string | null;
+  activeCaseId?: string;
+  source: string;
+  legal?: LegalFact[];
+}
+
+export interface LegalFact {
+  authority: string;
+  action: string;
+  amountInr?: number;
+  party: string;
+  note?: string;
+  source?: string;
+}
+
+export interface IndexArtifact {
+  schemaVersion: 1;
+  generatedAt: string;
+  providers: { kind: string; name: string; agency: string; sovereign: boolean; available: boolean; message: string }[];
+  cases: { id: string; title: string; region: string; file: string; incidentTime: string; position: LatLon; sourceType: SourceType; sarScenes: number; forcing: boolean; warnings: number }[];
+  historical: { note: string; compiled: string; incidents: HistoricalIncident[] };
+  failures: { id: string; error: string }[];
+}
+
+// ---------------------------------------------------------------------------------------------
+// Application model
+// ---------------------------------------------------------------------------------------------
+
+export type VesselRole = 'source' | 'involved' | 'responder' | 'background' | 'candidate';
+export type FlagRisk = 'Standard' | 'Grey List' | 'Black List';
 
 export interface AisPing {
-  /** Epoch milliseconds. */
   t: number;
   lat: number;
   lon: number;
-  /** Speed over ground, knots. */
   sog: number;
-  /** Course over ground, degrees. */
   cog: number;
-  /** True heading, degrees. */
   heading: number;
-  /** Navigational status code per ITU-R M.1371. */
   navStatus: number;
-  /** Rate of turn, degrees per minute. */
-  rot: number;
-  /** Set when this ping is the first one after a transmission gap. */
   afterGapMinutes?: number;
 }
 
+export interface TrackGap {
+  start: number;
+  end: number;
+  minutes: number;
+  distanceKm: number;
+  impliedSpeedKn: number;
+}
+
 export interface Vessel {
+  /** Stable key used everywhere in the app (MMSI-…, IMO-…, REF-…, FAC-…). */
   mmsi: string;
-  imo: string;
+  mmsiNumber: string | null;
+  imo: string | null;
   name: string;
-  callSign: string;
-  flag: string;
-  flagRisk: 'Standard' | 'Grey List' | 'Black List';
-  type: VesselType;
-  lengthM: number;
-  beamM: number;
-  grossTonnage: number;
-  deadweightT: number;
-  builtYear: number;
-  owner: string;
-  operator: string;
-  classSociety: string;
-  piClub: string;
-  /** Last known port call. */
-  lastPort: string;
-  nextPort: string;
-  destination: string;
-  eta: string;
-  draughtM: number;
-  /** Sanctions / watchlist flags. */
-  sanctioned: boolean;
-  sanctionsList?: string;
-  /** Count of prior confirmed attributions, feeds the recidivism boost. */
+  flag: string | null;
+  flagRisk: FlagRisk | null;
+  type: string;
+  operator: string | null;
+  role: VesselRole;
+  provenance: 'real' | 'synthetic';
+  isFacility: boolean;
+  /** True only when registry history comes from a verified registry source. */
+  registryVerified: boolean;
   priorOffences: number;
-  psc: { detentions: number; deficiencies: number; lastInspection: string; lastPort: string };
+  sanctioned: boolean;
+  sanctionsChecked: boolean;
+  sanctionsList?: string;
+  pscDetentions: number | null;
+  /** Where verified registry details came from (e.g. a dated manual Equasis lookup). */
+  registrySource: string | null;
+  registryDetails: Record<string, string | number> | null;
+  note: string | null;
+  caseId: string;
+  anchors: AnchorFact[];
 }
 
 export interface VesselTrack {
   mmsi: string;
+  provenance: TrackArtifact['provenance'];
+  notes: string[];
   pings: AisPing[];
-  /** Detected transmission gaps longer than the reporting interval allows. */
-  gaps: { start: number; end: number; minutes: number; distanceKm: number; impliedSpeedKn: number }[];
+  gaps: TrackGap[];
 }
 
 export interface SlickPolygon {
-  /** Outer ring in lat/lon. */
   ring: LatLon[];
-  /** Additional disconnected fragments. */
   fragments?: LatLon[][];
 }
 
 export interface Detection {
   id: string;
-  /** Epoch ms of the satellite acquisition. */
+  /** Reference time the analysis is anchored to (first reported observation or incident). */
   acquiredAt: number;
-  sensor: SensorName;
-  /** SAR mode or optical band. */
-  mode: string;
-  polarisation: string;
-  resolutionM: number;
-  incidenceAngleDeg: number;
-  sceneId: string;
-  /** Model output. */
-  classProbabilities: { oil: number; lookalike: number; sea: number };
-  meanBackscatterDb: number;
-  backgroundBackscatterDb: number;
-  /** Wind speed at acquisition, used for the look-alike cross-check. */
-  windSpeedMs: number;
+  referenceBasis: string;
+  /** 'reported' until a SAR scene has been downloaded and segmented. */
+  status: 'reported' | 'sar-processed';
+  observationSource: string;
   polygon: SlickPolygon;
-  modelVersion: string;
+  geometryBasis: string;
+  geometryAssumptions: string[];
+  extentReported: boolean;
+  /** Wind at the reference time and place from the forcing provider (null if unavailable). */
+  windSpeedMs: number | null;
+  scenes: SceneArtifact[];
+  sarProviders: ProviderEntry[];
+  /** Processed scenes (classical dark-spot detector). Empty until scenes are downloaded and processed. */
+  sarMeasurements: SarMeasurement[];
+  /** The processed dark spot used for the contrast check, if one lies near the incident. */
+  sarSpot: (SarSpot & { scene: string }) | null;
+  // SAR-derived measurements. Null until segmentation has run on a downloaded scene.
+  classProbabilities: { oil: number; lookalike: number; sea: number } | null;
+  meanBackscatterDb: number | null;
+  backgroundBackscatterDb: number | null;
+  modelVersion: string | null;
 }
 
 export interface AttributionScore {
   mmsi: string;
-  /** 0–1 sub-scores. */
   proximity: number;
   temporality: number;
   trajectory: number;
   behaviour: number;
   vesselPrior: number;
-  /** Weighted total, 0–1. */
   total: number;
   rank: number;
-  /** Closest point of approach to the hindcast origin. */
   cpaKm: number;
   cpaTime: number;
-  /** Minutes between the vessel's CPA and the estimated discharge time. */
   deltaTimeMin: number;
-  /** Angle between vessel course and slick major axis, degrees. */
   courseAlignmentDeg: number;
-  /** Human-readable reasons, shown in the UI so the ranking is inspectable. */
   reasons: string[];
   flags: string[];
-  /** True when the vessel stopped transmitting across the discharge window. */
   darkDuringWindow: boolean;
   darkMinutes: number;
 }
 
 export interface SpillCase {
   id: string;
+  title: string;
+  facts: CaseFacts;
   detection: Detection;
   region: string;
   subRegion: string;
+  sourceType: SourceType;
   status: CaseStatus;
   tier: RiskTier;
-  /** 0–1, produced by the detection model and adjusted by the look-alike cross-checks. */
+  /**
+   * Detection confidence. 1.0 for spills officially confirmed by an authority; model probability
+   * once SAR segmentation exists. `confidenceBasis` says which.
+   */
   confidence: number;
-  oilType: keyof typeof import('../engine/drift').OIL_TYPES;
-  estimatedVolumeM3: number;
-  /** Hours before acquisition that the hindcast is run for. */
+  confidenceBasis: 'official-report' | 'sar-model';
+  oilType: string;
+  /** Tonnes on board or released, whichever is known, for impact scaling. */
+  oilQuantityTonnes: number | null;
   hindcastHours: number;
   forecastHours: number;
+  incidentTime: number;
   createdAt: number;
   updatedAt: number;
   assignedTo: string;
   workflowStage: WorkflowStage;
-  /** MMSIs considered in the attribution window. */
   candidateMmsis: string[];
   notes: string;
-  /** Set when an analyst has dismissed the detection as a natural look-alike. */
   lookalikeReason?: string;
   imacPushed: boolean;
   imacPushedAt?: number;
   alertDispatched: boolean;
+  forcingFile: string | null;
+  forcingSources: Record<string, string> | null;
+  forcingCoverage: { wind: number; current: number; waves: number } | null;
+  aisProvider: string;
+  aisWindow: { start: number; end: number };
+  warnings: string[];
+  generatedAt: string;
 }
 
 export interface AuditEntry {
@@ -184,24 +420,25 @@ export interface AuditEntry {
   target: string;
   detail: string;
   category: 'Detection' | 'Analysis' | 'Attribution' | 'Dispatch' | 'Enforcement' | 'System' | 'Access' | 'Alert';
+  provenance: Provenance;
 }
 
+/** A real satellite acquisition from a catalogue search. */
 export interface SatellitePass {
   id: string;
-  sensor: SensorName;
-  /** Epoch ms. */
+  name: string;
+  sensor: string;
+  productType: string;
   start: number;
   end: number;
-  /** Ground-track swath centre points. */
-  track: LatLon[];
-  swathKm: number;
-  /** Area of interest this pass was tasked against, if any. */
+  footprint: LatLon[];
+  orbitDirection: string | null;
+  online: boolean;
+  provider: 'cdse' | 'bhoonidhi';
+  sovereign: boolean;
+  caseIds: string[];
+  coversIncident: boolean;
   taskedAoi?: string;
-  status: 'Scheduled' | 'Acquiring' | 'Downlinked' | 'Processed' | 'Failed';
-  orbitNumber: number;
-  /** Detections produced from this pass. */
-  detectionIds: string[];
-  cloudCoverPct?: number;
 }
 
 export interface AreaOfInterest {
@@ -209,43 +446,43 @@ export interface AreaOfInterest {
   name: string;
   priority: number;
   bounds: { north: number; south: number; east: number; west: number };
-  /** Historical detections per 100 passes — drives the tasking recommendation. */
-  hitRate: number;
-  lastCovered: number;
   rationale: string;
   pinned: boolean;
   requestedBy: string;
+  provenance: Provenance;
 }
 
 export interface CommunityAlert {
   id: string;
   caseId: string;
   issuedAt: number;
-  channel: ('SMS' | 'WhatsApp' | 'Community Radio' | 'Coastal Siren' | 'App Push')[];
+  channel: string[];
   languages: string[];
   districts: string[];
   headline: string;
   body: string;
   noGoRadiusKm: number;
   centre: LatLon;
-  validUntil: number;
-  status: 'Draft' | 'Queued' | 'Dispatched' | 'Expired';
-  reach: { channel: string; sent: number; delivered: number; failed: number }[];
+  validUntil: number | null;
+  status: 'Draft' | 'Queued' | 'Dispatched' | 'Expired' | 'Issued (official)';
+  reach: { channel: string; sent: number; delivered: number; failed: number }[] | null;
+  issuer: string;
+  provenance: Provenance;
+  source?: string;
 }
 
 export interface SightingReport {
   id: string;
   receivedAt: number;
   reporter: string;
-  boatRegistration: string;
   district: string;
   position: LatLon;
   description: string;
-  severity: 'Sheen' | 'Patchy Oil' | 'Heavy Oil' | 'Tar Balls' | 'Dead Fish';
-  photos: number;
+  severity: 'Sheen' | 'Patchy Oil' | 'Heavy Oil' | 'Tar Balls' | 'Debris / Containers' | 'Fire';
   linkedCaseId?: string;
   verified: boolean;
-  language: string;
+  provenance: Provenance;
+  source: string;
 }
 
 export interface SystemUser {
@@ -262,27 +499,29 @@ export interface SystemUser {
 
 export interface DataSource {
   id: string;
+  kind: 'SAR' | 'Metocean' | 'AIS' | 'Sanctions' | 'Registry' | 'Alerting' | 'Operating picture';
   name: string;
-  kind: 'Satellite' | 'Ocean Model' | 'AIS' | 'Meteorology' | 'Registry' | 'Alerting';
-  endpoint: string;
-  status: 'Online' | 'Degraded' | 'Offline';
-  latencyMs: number;
-  lastSync: number;
-  recordsPerMin: number;
-  provider: string;
-  authMode: string;
-  quotaUsedPct: number;
+  agency: string;
+  sovereign: boolean;
+  /** Online = integrated and working; Not configured = integrated but credentials missing; Pending access = not integrated yet. */
+  status: 'Online' | 'Not configured' | 'Pending access' | 'Interim fallback';
+  message: string;
+  role: 'primary' | 'fallback';
+  lastSync: number | null;
 }
 
 export interface EnforcementAction {
   id: string;
   caseId: string;
   mmsi: string;
+  party: string;
   type: 'Inspection Ordered' | 'Detention' | 'Fine Issued' | 'Insurance Flagged' | 'Blacklist Recommended' | 'Prosecution Referred';
-  issuedAt: number;
+  issuedAt: number | null;
   authority: string;
-  reference: string;
+  reference: string | null;
   amountInr?: number;
-  status: 'Pending' | 'Served' | 'Contested' | 'Concluded';
+  status: 'Pending' | 'Served' | 'Contested' | 'Concluded' | 'Reported';
   outcome?: string;
+  provenance: Provenance;
+  source?: string;
 }

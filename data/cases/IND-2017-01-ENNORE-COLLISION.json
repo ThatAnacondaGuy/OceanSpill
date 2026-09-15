@@ -1,0 +1,201 @@
+{
+  "id": "IND-2017-01-ENNORE-COLLISION",
+  "title": "BW MAPLE and DAWN KANCHIPURAM collision off Kamarajar Port",
+  "region": "Tamil Nadu Coast",
+  "subRegion": "2 nm off Kamarajar Port, Ennore, north of Chennai",
+  "sourceType": "vessel",
+  "officiallyConfirmed": true,
+  "incident": {
+    "time": "2017-01-27T22:30:00Z",
+    "timePrecision": "minute",
+    "timeNote": "Collision at 0400 IST 28 January 2017",
+    "position": {
+      "lat": 13.26,
+      "lon": 80.38
+    },
+    "positionPrecisionKm": 2,
+    "positionSource": "APPROXIMATE: 'two nautical miles off Kamarajar Port'"
+  },
+  "oil": {
+    "modelType": "bunkerC",
+    "onboard": [
+      {
+        "product": "POL cargo (Dawn Kanchipuram)",
+        "tonnes": 32813
+      }
+    ],
+    "spilledTonnes": 196,
+    "spilledNote": "~196 t Grade 6 bunker fuel (IEEE study); about 160 t sludge recovered by 7 Feb 2017. Wikipedia volume figure is inconsistent and not used."
+  },
+  "vessels": [
+    {
+      "role": "source",
+      "name": "DAWN KANCHIPURAM",
+      "flag": "India",
+      "type": "Product Tanker",
+      "note": "Inbound, loaded; fuel tank ruptured",
+      "cruiseSpeedKn": 8,
+      "voyage": {
+        "from": {
+          "name": "Bay of Bengal approach",
+          "lat": 13.35,
+          "lon": 80.75
+        },
+        "to": {
+          "name": "Kamarajar Port",
+          "lat": 13.255,
+          "lon": 80.345
+        }
+      },
+      "anchors": [
+        {
+          "time": "2017-01-27T22:30:00Z",
+          "event": "Collision (inbound)",
+          "lat": 13.26,
+          "lon": 80.38,
+          "positionPrecisionKm": 2,
+          "sog": 4,
+          "cog": 265,
+          "navStatus": 0,
+          "source": "Wikipedia / VesselFinder; position approximate"
+        },
+        {
+          "time": "2017-01-28T06:00:00Z",
+          "event": "Stopped near collision site",
+          "lat": 13.262,
+          "lon": 80.375,
+          "positionPrecisionKm": 3,
+          "sog": 0,
+          "navStatus": 1,
+          "source": "Estimated",
+          "after": "stationary"
+        }
+      ]
+    },
+    {
+      "role": "involved",
+      "name": "BW MAPLE",
+      "flag": "Isle of Man",
+      "type": "LPG Carrier",
+      "note": "Outbound after discharging LPG",
+      "cruiseSpeedKn": 8,
+      "voyage": {
+        "from": {
+          "name": "Kamarajar Port",
+          "lat": 13.255,
+          "lon": 80.345
+        },
+        "to": {
+          "name": "Bay of Bengal",
+          "lat": 13.2,
+          "lon": 80.9
+        }
+      },
+      "anchors": [
+        {
+          "time": "2017-01-27T22:30:00Z",
+          "event": "Collision (outbound)",
+          "lat": 13.259,
+          "lon": 80.381,
+          "positionPrecisionKm": 2,
+          "sog": 5,
+          "cog": 95,
+          "navStatus": 0,
+          "source": "Wikipedia / VesselFinder; position approximate"
+        },
+        {
+          "time": "2017-01-28T06:00:00Z",
+          "event": "Anchored after collision",
+          "lat": 13.25,
+          "lon": 80.4,
+          "positionPrecisionKm": 3,
+          "sog": 0,
+          "navStatus": 1,
+          "source": "Estimated",
+          "after": "stationary"
+        }
+      ]
+    }
+  ],
+  "facilities": [],
+  "observations": [
+    {
+      "time": "2017-01-28T06:00:00Z",
+      "type": "slick",
+      "description": "About 34,000 sq m of sea affected near collision site",
+      "lat": 13.26,
+      "lon": 80.375,
+      "extentKm2": 0.034,
+      "source": "IEEE Xplore study"
+    },
+    {
+      "time": "2017-01-29T04:00:00Z",
+      "type": "shoreline",
+      "description": "Oil on rocky shores ~13 km south of port; RK Nagar Kuppam worst affected",
+      "lat": 13.14,
+      "lon": 80.3,
+      "extentKm2": null,
+      "source": "IEEE Xplore study"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2017-01-27T22:30:00Z",
+      "event": "Outbound BW Maple collides with inbound Dawn Kanchipuram"
+    },
+    {
+      "time": "2017-01-29T04:00:00Z",
+      "event": "Oil patches ashore ~13 km south of port"
+    },
+    {
+      "time": "2017-02-07T00:00:00Z",
+      "event": "Clean-up largely complete; ~160 t sludge recovered by 5,700+ people"
+    }
+  ],
+  "response": [
+    "Indian Coast Guard",
+    "Kamarajar Port Ltd",
+    "DG Shipping / MMD Chennai",
+    "Tamil Nadu Government",
+    "Volunteers"
+  ],
+  "impact": {
+    "seaAreaAffectedM2": 34000,
+    "sludgeRecoveredT": 160,
+    "volunteers": 5700
+  },
+  "officialFindings": "Collision; bunker fuel released from ruptured tank of Dawn Kanchipuram. DG Shipping inquiry; charges filed.",
+  "analysis": {
+    "hindcastHours": 12,
+    "forecastHours": 48,
+    "sarWindowDays": [
+      -1,
+      6
+    ],
+    "forcingBox": {
+      "west": 79.9,
+      "south": 12.6,
+      "east": 81.0,
+      "north": 13.8
+    },
+    "forcingStepDeg": 0.2,
+    "backgroundVessels": 8,
+    "corridorIds": [
+      "COR-CHENNAI"
+    ]
+  },
+  "sources": [
+    {
+      "title": "2017 Ennore oil spill (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/2017_Ennore_oil_spill"
+    },
+    {
+      "title": "Assessment of Ennore Oil Spill 2017 (IEEE Xplore)",
+      "url": "https://ieeexplore.ieee.org/document/9775218/"
+    },
+    {
+      "title": "Collision between BW Maple and Dawn Kanchipuram (VesselFinder)",
+      "url": "https://www.vesselfinder.com/news/8399-Collision-between-LPG-tanker-BW-Maple-and-chemical-tanker-Dawn-Kanchipuram-off-Ennore-port-India-Video"
+    }
+  ]
+}

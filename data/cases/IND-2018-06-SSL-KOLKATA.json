@@ -1,0 +1,198 @@
+{
+  "id": "IND-2018-06-SSL-KOLKATA",
+  "title": "SSL KOLKATA fire and grounding off the Sundarbans",
+  "region": "Bay of Bengal",
+  "subRegion": "Off Sagar Island / Sundarbans, West Bengal",
+  "sourceType": "vessel",
+  "officiallyConfirmed": true,
+  "incident": {
+    "time": "2018-06-13T17:20:00Z",
+    "timePrecision": "minute",
+    "timeNote": "Explosion reported 2250 hrs 13 June 2018",
+    "position": {
+      "lat": 21.4,
+      "lon": 88.15
+    },
+    "positionPrecisionKm": 25,
+    "positionSource": "APPROXIMATE: sources say 7-8 nm off the Sundarbans; exact coordinates not public. Refine from Sentinel-1 scene of 17 Jul 2018."
+  },
+  "oil": {
+    "modelType": "bunkerC",
+    "onboard": [
+      {
+        "product": "Heavy Fuel Oil",
+        "cubicMetres": 350
+      }
+    ],
+    "spilledTonnes": null,
+    "spilledNote": "SkyTruth observed a 17 km slick from the wreck in Sentinel-1 imagery on 17 July 2018; HFO offloaded by 18 Sep 2018."
+  },
+  "vessels": [
+    {
+      "role": "source",
+      "name": "SSL KOLKATA",
+      "imo": "9346574",
+      "mmsi": "419001253",
+      "flag": "India",
+      "type": "Container Ship",
+      "cruiseSpeedKn": 11,
+      "voyage": {
+        "from": {
+          "name": "Sagar Roads (approximate)",
+          "lat": 21.55,
+          "lon": 88.05
+        },
+        "to": {
+          "name": "Bay of Bengal (destination not public)",
+          "lat": 20.6,
+          "lon": 88.2
+        }
+      },
+      "anchors": [
+        {
+          "time": "2018-06-13T17:20:00Z",
+          "event": "Explosion in cargo hold, fire (2250 hrs)",
+          "lat": 21.4,
+          "lon": 88.15,
+          "positionPrecisionKm": 25,
+          "sog": 8,
+          "cog": 180,
+          "navStatus": 0,
+          "source": "DG Shipping press release; position approximate"
+        },
+        {
+          "time": "2018-06-15T00:00:00Z",
+          "event": "Grounded/anchored in shallow water, abandoned",
+          "lat": 21.4,
+          "lon": 88.15,
+          "positionPrecisionKm": 25,
+          "sog": 0,
+          "navStatus": 1,
+          "source": "PIB / Offshore Energy; position approximate"
+        },
+        {
+          "time": "2018-07-19T00:00:00Z",
+          "event": "Still aground; slick spreading north and south",
+          "lat": 21.4,
+          "lon": 88.15,
+          "positionPrecisionKm": 25,
+          "sog": 0,
+          "navStatus": 1,
+          "source": "SkyTruth",
+          "after": "stationary"
+        }
+      ]
+    },
+    {
+      "role": "responder",
+      "name": "LEWEK HARRIER",
+      "type": "Tug",
+      "note": "AIS showed the tug visiting the wreck by 19 July 2018",
+      "anchors": [
+        {
+          "time": "2018-07-18T12:00:00Z",
+          "event": "At wreck site",
+          "lat": 21.39,
+          "lon": 88.16,
+          "positionPrecisionKm": 25,
+          "sog": 0.5,
+          "navStatus": 0,
+          "source": "SkyTruth (AIS observation); position approximate"
+        }
+      ]
+    }
+  ],
+  "facilities": [],
+  "observations": [
+    {
+      "time": "2018-07-17T00:00:00Z",
+      "type": "slick",
+      "description": "17 km slick from the vessel pushed by Ganges delta currents (Sentinel-1)",
+      "lat": 21.4,
+      "lon": 88.15,
+      "lengthKm": 17,
+      "orientationDeg": 180,
+      "orientationAssumed": true,
+      "extentKm2": null,
+      "source": "SkyTruth"
+    },
+    {
+      "time": "2018-07-19T00:00:00Z",
+      "type": "slick",
+      "description": "Slick spreading south and north toward the delta (Sentinel-2)",
+      "lat": 21.4,
+      "lon": 88.15,
+      "extentKm2": null,
+      "source": "SkyTruth"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2018-06-13T17:20:00Z",
+      "event": "Explosion and fire in cargo area; 22 crew rescued by ICG"
+    },
+    {
+      "time": "2018-07-04T00:00:00Z",
+      "event": "ITOPF activates OSRL"
+    },
+    {
+      "time": "2018-07-17T00:00:00Z",
+      "event": "17 km slick visible in Sentinel-1 imagery"
+    },
+    {
+      "time": "2018-09-18T00:00:00Z",
+      "event": "Heavy fuel oil offloaded by salvors"
+    }
+  ],
+  "response": [
+    "Indian Coast Guard",
+    "Indian Navy",
+    "DG Shipping",
+    "Kolkata Port Trust",
+    "OSRL / ITOPF",
+    "Govt of West Bengal"
+  ],
+  "impact": {
+    "crewRescued": 22,
+    "containersAboard": 464
+  },
+  "officialFindings": "OSRL assessments reported no oil reached the Sundarbans; SkyTruth imagery shows offshore slick from the wreck.",
+  "analysis": {
+    "hindcastHours": 24,
+    "forecastHours": 48,
+    "sarWindowDays": [
+      30,
+      37
+    ],
+    "forcingBox": {
+      "west": 87.4,
+      "south": 20.6,
+      "east": 89.0,
+      "north": 22.0
+    },
+    "forcingStepDeg": 0.25,
+    "backgroundVessels": 8,
+    "corridorIds": [
+      "COR-BOB-N"
+    ],
+    "referenceMode": "observation"
+  },
+  "sources": [
+    {
+      "title": "Signs of oil from the SSL Kolkata (SkyTruth)",
+      "url": "https://skytruth.org/2018/08/signs-of-oil-from-the-ssl-kolkata/"
+    },
+    {
+      "title": "Spill Journal: SSL Kolkata (OSRL)",
+      "url": "https://www.osrl.com/knowledge-hub/resource-library/response/spill-journal-ssl-kolkata/"
+    },
+    {
+      "title": "Salvage operations for MV SSL Kolkata (PIB)",
+      "url": "https://www.pib.gov.in/Pressreleaseshare.aspx?PRID=1538742"
+    },
+    {
+      "title": "SSL Kolkata particulars (vesseltracker)",
+      "url": "https://www.vesseltracker.com/en/Ships/Ssl-Kolkata-9346574.html"
+    }
+  ]
+}

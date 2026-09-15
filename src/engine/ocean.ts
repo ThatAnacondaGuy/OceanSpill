@@ -23,7 +23,7 @@ export interface VectorSample {
   dirFrom: number;
 }
 
-function vector(u: number, v: number): VectorSample {
+export function vector(u: number, v: number): VectorSample {
   const speed = Math.hypot(u, v);
   const dirTo = (Math.atan2(u, v) * 180) / Math.PI;
   const to = (dirTo + 360) % 360;
@@ -162,11 +162,15 @@ export function beaufortFromSpeed(ms: number): number {
   return 12;
 }
 
-export function seaStateAt(p: LatLon, date: Date): SeaState {
-  const wind = windAt(p, date);
+/**
+ * Sea state at a point. Pass observed wind speed and wave height (e.g. from ERA5 / SMOC forcing)
+ * when available; SST and salinity always come from the climatological model.
+ */
+export function seaStateAt(p: LatLon, date: Date, observed?: { windSpeedMs?: number | null; waveHeightM?: number | null }): SeaState {
+  const wind = observed?.windSpeedMs != null ? { speed: observed.windSpeedMs } : windAt(p, date);
   const phase = monsoonPhase(date);
   // Fully-developed sea approximation: Hs ≈ 0.0248 * U^2 for long fetch.
-  const hs = Math.max(0.3, 0.0248 * wind.speed ** 2 * 0.75 + 0.4);
+  const hs = observed?.waveHeightM != null ? observed.waveHeightM : Math.max(0.3, 0.0248 * wind.speed ** 2 * 0.75 + 0.4);
   const tp = 3.5 + 2.6 * Math.sqrt(Math.max(hs, 0.1));
   const sst = 28.4 - Math.abs(p.lat - 12) * 0.22 - Math.max(0, phase) * 1.6 + fieldNoise(p.lon, p.lat, 0, 9) * 0.5;
   const sal = p.lon > 84 ? 32.4 + fieldNoise(p.lon, p.lat, 0, 11) * 0.6 : 35.2 + fieldNoise(p.lon, p.lat, 0, 12) * 0.4;

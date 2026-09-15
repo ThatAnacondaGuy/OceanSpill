@@ -1,0 +1,39 @@
+[project]
+name = "oceanspill"
+version = "0.1.0"
+description = "OceanSpill data pipeline: real case facts, SAR catalogues, metocean forcing and AIS behind swappable providers"
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.32",
+    "python-dotenv>=1.0",
+    "numpy>=2.0",
+]
+
+[project.scripts]
+oceanspill = "oceanspill.cli:main"
+oceanspill-train = "oceanspill.ml.train:main"
+
+[project.optional-dependencies]
+sar = [
+    "tifffile>=2024.8",
+]
+ml = [
+    "onnx>=1.16",
+    "onnxscript>=0.2",
+    "torch>=2.4",
+]
+cmems = [
+    "copernicusmarine>=2.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3"]
+
+[build-system]
+requires = ["uv_build>=0.11.27,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: hits real network services (run with -m live)"]
+addopts = "-m 'not live'"

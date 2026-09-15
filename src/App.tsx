@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Bell, HelpCircle, LogOut, Search, Satellite, Home, AlertTriangle, FileText, Anchor,
   Database, Activity, ChevronDown, Map as MapIcon, Megaphone, CheckSquare, Shield, Archive,
-  Settings, Pause, Play, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship, Waves,
+  Settings, Clock, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship, Waves,
 } from 'lucide-react';
 import { StoreProvider, useStore, fmt } from './store/store';
 import Dashboard from './Dashboard';
@@ -50,7 +50,7 @@ const ROLE_ACCESS: Record<string, string[] | 'all'> = {
 
 function Shell() {
   const store = useStore();
-  const { activeTab, navigate, now, clockRunning, toggleClock, currentUser, world } = store;
+  const { activeTab, navigate, now, currentUser, world } = store;
   const [userMenu, setUserMenu] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -82,13 +82,13 @@ function Shell() {
     if (q.length < 2) return [];
     const out: { kind: string; label: string; sub: string; go: () => void }[] = [];
     for (const c of world.cases) {
-      if (c.id.toLowerCase().includes(q) || c.region.toLowerCase().includes(q) || c.subRegion.toLowerCase().includes(q)) {
-        out.push({ kind: 'Case', label: c.id, sub: `${c.subRegion} · ${c.status}`, go: () => navigate({ tab: 'Investigation', caseId: c.id }) });
+      if (`${c.id} ${c.title} ${c.region} ${c.subRegion}`.toLowerCase().includes(q)) {
+        out.push({ kind: 'Case', label: c.title, sub: `${c.id} · ${c.subRegion}`, go: () => navigate({ tab: 'Investigation', caseId: c.id }) });
       }
     }
     for (const v of world.vessels) {
-      if (v.name.toLowerCase().includes(q) || v.mmsi.includes(q) || v.imo.includes(q)) {
-        out.push({ kind: 'Vessel', label: v.name, sub: `MMSI ${v.mmsi} · ${v.type} · ${v.flag}`, go: () => navigate({ tab: 'Vessel Analysis', mmsi: v.mmsi }) });
+      if (v.name.toLowerCase().includes(q) || (v.mmsiNumber ?? '').includes(q) || (v.imo ?? '').includes(q)) {
+        out.push({ kind: 'Vessel', label: v.name, sub: `${fmt.vesselId(v)} · ${v.type}${v.provenance === 'synthetic' ? ' · synthetic' : ''}`, go: () => navigate({ tab: 'Vessel Analysis', mmsi: v.mmsi }) });
       }
     }
     return out.slice(0, 9);
@@ -106,9 +106,9 @@ function Shell() {
             <Waves className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">OceanWatch AI</h1>
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">OceanSpill</h1>
             <p className="text-[10px] text-gray-500 font-medium leading-tight">Forensic Oil Spill Detection &amp; Vessel Attribution</p>
-            <p className="text-[9px] text-gray-400 leading-tight">National Marine Pollution Intelligence System</p>
+            <p className="text-[9px] text-gray-400 leading-tight">SIH PS 26143 prototype · real Indian cases</p>
           </div>
         </div>
 
@@ -146,14 +146,18 @@ function Shell() {
         </div>
 
         <div className="flex items-center gap-4 flex-shrink-0">
-          <button
-            onClick={toggleClock}
-            title={clockRunning ? 'Pause the demonstration clock' : 'Resume the demonstration clock'}
-            className="flex items-center gap-2 text-xs font-mono font-semibold text-gray-700 hover:text-blue-700 bg-gray-50 hover:bg-blue-50 px-2.5 py-1.5 rounded border border-gray-200"
+          <div
+            title={`Case data generated ${fmt.utc(new Date(world.generatedAt).getTime())}`}
+            className="hidden xl:flex flex-col items-end leading-tight"
           >
-            {clockRunning ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
+              RETROSPECTIVE REPLAY · {world.cases.length} REAL CASES
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-gray-700 bg-gray-50 px-2.5 py-1.5 rounded border border-gray-200">
+            <Clock className="w-3 h-3" />
             {fmt.utc(now)}
-          </button>
+          </div>
 
           <div className="relative">
             <button onClick={() => { setNotifOpen((o) => !o); setUserMenu(false); }} className="relative text-gray-600 hover:text-blue-600 p-1">
@@ -221,7 +225,7 @@ function Shell() {
                   </div>
                 </div>
                 <div className="px-3 py-2 border-b border-gray-200">
-                  <p className="text-[10px] font-bold text-gray-600 uppercase mb-1.5">Switch role (demonstration)</p>
+                  <p className="text-[10px] font-bold text-gray-600 uppercase mb-1.5">Switch role (demo accounts)</p>
                   <p className="text-[10px] text-gray-500 mb-2 leading-snug">
                     Navigation and page permissions change with the signed-in role.
                   </p>
@@ -354,18 +358,19 @@ function HelpPanel({ onClose }: { onClose: () => void }) {
           <section>
             <h4 className="font-bold text-gray-900 text-sm mb-1">Navigating</h4>
             <p>
-              The demonstration clock in the header drives drift animation and pass scheduling; pause it to freeze the state.
+              Each case page has its own time scrubber covering the incident window.
               Use the search box for any case ID, vessel name, MMSI or IMO number. Maps pan by dragging and zoom with the wheel.
               Switching the signed-in role from the user menu changes which pages are available.
             </p>
           </section>
           <section className="bg-amber-50 border border-amber-200 rounded p-3">
-            <h4 className="font-bold text-amber-900 text-sm mb-1">Demonstration data</h4>
-            <p className="text-amber-900">
-              Vessel identities, AIS tracks and detections in this build are synthetic. The ocean forcing, drift physics,
-              weathering chemistry, geometry and scoring are all computed live from the models described above — the numbers
-              on screen are calculated, not stored.
-            </p>
+            <h4 className="font-bold text-amber-900 text-sm mb-1">What is real and what is not</h4>
+            <ul className="text-amber-900 list-disc ml-4 space-y-1">
+              <li><b>Real:</b> the seven incidents, their positions, times, vessels, quantities and outcomes (cited to official and public sources); Sentinel-1 scene catalogue entries; ERA5 wind and SMOC currents; UN sanctions checks.</li>
+              <li><b>Synthetic:</b> AIS tracks (anchored to reported real positions) and all background traffic, which carries SYN names and 999 MMSIs.</li>
+              <li><b>Pending:</b> SAR segmentation (no model trained yet), EOS-04 search (needs Bhoonidhi login), INCOIS and DGLL feeds.</li>
+            </ul>
+            <p className="text-amber-900 mt-2">Every value carries a REAL, OBSERVED, SYNTHETIC, MODELLED or PENDING badge. Cases start in replay mode: the workflow is this system's; the real-world outcome is shown beside it.</p>
           </section>
         </div>
       </div>

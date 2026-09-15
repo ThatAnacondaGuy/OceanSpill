@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { Provenance } from '../data/types';
 import { ChevronDown, ChevronUp, ChevronsUpDown, Search, X, Play, Pause, SkipBack, SkipForward, Check, Download } from 'lucide-react';
 
 export function Panel({
@@ -705,4 +706,25 @@ export function triggerDownload(filename: string, content: string, mime = 'text/
 
 export function ExportButton({ onExport, label = 'Export CSV' }: { onExport: () => void; label?: string }) {
   return <Button size="sm" onClick={onExport} icon={<Download className="w-3 h-3" />}>{label}</Button>;
+}
+
+const PROVENANCE_STYLES: Record<string, { label: string; cls: string; help: string }> = {
+  real: { label: 'REAL', cls: 'bg-emerald-50 text-emerald-700 border-emerald-300', help: 'From a cited public or official source' },
+  observed: { label: 'OBSERVED', cls: 'bg-emerald-50 text-emerald-700 border-emerald-300', help: 'Measured or reanalysis data from a named provider' },
+  synthetic: { label: 'SYNTHETIC', cls: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-300', help: 'Generated because real data is not available to this prototype' },
+  'synthetic-anchored': { label: 'SYNTHETIC · ANCHORED', cls: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-300', help: 'Synthetic track passing through reported real positions' },
+  modelled: { label: 'MODELLED', cls: 'bg-amber-50 text-amber-800 border-amber-300', help: 'Output of a model or an analyst planning construct' },
+  model: { label: 'MODEL', cls: 'bg-amber-50 text-amber-800 border-amber-300', help: 'Climatological model used where observed data is missing' },
+  pending: { label: 'PENDING', cls: 'bg-slate-100 text-slate-600 border-slate-300', help: 'Needs data or access the prototype does not have yet' },
+  session: { label: 'SESSION', cls: 'bg-blue-50 text-blue-700 border-blue-300', help: 'Created by a user action in this browser session' },
+  'facility-position': { label: 'FIXED SITE', cls: 'bg-emerald-50 text-emerald-700 border-emerald-300', help: 'Reported facility location' },
+};
+
+export function ProvenanceBadge({ p, className = '' }: { p: Provenance | 'observed' | 'model' | 'synthetic-anchored' | 'facility-position'; className?: string }) {
+  const st = PROVENANCE_STYLES[p] ?? PROVENANCE_STYLES.pending;
+  return (
+    <span title={st.help} className={`inline-flex items-center text-[8.5px] font-bold tracking-wide px-1 py-px rounded border leading-none ${st.cls} ${className}`}>
+      {st.label}
+    </span>
+  );
 }

@@ -1,187 +1,166 @@
-import { analysePolygon, type LatLon } from '../lib/geo';
-import { seaStateAt, windAt } from './ocean';
-import type { Detection } from '../data/types';
+import { analysePolygon, type PolygonShape } from '../lib/geo';
+import type { Detection, SourceType } from '../data/types';
 
 /**
  * Oil-vs-look-alike discrimination.
  *
- * Detecting a dark patch in SAR is the easy half. Low-wind cells, biogenic films from algal
- * blooms, rain cells, current shear lines and upwelling all damp capillary waves the same way
- * oil does. Everything below is the discriminating half: geometric plausibility, contrast
- * consistency, and — most importantly — the wind cross-check, since a low-wind look-alike can
- * only exist inside a narrow wind band while real oil persists across the whole range.
+ * Detecting a dark patch in SAR is the easy half. Low-wind cells, biogenic films, rain cells,
+ * current shear and upwelling all damp capillary waves the way oil does. The checks below are
+ * the discriminating half. Checks that need SAR measurements (backscatter contrast, edge
+ * definition, model class margin) stay "pending" until a scene has been downloaded and
+ * segmented — they are never filled with invented values.
  */
+
+export type CheckStatus = 'passed' | 'failed' | 'pending';
 
 export interface LookalikeCheck {
   name: string;
-  passed: boolean;
+  status: CheckStatus;
   weight: number;
   detail: string;
 }
 
 export interface DetectionAssessment {
-  /** Final oil probability after all cross-checks, 0–1. */
   confidence: number;
-  /** Raw segmentation-model output before cross-checks. */
-  rawModelConfidence: number;
-  verdict: 'Confirmed oil' | 'Probable oil' | 'Ambiguous' | 'Probable look-alike';
+  confidenceBasis: 'official-report' | 'sar-model' | 'unconfirmed-report';
+  rawModelConfidence: number | null;
+  verdict: 'Officially confirmed' | 'Confirmed oil' | 'Probable oil' | 'Ambiguous' | 'Probable look-alike';
   checks: LookalikeCheck[];
-  /** Most likely natural phenomenon if this is not oil. */
   lookalikeHypothesis: string | null;
-  shape: ReturnType<typeof analysePolygon>;
-  contrastDb: number;
-  /** Suggests whether the source was moving or stationary. */
-  sourceInference: 'Moving vessel (linear discharge)' | 'Stationary source (platform, wreck or anchored vessel)' | 'Indeterminate';
-  windSpeedMs: number;
+  shape: PolygonShape;
+  contrastDb: number | null;
+  sourceInference: string;
+  windSpeedMs: number | null;
   detectabilityNote: string;
+  sarPending: boolean;
 }
 
-export function assessDetection(det: Detection): DetectionAssessment {
+export function assessDetection(det: Detection, officiallyConfirmed: boolean, sourceType: SourceType): DetectionAssessment {
   const shape = analysePolygon(det.polygon.ring);
-  const contrastDb = det.meanBackscatterDb - det.backgroundBackscatterDb;
+  const sarProcessed = det.status === 'sar-processed' && det.classProbabilities != null;
+  const contrastDb =
+    det.meanBackscatterDb != null && det.backgroundBackscatterDb != null ? det.meanBackscatterDb - det.backgroundBackscatterDb : null;
   const wind = det.windSpeedMs;
+  const sceneNote = det.sarMeasurements.length
+    ? `${det.sarMeasurements.length} scene${det.sarMeasurements.length === 1 ? '' : 's'} processed; no dark spot within 10 km of the incident`
+    : det.scenes.length
+    ? `${det.scenes.length} catalogue scene${det.scenes.length === 1 ? '' : 's'} identified; download and processing pending`
+    : 'No SAR scene found in the search window';
+  const measured = det.sarSpot ? ` (measured on ${det.sarSpot.scene})` : '';
   const checks: LookalikeCheck[] = [];
 
-  // 1. Wind cross-check. Below ~3 m/s the sea is glassy and dark patches are almost always
-  // wind shadows rather than oil; above ~12 m/s breaking waves re-roughen a real slick, so a
-  // dark patch that persists is more likely a genuine thick emulsion.
-  if (wind < 2.2) {
-    checks.push({
-      name: 'Wind cross-check',
-      passed: false,
-      weight: 0.3,
-      detail: `Wind ${wind.toFixed(1)} m/s is below the 3 m/s damping floor — low-wind cells are indistinguishable from oil at this sea state`,
-    });
+  if (wind == null) {
+    checks.push({ name: 'Wind cross-check', status: 'pending', weight: 0.3, detail: 'No wind data for the reference time' });
+  } else if (wind < 2.2) {
+    checks.push({ name: 'Wind cross-check', status: 'failed', weight: 0.3, detail: `Wind ${wind.toFixed(1)} m/s is below the ~3 m/s damping floor; low-wind cells look like oil at this sea state` });
   } else if (wind < 3.2) {
-    checks.push({
-      name: 'Wind cross-check',
-      passed: false,
-      weight: 0.16,
-      detail: `Wind ${wind.toFixed(1)} m/s sits at the lower detectability limit; low-wind look-alikes cannot be excluded`,
-    });
+    checks.push({ name: 'Wind cross-check', status: 'failed', weight: 0.16, detail: `Wind ${wind.toFixed(1)} m/s is at the lower detectability limit; low-wind look-alikes cannot be excluded` });
   } else if (wind > 13.5) {
-    checks.push({
-      name: 'Wind cross-check',
-      passed: false,
-      weight: 0.12,
-      detail: `Wind ${wind.toFixed(1)} m/s exceeds the upper limit — wave breaking normally erases slick contrast`,
-    });
+    checks.push({ name: 'Wind cross-check', status: 'failed', weight: 0.12, detail: `Wind ${wind.toFixed(1)} m/s exceeds the upper limit; wave breaking normally erases slick contrast` });
   } else {
-    checks.push({
-      name: 'Wind cross-check',
-      passed: true,
-      weight: 0.3,
-      detail: `Wind ${wind.toFixed(1)} m/s falls inside the 3–12 m/s detectability window where oil damping is unambiguous`,
-    });
+    checks.push({ name: 'Wind cross-check', status: 'passed', weight: 0.3, detail: `Wind ${wind.toFixed(1)} m/s is inside the 3–12 m/s window where oil damping is visible in SAR` });
   }
 
-  // 2. Contrast depth. Natural films rarely exceed about 8 dB of damping.
-  if (contrastDb <= -9) {
-    checks.push({
-      name: 'Backscatter contrast',
-      passed: true,
-      weight: 0.22,
-      detail: `${contrastDb.toFixed(1)} dB damping against background — deeper than biogenic films typically produce`,
-    });
+  if (contrastDb == null) {
+    checks.push({ name: 'Backscatter contrast', status: 'pending', weight: 0.22, detail: `Needs Sigma0 from a processed scene. ${sceneNote}.` });
+  } else if (contrastDb <= -9) {
+    checks.push({ name: 'Backscatter contrast', status: 'passed', weight: 0.22, detail: `${contrastDb.toFixed(1)} dB damping, deeper than biogenic films typically produce${measured}` });
   } else if (contrastDb <= -6) {
-    checks.push({
-      name: 'Backscatter contrast',
-      passed: true,
-      weight: 0.12,
-      detail: `${contrastDb.toFixed(1)} dB damping is consistent with a thin mineral-oil film`,
-    });
+    checks.push({ name: 'Backscatter contrast', status: 'passed', weight: 0.12, detail: `${contrastDb.toFixed(1)} dB damping, consistent with a thin mineral-oil film${measured}` });
   } else {
+    checks.push({ name: 'Backscatter contrast', status: 'failed', weight: 0.18, detail: `${contrastDb.toFixed(1)} dB damping is shallow, within the range of algal surfactant films${measured}` });
+  }
+
+  if (!sarProcessed) {
+    checks.push({ name: 'Edge definition', status: 'pending', weight: 0.14, detail: 'Needs a segmented SAR boundary; reported geometry has no measured edge' });
+  } else {
+    const sharp = shape.compactness < 0.34;
+    const diffuse = shape.compactness > 0.62;
     checks.push({
-      name: 'Backscatter contrast',
-      passed: false,
-      weight: 0.18,
-      detail: `${contrastDb.toFixed(1)} dB damping is shallow — within the range produced by algal surfactant films`,
+      name: 'Edge definition',
+      status: diffuse ? 'failed' : 'passed',
+      weight: 0.14,
+      detail: sharp ? `Sharp boundary (compactness ${shape.compactness.toFixed(2)})` : diffuse ? `Diffuse feathered boundary (compactness ${shape.compactness.toFixed(2)})` : `Moderately defined boundary (compactness ${shape.compactness.toFixed(2)})`,
     });
   }
 
-  // 3. Edge definition proxy. Oil holds a sharp boundary; natural films feather out.
-  const edgeSharpness = shape.compactness < 0.34 ? 'sharp' : shape.compactness > 0.62 ? 'diffuse' : 'moderate';
-  checks.push({
-    name: 'Edge definition',
-    passed: edgeSharpness !== 'diffuse',
-    weight: 0.14,
-    detail:
-      edgeSharpness === 'sharp'
-        ? `Sharp, well-defined boundary (compactness ${shape.compactness.toFixed(2)}) typical of mineral oil`
-        : edgeSharpness === 'moderate'
-        ? `Moderately defined boundary (compactness ${shape.compactness.toFixed(2)})`
-        : `Diffuse feathered boundary (compactness ${shape.compactness.toFixed(2)}) more typical of a biogenic or low-wind feature`,
-  });
-
-  // 4. Geometry. A long thin feature is the signature of a vessel discharging under way.
-  if (shape.elongation >= 4.5) {
+  if (!sarProcessed && !det.extentReported && det.sarSpot) {
+    const e = det.sarSpot.elongation;
     checks.push({
-      name: 'Geometric plausibility',
-      passed: true,
-      weight: 0.2,
-      detail: `Elongation ${shape.elongation.toFixed(1)}:1 over ${shape.majorAxisKm.toFixed(1)} km — the linear signature of a discharge laid down by a moving vessel`,
+      name: 'Geometric plausibility', status: e >= 2.4 ? 'passed' : 'failed', weight: e >= 4.5 ? 0.2 : 0.1,
+      detail: `Detected dark spot: ${det.sarSpot.areaKm2.toFixed(1)} km², elongation ${e.toFixed(1)}:1, axis ${det.sarSpot.orientationDeg.toFixed(0)}°${measured}`,
     });
-  } else if (shape.elongation >= 2.4) {
-    checks.push({
-      name: 'Geometric plausibility',
-      passed: true,
-      weight: 0.1,
-      detail: `Elongation ${shape.elongation.toFixed(1)}:1 — moderately linear, consistent with a weathered discharge trail`,
-    });
+  } else if (!sarProcessed && !det.extentReported) {
+    checks.push({ name: 'Geometric plausibility', status: 'pending', weight: 0.2, detail: 'Extent not reported; needs a processed SAR scene' });
   } else {
+    const basis = sarProcessed ? '' : ' (from reported extent)';
+    if (shape.elongation >= 4.5) {
+      checks.push({ name: 'Geometric plausibility', status: 'passed', weight: 0.2, detail: `Elongation ${shape.elongation.toFixed(1)}:1 over ${shape.majorAxisKm.toFixed(1)} km${basis}` });
+    } else if (shape.elongation >= 2.4) {
+      checks.push({ name: 'Geometric plausibility', status: 'passed', weight: 0.1, detail: `Elongation ${shape.elongation.toFixed(1)}:1${basis}` });
+    } else {
+      checks.push({ name: 'Geometric plausibility', status: 'failed', weight: 0.1, detail: `Compact form, elongation ${shape.elongation.toFixed(1)}:1${basis}` });
+    }
+  }
+
+  if (!det.classProbabilities) {
+    checks.push({ name: 'Segmentation class margin', status: 'pending', weight: 0.16, detail: 'No segmentation model output yet' });
+  } else {
+    const margin = det.classProbabilities.oil - det.classProbabilities.lookalike;
     checks.push({
-      name: 'Geometric plausibility',
-      passed: false,
-      weight: 0.1,
-      detail: `Elongation ${shape.elongation.toFixed(1)}:1 — compact form is equally consistent with a wind shadow or an algal patch`,
+      name: 'Segmentation class margin',
+      status: margin > 0.25 ? 'passed' : 'failed',
+      weight: 0.16,
+      detail: `Model separates oil from look-alike by ${(margin * 100).toFixed(0)} points (${det.modelVersion ?? 'model'})`,
     });
   }
 
-  // 5. Model class separation.
-  const margin = det.classProbabilities.oil - det.classProbabilities.lookalike;
-  checks.push({
-    name: 'Segmentation class margin',
-    passed: margin > 0.25,
-    weight: 0.16,
-    detail: `Model separates oil from look-alike by ${(margin * 100).toFixed(0)} percentage points (${det.modelVersion})`,
-  });
+  let confidence: number;
+  let confidenceBasis: DetectionAssessment['confidenceBasis'];
+  let verdict: DetectionAssessment['verdict'];
+  let raw: number | null = null;
 
-  const supporting = checks.filter((c) => c.passed).reduce((s, c) => s + c.weight, 0);
-  const contradicting = checks.filter((c) => !c.passed).reduce((s, c) => s + c.weight, 0);
-  const raw = det.classProbabilities.oil;
-  const adjustment = (supporting - contradicting) * 0.42;
-  const confidence = Math.max(0.03, Math.min(0.985, raw + adjustment));
+  if (sarProcessed && det.classProbabilities) {
+    raw = det.classProbabilities.oil;
+    const scored = checks.filter((c) => c.status !== 'pending');
+    const supporting = scored.filter((c) => c.status === 'passed').reduce((s, c) => s + c.weight, 0);
+    const contradicting = scored.filter((c) => c.status === 'failed').reduce((s, c) => s + c.weight, 0);
+    confidence = Math.max(0.03, Math.min(0.985, raw + (supporting - contradicting) * 0.42));
+    confidenceBasis = 'sar-model';
+    verdict = confidence >= 0.85 ? 'Confirmed oil' : confidence >= 0.62 ? 'Probable oil' : confidence >= 0.4 ? 'Ambiguous' : 'Probable look-alike';
+  } else if (officiallyConfirmed) {
+    confidence = 1;
+    confidenceBasis = 'official-report';
+    verdict = 'Officially confirmed';
+  } else {
+    confidence = 0.5;
+    confidenceBasis = 'unconfirmed-report';
+    verdict = 'Ambiguous';
+  }
 
   let lookalikeHypothesis: string | null = null;
-  if (confidence < 0.62) {
-    if (wind < 3.2) lookalikeHypothesis = 'Low-wind cell / wind shadow';
-    else if (contrastDb > -6 && shape.compactness > 0.5) lookalikeHypothesis = 'Biogenic surfactant film (algal bloom)';
-    else if (shape.elongation > 6 && contrastDb > -7) lookalikeHypothesis = 'Current shear or internal-wave signature';
-    else lookalikeHypothesis = 'Rain cell or upwelling front';
+  if (confidenceBasis === 'sar-model' && confidence < 0.62) {
+    if (wind != null && wind < 3.2) lookalikeHypothesis = 'Low-wind cell / wind shadow';
+    else if (contrastDb != null && contrastDb > -6 && shape.compactness > 0.5) lookalikeHypothesis = 'Biogenic surfactant film (algal bloom)';
+    else lookalikeHypothesis = 'Rain cell, current shear or upwelling front';
   }
 
-  let verdict: DetectionAssessment['verdict'];
-  if (confidence >= 0.85) verdict = 'Confirmed oil';
-  else if (confidence >= 0.62) verdict = 'Probable oil';
-  else if (confidence >= 0.4) verdict = 'Ambiguous';
-  else verdict = 'Probable look-alike';
-
   const sourceInference =
-    shape.elongation >= 4 && shape.majorAxisKm > 4
-      ? 'Moving vessel (linear discharge)'
-      : shape.elongation < 2.2
-      ? 'Stationary source (platform, wreck or anchored vessel)'
-      : 'Indeterminate';
+    sourceType === 'vessel' ? 'Reported source: vessel'
+    : sourceType === 'facility' ? 'Reported source: land-based facility'
+    : sourceType === 'pipeline' ? 'Reported source: undersea pipeline'
+    : sarProcessed && shape.elongation >= 4 ? 'Moving vessel (linear discharge)'
+    : 'Unknown source';
 
   const detectabilityNote =
-    wind < 3.2
-      ? 'Acquisition conditions marginal — recommend re-imaging on the next pass before committing analyst time'
-      : wind > 13.5
-      ? 'High sea state — slick boundary likely under-segmented, treat area as a lower bound'
-      : 'Acquisition conditions within the nominal detectability envelope';
+    wind == null ? 'Wind unavailable; SAR detectability cannot be assessed'
+    : wind < 3.2 ? 'Wind below the detectability window at the reference time: SAR scenes from this period may not show the slick clearly'
+    : wind > 13.5 ? 'High sea state: slick boundary likely under-segmented in SAR'
+    : 'Wind inside the nominal SAR detectability envelope at the reference time';
 
   return {
     confidence,
+    confidenceBasis,
     rawModelConfidence: raw,
     verdict,
     checks,
@@ -191,51 +170,18 @@ export function assessDetection(det: Detection): DetectionAssessment {
     sourceInference,
     windSpeedMs: wind,
     detectabilityNote,
+    sarPending: !sarProcessed,
   };
 }
 
-/** Per-class pixel counts for the segmentation summary panel. */
-export function segmentationStats(det: Detection, assessment: DetectionAssessment) {
-  const px = det.resolutionM;
-  const oilPixels = Math.round((assessment.shape.areaKm2 * 1e6) / (px * px));
-  const scenePixels = Math.round((250 * 250 * 1e6) / (px * px));
-  return {
-    oilPixels,
-    scenePixels,
-    coveragePpm: (oilPixels / scenePixels) * 1e6,
-    /** Class imbalance is why IoU and Dice are reported instead of raw accuracy. */
-    imbalanceRatio: Math.round(scenePixels / Math.max(oilPixels, 1)),
-  };
-}
-
-/** Wind and sea state sampled at the detection centroid at acquisition time. */
-export function acquisitionConditions(centre: LatLon, at: number) {
-  const d = new Date(at);
-  return { wind: windAt(centre, d), sea: seaStateAt(centre, d) };
-}
-
-/**
- * Model performance figures. These are the published Krestenitis et al. benchmark ranges for
- * a DeepLabv3+/U-Net class segmentation head on the Sentinel-1 oil spill corpus — reported
- * per class, because a single headline accuracy number would be dominated by the sea class
- * and would look far better than the model actually is.
- */
-export const MODEL_METRICS = {
-  version: 'oceanwatch-seg v2.4.1',
-  architecture: 'U-Net (attention-gated) · MobileNetV3-Large encoder',
-  trainedOn: 'Krestenitis S1 corpus (1 002 scenes) + 318 Indian EEZ scenes, pixel-annotated',
-  loss: 'Dice + focal (γ=2.0), class-balanced',
-  input: '256 × 256 px tiles, Sigma0 dB, Lee-filtered',
-  classes: [
-    { name: 'Sea surface', iou: 0.962, dice: 0.981, support: 0.938 },
-    { name: 'Oil spill', iou: 0.617, dice: 0.763, support: 0.011 },
-    { name: 'Look-alike', iou: 0.529, dice: 0.692, support: 0.024 },
-    { name: 'Ship', iou: 0.441, dice: 0.612, support: 0.002 },
-    { name: 'Land', iou: 0.947, dice: 0.973, support: 0.025 },
-  ],
-  meanIou: 0.699,
-  falsePositiveRate: 0.087,
-  falseNegativeRate: 0.142,
-  inferenceMsPerTile: 34,
-  note: 'Oil and look-alike IoU are the operationally meaningful numbers. Mean IoU is inflated by the sea and land classes, which are trivially separable.',
+/** Status of the segmentation model. No model has been trained yet, so no accuracy figures are shown. */
+export const MODEL_STATUS = {
+  trained: false,
+  version: null as string | null,
+  plannedArchitecture: 'U-Net binary oil segmentation on 2-channel (co-pol, cross-pol) calibrated Sigma0 dB tiles',
+  plannedTraining: 'Pre-train on the public Sentinel-1 oil spill dataset (1,200 VV+VH scenes, binary masks, CC BY 4.0), then fine-tune on hand-labelled EOS-04 chips from the real Indian cases',
+  plannedLoss: 'Dice + focal loss to handle oil pixels being a tiny fraction of each scene',
+  evaluation: ['Per-class IoU and Dice (oil and look-alike reported separately)', 'False-positive rate on look-alikes', 'False-negative rate on officially confirmed spills'],
+  datasetUrl: 'https://zenodo.org/records/8346860',
+  note: 'No segmentation model has been trained yet. Detection confidence comes from official confirmation; processed scenes add classical dark-spot measurements, not model scores.',
 };

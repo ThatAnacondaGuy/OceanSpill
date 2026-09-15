@@ -1,15 +1,14 @@
 import { useMemo, useState } from 'react';
 import {
-  Settings, Users, Shield, Database, Server, Activity, Key, HardDrive, Lock,
+  Settings, Users, Shield, Database, Server, Activity, Key, Lock,
   Plus, Check, X, AlertTriangle, Info, Cpu, Globe,
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
 import {
   Badge, Button, KeyValue, DataTable, SearchInput, Select, InfoBanner, Modal, Field,
-  TextInput, StatCard, Toggle, ExportButton, downloadCsv, type Column,
+  TextInput, StatCard, Toggle, ExportButton, downloadCsv, ProvenanceBadge, type Column,
 } from './components/ui';
-import { MODEL_METRICS } from './engine/detection';
-import { DEFAULT_WEIGHTS } from './engine/attribution';
+import { MODEL_STATUS } from './engine/detection';
 import type { SystemUser } from './data/types';
 
 const SECTIONS = [
@@ -47,7 +46,7 @@ const ROLE_MATRIX: Record<string, Record<string, 'full' | 'read' | 'none'>> = {
 };
 
 export default function SystemAdministration() {
-  const { world, now, currentUser, addUser, updateUser, notify, revision } = useStore();
+  const { world, now, currentUser, addUser, updateUser, notify, revision, weights, getAnalysis } = useStore();
   const [section, setSection] = useState('users');
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -113,6 +112,10 @@ export default function SystemAdministration() {
 
   const accessLog = useMemo(() => world.audit.filter((e) => e.category === 'Access' || e.category === 'System'), [world.audit, revision]);
 
+  // Measured in this browser: engine runtime per case (hindcast ensemble, forecast, scoring).
+  const runtimes = useMemo(() => world.cases.map((c) => ({ c, ms: getAnalysis(c.id)?.runtimeMs ?? null })), [world.cases, getAnalysis]);
+  const meanRuntime = runtimes.filter((r) => r.ms != null).reduce((s, r, _, arr) => s + (r.ms ?? 0) / arr.length, 0);
+
   return (
     <main className="flex-1 min-h-0 flex overflow-hidden">
       <aside className="w-[250px] bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
@@ -154,20 +157,24 @@ export default function SystemAdministration() {
 
         {section === 'users' && (
           <div className="flex-1 min-h-0 flex flex-col p-3 gap-3">
+            <InfoBanner tone="amber" icon={<Info className="w-3.5 h-3.5" />}>
+              These are <b>demo accounts</b> for showing role-based access. There is no authentication in the prototype;
+              a deployment would federate sign-in through the agency identity provider (e.g. Keycloak / Parichay).
+            </InfoBanner>
             <div className="grid grid-cols-4 gap-3">
               <StatCard icon={<Users className="w-5 h-5" />} title="Total users" value={world.users.length} trend={`${world.users.filter((u) => u.status === 'Active').length} active`} />
               <StatCard icon={<Shield className="w-5 h-5" />} title="MFA enrolled" value={world.users.filter((u) => u.mfa).length}
                 trend={`${world.users.filter((u) => !u.mfa).length} without MFA`} accent={world.users.some((u) => !u.mfa) ? 'amber' : 'green'} />
-              <StatCard icon={<Globe className="w-5 h-5" />} title="Agencies" value={new Set(world.users.map((u) => u.agency)).size} trend="with federated access" />
+              <StatCard icon={<Globe className="w-5 h-5" />} title="Agencies" value={new Set(world.users.map((u) => u.agency)).size} trend="represented by demo roles" />
               <StatCard icon={<Lock className="w-5 h-5" />} title="Secret clearance" value={world.users.filter((u) => u.clearance === 'Secret').length}
-                trend="full raw-imagery access" accent="red" />
+                trend="demo clearance level" accent="red" />
             </div>
 
             <div className="flex gap-2">
               <SearchInput value={query} onChange={setQuery} placeholder="Name, email, role or agency…" className="flex-1" />
               <Select value={roleFilter} onChange={setRoleFilter}
                 options={[{ value: 'all', label: 'All roles' }, ...Array.from(new Set(world.users.map((u) => u.role))).map((r) => ({ value: r, label: r }))]} />
-              <ExportButton onExport={() => downloadCsv('oceanwatch-users.csv', userColumns.filter((c) => c.value), users)} />
+              <ExportButton onExport={() => downloadCsv('oceanspill-users.csv', userColumns.filter((c) => c.value), users)} />
               <Button size="sm" variant="primary" disabled={restricted} onClick={() => setAddOpen(true)} icon={<Plus className="w-3 h-3" />}>Add user</Button>
             </div>
 
@@ -232,29 +239,31 @@ export default function SystemAdministration() {
 
         {section === 'sources' && (
           <div className="flex-1 overflow-auto p-3 space-y-2">
-            {world.dataSources.map((d) => (
-              <div key={d.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-                <div className="flex justify-between items-start gap-3 mb-2">
-                  <div className="min-w-0">
-                    <h4 className="text-[12px] font-bold text-gray-900">{d.name}</h4>
-                    <p className="text-[10px] text-gray-500 font-mono break-all">{d.endpoint}</p>
+            <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
+              Providers are switched in <code className="bg-white px-1 rounded">pipeline/.env</code> (<code className="bg-white px-1 rounded">SAR_PROVIDERS</code>,{' '}
+              <code className="bg-white px-1 rounded">METOCEAN_PROVIDER</code>, <code className="bg-white px-1 rounded">AIS_PROVIDER</code>,{' '}
+              <code className="bg-white px-1 rounded">SANCTIONS_PROVIDER</code>). Indian sources are listed first and used whenever configured.
+            </InfoBanner>
+            {(['SAR', 'Metocean', 'AIS', 'Registry', 'Sanctions', 'Alerting', 'Operating picture'] as const).map((kind) => (
+              <div key={kind}>
+                <p className="text-[10px] font-bold text-gray-500 uppercase mt-2 mb-1">{kind}</p>
+                {world.dataSources.filter((d) => d.kind === kind).map((d) => (
+                  <div key={d.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-2">
+                    <div className="flex justify-between items-start gap-3 mb-1">
+                      <div className="min-w-0">
+                        <h4 className="text-[12px] font-bold text-gray-900">{d.name}</h4>
+                        <p className="text-[10px] text-gray-500">{d.agency} · adapter id <code>{d.id}</code></p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Badge tone={d.sovereign ? 'green' : 'gray'}>{d.sovereign ? 'Indian' : 'Foreign'}</Badge>
+                        <Badge tone={d.role === 'primary' ? 'blue' : 'slate'}>{d.role}</Badge>
+                        <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Interim fallback' ? 'teal' : d.status === 'Not configured' ? 'amber' : 'gray'}>{d.status}</Badge>
+                      </div>
+                    </div>
+                    <p className="text-[10.5px] text-gray-600 leading-snug">{d.message}</p>
+                    <p className="text-[9.5px] text-gray-400 mt-1">{d.lastSync != null ? `Used in pipeline build ${fmt.ago(d.lastSync, now)}` : 'Not used in the current build'}</p>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Badge tone="gray">{d.kind}</Badge>
-                    <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Degraded' ? 'amber' : 'red'}>{d.status}</Badge>
-                  </div>
-                </div>
-                <KeyValue cols={4} items={[
-                  ['Provider', d.provider], ['Auth', d.authMode],
-                  ['Latency', `${fmt.num(d.latencyMs)} ms`], ['Rate', d.recordsPerMin > 0 ? `${fmt.num(d.recordsPerMin)}/min` : '—'],
-                  ['Last sync', fmt.ago(d.lastSync, now)], ['Quota used', `${d.quotaUsedPct}%`],
-                ]} />
-                {d.quotaUsedPct > 75 && (
-                  <p className="text-[10px] text-amber-700 mt-1.5 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3 h-3" /> Approaching quota. Exhaustion here silently degrades
-                    attribution quality rather than producing a visible error.
-                  </p>
-                )}
+                ))}
               </div>
             ))}
           </div>
@@ -262,30 +271,35 @@ export default function SystemAdministration() {
 
         {section === 'infra' && (
           <div className="flex-1 overflow-auto p-3 space-y-3">
-            <div className="grid grid-cols-3 gap-3">
-              <StatCard icon={<Server className="w-5 h-5" />} title="Hosting" value="MeghRaj" trend="NIC Government Cloud" />
-              <StatCard icon={<HardDrive className="w-5 h-5" />} title="Data residency" value="India" trend="all data at rest in-country" accent="green" />
-              <StatCard icon={<Cpu className="w-5 h-5" />} title="Inference" value="On-premises" trend="imagery never leaves the enclave" accent="green" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Prototype (running now) <ProvenanceBadge p="real" /></h4>
+                <KeyValue cols={1} items={[
+                  ['Frontend', 'React 18 + TypeScript + Vite, static build'],
+                  ['Data pipeline', 'Python 3.12 (uv), provider adapters, disk cache'],
+                  ['Data store', 'JSON artifacts in public/data (index, cases, forcing)'],
+                  ['Last build', `${world.generatedAt} (${fmt.ago(Date.parse(world.generatedAt), now)})`],
+                  ['Build failures', world.index.failures.length ? world.index.failures.map((f) => f.id).join(', ') : 'None'],
+                  ['Drift and attribution', 'Computed in the browser from the artifacts'],
+                  ['Authentication', 'None (demo role switcher)'],
+                ]} />
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2 flex items-center gap-2">Target deployment <ProvenanceBadge p="pending" /></h4>
+                <KeyValue cols={1} items={[
+                  ['Hosting', 'MeghRaj / NIC government cloud (not provisioned)'],
+                  ['Data residency', 'India only'],
+                  ['Database', 'PostgreSQL + PostGIS; TimescaleDB for AIS'],
+                  ['Object storage', 'S3-compatible store for SAR scenes'],
+                  ['Inference', 'On-premises GPU (e.g. AIRAWAT allocation)'],
+                  ['Network', 'NICNET, no public ingress, mTLS between services'],
+                  ['Identity', 'Agency SSO with MFA'],
+                ]} />
+              </div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-              <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2">Deployment configuration</h4>
-              <KeyValue cols={2} items={[
-                ['Primary region', 'NIC Data Centre, Delhi'],
-                ['Disaster recovery', 'NIC Data Centre, Hyderabad'],
-                ['Object storage', 'NIC S3-compatible, AES-256 at rest'],
-                ['Database', 'PostgreSQL 16 + PostGIS 3.4'],
-                ['Time-series store', 'TimescaleDB (AIS ingest)'],
-                ['Inference runtime', 'ONNX Runtime, CUDA 12 · 2× A100'],
-                ['Network', 'NICNET, no public ingress'],
-                ['Transport security', 'mTLS between all services'],
-                ['Backup schedule', 'Hourly incremental, daily full, 7-year retention'],
-                ['Recovery objective', 'RPO 1 h · RTO 4 h'],
-              ]} />
-            </div>
-            <InfoBanner tone="green" icon={<Shield className="w-3.5 h-3.5" />}>
-              Satellite imagery and AIS archives stay inside government infrastructure. Model inference runs
-              on-premises rather than through a commercial API, because sending EEZ imagery to an external
-              service would itself be the disclosure the system exists to prevent.
+            <InfoBanner tone="amber" icon={<Shield className="w-3.5 h-3.5" />}>
+              Nothing in the right-hand column exists yet. It is the deployment plan, listed so reviewers can see what a
+              production system would need.
             </InfoBanner>
           </div>
         )}
@@ -296,20 +310,17 @@ export default function SystemAdministration() {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h4 className="text-[12px] font-bold text-gray-900">Segmentation model</h4>
-                  <p className="text-[10px] text-gray-500 font-mono">{MODEL_METRICS.version}</p>
+                  <p className="text-[10px] text-gray-500">{MODEL_STATUS.version ?? 'No version'}</p>
                 </div>
-                <Badge tone="green">Deployed</Badge>
+                <Badge tone="gray">Not trained</Badge>
               </div>
-              <KeyValue cols={2} items={[
-                ['Architecture', MODEL_METRICS.architecture],
-                ['Training corpus', MODEL_METRICS.trainedOn],
-                ['Loss', MODEL_METRICS.loss],
-                ['Input', MODEL_METRICS.input],
-                ['Mean IoU', MODEL_METRICS.meanIou.toFixed(3)],
-                ['Oil-class IoU', MODEL_METRICS.classes[1].iou.toFixed(3)],
-                ['Inference', `${MODEL_METRICS.inferenceMsPerTile} ms/tile`],
-                ['False positive rate', fmt.pct(MODEL_METRICS.falsePositiveRate)],
+              <KeyValue cols={1} items={[
+                ['Planned architecture', MODEL_STATUS.plannedArchitecture],
+                ['Planned training', MODEL_STATUS.plannedTraining],
+                ['Loss', MODEL_STATUS.plannedLoss],
+                ['Evaluation', MODEL_STATUS.evaluation.join('; ')],
               ]} />
+              <p className="text-[10px] text-gray-500 mt-1.5">{MODEL_STATUS.note}</p>
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
@@ -321,8 +332,10 @@ export default function SystemAdministration() {
                 ['Stokes drift', '1.2% of 10 m wind'],
                 ['Diffusivity', '8 m²/s horizontal'],
                 ['Ensemble', '12 members, perturbed windage and diffusivity'],
-                ['Forcing — currents', 'INCOIS HOOFS'],
-                ['Forcing — wind', 'IMD forecast grid'],
+                ['Currents (now)', 'SMOC via Open-Meteo (2022+), climatology before'],
+                ['Wind (now)', 'ERA5 via Open-Meteo archive'],
+                ['Currents (target)', 'INCOIS HOOFS (pending access)'],
+                ['Wind (target)', 'IMD / MOSDAC scatterometer (pending access)'],
               ]} />
             </div>
 
@@ -330,17 +343,16 @@ export default function SystemAdministration() {
               <h4 className="text-[12px] font-bold text-gray-900 mb-2">Attribution scoring</h4>
               <KeyValue cols={2} items={[
                 ['Form', 'Transparent weighted sum (not a learned ranker)'],
-                ['Proximity weight', String(DEFAULT_WEIGHTS.proximity)],
-                ['Temporality weight', String(DEFAULT_WEIGHTS.temporality)],
-                ['Trajectory weight', String(DEFAULT_WEIGHTS.trajectory)],
-                ['Behaviour weight', String(DEFAULT_WEIGHTS.behaviour)],
-                ['Registry prior weight', String(DEFAULT_WEIGHTS.vesselPrior)],
-                ['Window', 'Asymmetric — wider before the estimated release'],
+                ['Proximity weight', String(weights.proximity)],
+                ['Temporality weight', String(weights.temporality)],
+                ['Trajectory weight', String(weights.trajectory)],
+                ['Behaviour weight', String(weights.behaviour)],
+                ['Registry prior weight', String(weights.vesselPrior)],
+                ['Window', 'Asymmetric: wider before the estimated release'],
               ]} />
               <InfoBanner tone="blue" icon={<Info className="w-3.5 h-3.5" />}>
-                A weighted sum is used deliberately in place of a learned ranker. There are too few
-                ground-truthed incident–vessel pairs to train one honestly, and an attribution that cannot be
-                explained term by term cannot be defended when a named vessel disputes it.
+                A weighted sum is used because there are too few ground-truthed incident–vessel pairs to train a ranker,
+                and every term can be explained when a named vessel disputes the result.
               </InfoBanner>
             </div>
           </div>
@@ -375,32 +387,41 @@ export default function SystemAdministration() {
         {section === 'health' && (
           <div className="flex-1 overflow-auto p-3 space-y-3">
             <div className="grid grid-cols-4 gap-3">
-              <StatCard icon={<Activity className="w-5 h-5" />} title="Services online"
-                value={`${world.dataSources.filter((d) => d.status === 'Online').length}/${world.dataSources.length}`} trend="upstream connections" accent="green" />
-              <StatCard icon={<Database className="w-5 h-5" />} title="Ingest rate"
-                value={fmt.num(world.dataSources.reduce((s, d) => s + d.recordsPerMin, 0))} trend="records per minute" />
-              <StatCard icon={<Key className="w-5 h-5" />} title="Active sessions" value={world.users.filter((u) => u.status === 'Active' && now - u.lastLogin < 12 * 3600_000).length} trend="in the last 12 hours" />
-              <StatCard icon={<Server className="w-5 h-5" />} title="Uptime" value="99.94%" trend="rolling 30 days" accent="green" />
+              <StatCard icon={<Activity className="w-5 h-5" />} title="Sources working"
+                value={`${world.dataSources.filter((d) => d.status === 'Online' || d.status === 'Interim fallback').length}/${world.dataSources.length}`} trend="online or interim fallback" accent="green" />
+              <StatCard icon={<Database className="w-5 h-5" />} title="Cases loaded" value={world.cases.length} trend={`${world.index.failures.length} build failures`} accent={world.index.failures.length ? 'amber' : 'green'} />
+              <StatCard icon={<Cpu className="w-5 h-5" />} title="Engine runtime" value={`${meanRuntime.toFixed(0)} ms`} trend="mean per case, measured here" />
+              <StatCard icon={<Key className="w-5 h-5" />} title="Pending access" value={world.dataSources.filter((d) => d.status === 'Pending access' || d.status === 'Not configured').length} trend="integrations waiting on credentials" accent="amber" />
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-              <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2">Component status</h4>
-              <div className="space-y-2">
-                {[
-                  { name: 'Scene ingestion service', status: 'Healthy', detail: 'Last scene processed 6 min ago' },
-                  { name: 'Segmentation inference', status: 'Healthy', detail: `${MODEL_METRICS.inferenceMsPerTile} ms per tile, queue empty` },
-                  { name: 'Drift solver', status: 'Healthy', detail: 'Mean runtime 3.1 s per 12-member ensemble' },
-                  { name: 'Attribution engine', status: 'Healthy', detail: 'Mean runtime 240 ms per case' },
-                  { name: 'AIS ingest pipeline', status: 'Healthy', detail: `${fmt.num(world.dataSources.find((d) => d.id === 'DS-AIS-TER')?.recordsPerMin ?? 0)} msg/min, no backlog` },
-                  { name: 'Ocean forcing sync', status: world.dataSources.find((d) => d.id === 'DS-INCOIS-WV')?.status === 'Degraded' ? 'Degraded' : 'Healthy', detail: 'Wave service latency above threshold' },
-                  { name: 'SACHET alert gateway', status: 'Healthy', detail: 'Last publish acknowledged' },
-                  { name: 'IMAC publisher', status: 'Healthy', detail: 'mTLS handshake nominal' },
-                ].map((c) => (
-                  <div key={c.name} className="flex items-center gap-3 py-1.5 border-b border-gray-100 last:border-0">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${c.status === 'Healthy' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                    <span className="text-[11px] font-semibold text-gray-800 w-52 flex-shrink-0">{c.name}</span>
-                    <span className="text-[10px] text-gray-500 flex-1">{c.detail}</span>
-                    <Badge tone={c.status === 'Healthy' ? 'green' : 'amber'}>{c.status}</Badge>
+              <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2">Analysis engine, measured in this browser</h4>
+              <div className="space-y-1">
+                {runtimes.map(({ c, ms }) => (
+                  <div key={c.id} className="flex items-center gap-3 py-1 border-b border-gray-100 last:border-0">
+                    <span className="text-[11px] font-semibold text-gray-800 w-64 flex-shrink-0 truncate" title={c.title}>{c.title}</span>
+                    <div className="flex-1 h-1.5 bg-gray-200 rounded overflow-hidden">
+                      <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, ((ms ?? 0) / Math.max(1, ...runtimes.map((r) => r.ms ?? 0))) * 100)}%` }} />
+                    </div>
+                    <span className="text-[10px] font-mono text-gray-700 w-16 text-right">{ms != null ? `${ms.toFixed(0)} ms` : '—'}</span>
                   </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-500 mt-2">12-member hindcast, forecast, look-alike checks and candidate scoring. Cached until the weights change.</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+              <h4 className="text-[11px] font-bold text-gray-700 uppercase mb-2">Pipeline build</h4>
+              <div className="space-y-2">
+                {world.index.providers.map((p) => (
+                  <div key={`${p.kind}-${p.name}`} className="flex items-center gap-3 py-1.5 border-b border-gray-100 last:border-0">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${p.available ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                    <span className="text-[11px] font-semibold text-gray-800 w-52 flex-shrink-0">{p.agency}</span>
+                    <span className="text-[10px] text-gray-500 flex-1">{p.message}</span>
+                    <Badge tone="gray">{p.kind}</Badge>
+                    <Badge tone={p.available ? 'green' : 'amber'}>{p.available ? 'Available' : 'Unavailable'}</Badge>
+                  </div>
+                ))}
+                {world.index.failures.map((f) => (
+                  <div key={f.id} className="flex items-center gap-3 py-1.5 text-[10px] text-red-700"><AlertTriangle className="w-3 h-3" /> {f.id}: {f.error}</div>
                 ))}
               </div>
             </div>
