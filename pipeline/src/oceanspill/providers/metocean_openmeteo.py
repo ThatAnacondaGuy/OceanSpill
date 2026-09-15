@@ -8,6 +8,7 @@ from ..http import CachedHttp
 from .base import BBox, ForcingGrid, ProviderStatus
 
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 MARINE_URL = "https://marine-api.open-meteo.com/v1/marine"
 CHUNK = 50
 CURRENTS_START = datetime(2022, 1, 1, tzinfo=timezone.utc)
@@ -53,6 +54,8 @@ class OpenMeteo:
     name = "openmeteo"
     agency = "Open-Meteo (ERA5 wind, Météo-France SMOC currents)"
     sovereign = False
+    # The archive API answers for past dates; the forecast subclass points the same code at future ones.
+    wind_url = ARCHIVE_URL
 
     def __init__(self, settings: Settings, http: CachedHttp):
         self.settings = settings
@@ -85,7 +88,7 @@ class OpenMeteo:
         start = times[0]
         points = [(lat, lon) for lat in lats for lon in lons]
 
-        wind = self._fetch(ARCHIVE_URL, points, start, end, "wind_speed_10m,wind_direction_10m")
+        wind = self._fetch(self.wind_url, points, start, end, "wind_speed_10m,wind_direction_10m")
         want_currents = end >= CURRENTS_START
         marine = (
             self._fetch(MARINE_URL, points, start, end, "ocean_current_velocity,ocean_current_direction,wave_height")

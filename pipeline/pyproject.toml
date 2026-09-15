@@ -12,6 +12,7 @@ dependencies = [
 [project.scripts]
 oceanspill = "oceanspill.cli:main"
 oceanspill-train = "oceanspill.ml.train:main"
+oceanspill-api = "oceanspill.api.cli:main"
 
 [project.optional-dependencies]
 sar = [
@@ -26,9 +27,25 @@ ml = [
 cmems = [
     "copernicusmarine>=2.0",
 ]
+api = [
+    "alembic>=1.13",
+    "argon2-cffi>=23.1",
+    "fastapi>=0.115",
+    "geoalchemy2>=0.15",
+    "psycopg[binary]>=3.2",
+    "pyjwt>=2.9",
+    "pyotp>=2.9",
+    "python-multipart>=0.0.9",
+    "reportlab>=4.2",
+    "sqlalchemy>=2.0.30",
+    "uvicorn[standard]>=0.30",
+]
 
 [dependency-groups]
-dev = ["pytest>=8.3"]
+dev = [
+    "httpx>=0.27",
+    "pytest>=8.3",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.27,<0.12.0"]

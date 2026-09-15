@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Type-check and build
+        run: npm run build
+      - name: Tests
+        run: npm test
+
+  pipeline:
+    name: Pipeline and API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: '0.11.27'
+          enable-cache: true
+      - name: Install
+        working-directory: pipeline
+        run: uv sync --frozen --extra api --extra sar
+      - name: Tests
+        working-directory: pipeline
+        # Network-marked tests are skipped by the default pytest options.
+        run: uv run pytest -q
+
+  migrations:
+    name: Database migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_DB: oceanspill
+          POSTGRES_USER: oceanspill
+          POSTGRES_PASSWORD: oceanspill
+        options: >-
+          --health-cmd "pg_isready -U oceanspill" --health-interval 10s
+          --health-timeout 5s --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql+psycopg://oceanspill:oceanspill@localhost:5432/oceanspill
+      JWT_SECRET: ci-only-not-a-real-secret
+      SIGNING_SECRET: ci-only-not-a-real-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: '0.11.27'
+          enable-cache: true
+      - name: Install
+        working-directory: pipeline
+        run: uv sync --frozen --extra api
+      - name: Apply and roll back
+        working-directory: pipeline
+        run: |
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+      - name: Schema matches the table definitions
+        working-directory: pipeline
+        run: uv run alembic check
+      - name: Seed the built-in planning areas
+        working-directory: pipeline
+        run: uv run oceanspill-api seed

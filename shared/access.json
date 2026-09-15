@@ -1,0 +1,207 @@
+{
+  "_comment": "Role permissions shared by the web app and the API. 'read' shows a module without editing; 'none' hides it.",
+  "modules": [
+    {
+      "id": "incidents",
+      "label": "Dashboard & incidents",
+      "tabs": [
+        "Dashboard",
+        "Spill Incidents"
+      ]
+    },
+    {
+      "id": "investigation",
+      "label": "Investigation tools",
+      "tabs": [
+        "Investigation"
+      ]
+    },
+    {
+      "id": "vessels",
+      "label": "Vessel analysis",
+      "tabs": [
+        "Vessel Analysis"
+      ]
+    },
+    {
+      "id": "environment",
+      "label": "Environmental data",
+      "tabs": [
+        "Environmental Data"
+      ]
+    },
+    {
+      "id": "satellite",
+      "label": "Satellite tasking",
+      "tabs": [
+        "Satellite Tasking"
+      ]
+    },
+    {
+      "id": "ecology",
+      "label": "Ecological planning",
+      "tabs": [
+        "NCSCM Ecological"
+      ]
+    },
+    {
+      "id": "alerting",
+      "label": "Community alerting",
+      "tabs": [
+        "SACHET / SAMUDRA"
+      ]
+    },
+    {
+      "id": "workflow",
+      "label": "Workflow & enforcement",
+      "tabs": [
+        "Workflow"
+      ]
+    },
+    {
+      "id": "liability",
+      "label": "Liability register",
+      "tabs": [
+        "Offender Registry"
+      ]
+    },
+    {
+      "id": "reports",
+      "label": "Reports & analytics",
+      "tabs": [
+        "Reports"
+      ]
+    },
+    {
+      "id": "data",
+      "label": "Data management & IMAC",
+      "tabs": [
+        "Data Management"
+      ]
+    },
+    {
+      "id": "archive",
+      "label": "Case archive",
+      "tabs": [
+        "Case Archive"
+      ]
+    },
+    {
+      "id": "admin",
+      "label": "System administration",
+      "tabs": [
+        "System Admin"
+      ]
+    }
+  ],
+  "roles": {
+    "NTRO Admin": {
+      "incidents": "full",
+      "investigation": "full",
+      "vessels": "full",
+      "environment": "full",
+      "satellite": "full",
+      "ecology": "full",
+      "alerting": "full",
+      "workflow": "full",
+      "liability": "full",
+      "reports": "full",
+      "data": "full",
+      "archive": "full",
+      "admin": "full"
+    },
+    "NTRO Reviewer": {
+      "incidents": "full",
+      "investigation": "full",
+      "vessels": "full",
+      "environment": "full",
+      "satellite": "full",
+      "ecology": "full",
+      "alerting": "full",
+      "workflow": "full",
+      "liability": "full",
+      "reports": "full",
+      "data": "full",
+      "archive": "full",
+      "admin": "read"
+    },
+    "Analyst": {
+      "incidents": "full",
+      "investigation": "full",
+      "vessels": "full",
+      "environment": "full",
+      "satellite": "full",
+      "ecology": "full",
+      "alerting": "full",
+      "workflow": "full",
+      "liability": "full",
+      "reports": "full",
+      "data": "none",
+      "archive": "full",
+      "admin": "none"
+    },
+    "Regulator": {
+      "incidents": "read",
+      "investigation": "none",
+      "vessels": "none",
+      "environment": "none",
+      "satellite": "none",
+      "ecology": "none",
+      "alerting": "none",
+      "workflow": "full",
+      "liability": "full",
+      "reports": "read",
+      "data": "none",
+      "archive": "read",
+      "admin": "none"
+    },
+    "Liaison": {
+      "incidents": "read",
+      "investigation": "read",
+      "vessels": "none",
+      "environment": "none",
+      "satellite": "none",
+      "ecology": "none",
+      "alerting": "none",
+      "workflow": "read",
+      "liability": "none",
+      "reports": "none",
+      "data": "full",
+      "archive": "read",
+      "admin": "none"
+    },
+    "Data Operator": {
+      "incidents": "read",
+      "investigation": "none",
+      "vessels": "none",
+      "environment": "full",
+      "satellite": "full",
+      "ecology": "none",
+      "alerting": "none",
+      "workflow": "none",
+      "liability": "none",
+      "reports": "read",
+      "data": "read",
+      "archive": "none",
+      "admin": "none"
+    },
+    "Viewer": {
+      "incidents": "read",
+      "investigation": "none",
+      "vessels": "none",
+      "environment": "none",
+      "satellite": "none",
+      "ecology": "read",
+      "alerting": "none",
+      "workflow": "none",
+      "liability": "none",
+      "reports": "read",
+      "data": "none",
+      "archive": "read",
+      "admin": "none"
+    }
+  },
+  "restrictedClearance": [
+    "Restricted"
+  ]
+}

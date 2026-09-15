@@ -1,5 +1,6 @@
 import { analysePolygon } from '../lib/geo';
 import { observedSampler } from '../engine/forcing';
+import BUILT_IN_AOIS from '../../shared/aois.json';
 import type {
   AreaOfInterest, AuditEntry, CaseArtifact, CoastArtifact, CommunityAlert, DataSource, EnforcementAction, ForcingArtifact,
   HistoricalIncident, IndexArtifact, OilQuantityBasis, RiskTier, SarMeasurement, SarSpot, SatellitePass, SightingReport, SpillCase,
@@ -350,17 +351,7 @@ export function buildWorld(
 }
 
 function buildAois(): AreaOfInterest[] {
-  const aoi = (id: string, name: string, priority: number, bounds: AreaOfInterest['bounds'], rationale: string, pinned: boolean, requestedBy: string): AreaOfInterest =>
-    ({ id, name, priority, bounds, rationale, pinned, requestedBy, provenance: 'modelled' });
-  return [
-    aoi('AOI-KERALA', 'Kerala Coast Shipping Lane', 1, { north: 12.5, south: 8.0, east: 77.2, west: 73.8 }, 'Two major 2025 casualties (MSC ELSA 3, WAN HAI 503) on the Colombo–west coast container route.', true, 'Analyst'),
-    aoi('AOI-MUMBAI', 'Mumbai Port Approaches and Bombay High', 2, { north: 20.2, south: 18.4, east: 73.1, west: 70.8 }, 'MSC Chitra (2010), MV Rak (2011), Uran pipeline (2013) and Mumbai High (2005) all fall inside this area.', true, 'NTRO Reviewer'),
-    aoi('AOI-CHENNAI', 'Chennai–Ennore Coast', 3, { north: 13.6, south: 12.9, east: 80.7, west: 80.1 }, 'Ennore 2017 collision and 2023 refinery spill; dense port and refinery activity.', true, 'Indian Coast Guard'),
-    aoi('AOI-GOA', 'Goa–Karnataka Tar Ball Coast', 4, { north: 16.0, south: 14.0, east: 74.5, west: 72.8 }, 'Recurring April–September tar ball deposition; Ocean Seraya 2006 off Karwar.', false, 'MoEFCC'),
-    aoi('AOI-SUNDARBANS', 'Hooghly Approach / Sundarbans', 5, { north: 22.3, south: 20.8, east: 89.2, west: 87.6 }, 'SSL Kolkata 2018 wreck; world heritage mangroves adjacent to the shipping channel.', false, 'MoEFCC'),
-    aoi('AOI-CAUVERY', 'Cauvery Delta / Karaikal', 6, { north: 11.2, south: 10.4, east: 80.2, west: 79.7 }, 'Nagapattinam 2023 undersea pipeline leak; crude transfers to ships.', false, 'Analyst'),
-    aoi('AOI-KUTCH', 'Gulf of Kachchh Oil Terminals', 7, { north: 23.2, south: 21.4, east: 70.6, west: 67.8 }, 'Largest crude import terminals (Sikka, Vadinar, Mundra); historic tanker spills off Kutch.', false, 'NTRO Reviewer'),
-  ];
+  return BUILT_IN_AOIS.areas.map((a) => ({ ...a, provenance: 'modelled' as const }));
 }
 
 function buildUsers(): SystemUser[] {

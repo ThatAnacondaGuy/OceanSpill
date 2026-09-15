@@ -10,13 +10,14 @@ from .ais_synthetic import SyntheticAis
 from .base import AisSource, MetOceanSource, ProviderStatus, SanctionsSource, SarCatalog
 from .metocean_cmems import CmemsCurrents
 from .metocean_merged import MergedMetOcean
+from .metocean_forecast import OpenMeteoForecast
 from .metocean_openmeteo import OpenMeteo
 from .sanctions_unsc import UnscSanctions
 from .sar_eos04 import Eos04Bhoonidhi
 from .sar_sentinel1 import Sentinel1Cdse
 
 SAR = {"eos04": Eos04Bhoonidhi, "sentinel1": Sentinel1Cdse}
-METOCEAN = {"openmeteo": OpenMeteo, "cmems": CmemsCurrents}
+METOCEAN = {"openmeteo": OpenMeteo, "openmeteo-forecast": OpenMeteoForecast, "cmems": CmemsCurrents}
 AIS = {"synthetic": SyntheticAis, "gfw": GfwAis}
 SANCTIONS = {"unsc": UnscSanctions}
 

@@ -1,37 +1,15 @@
 /**
- * Role permissions: one matrix drives both the navigation and whether a page allows changes.
- * 'read' shows a page without its editing actions; 'none' hides it.
+ * Role permissions: one matrix drives the navigation, whether a page allows changes, and the API.
+ * 'read' shows a page without its editing actions; 'none' hides it. The matrix lives in
+ * shared/access.json so the server enforces exactly what the web app shows.
  */
+import shared from '../../shared/access.json';
+
 export type AccessLevel = 'full' | 'read' | 'none';
 
-export const MODULES: { id: string; label: string; tabs: string[] }[] = [
-  { id: 'incidents', label: 'Dashboard & incidents', tabs: ['Dashboard', 'Spill Incidents'] },
-  { id: 'investigation', label: 'Investigation tools', tabs: ['Investigation'] },
-  { id: 'vessels', label: 'Vessel analysis', tabs: ['Vessel Analysis'] },
-  { id: 'environment', label: 'Environmental data', tabs: ['Environmental Data'] },
-  { id: 'satellite', label: 'Satellite tasking', tabs: ['Satellite Tasking'] },
-  { id: 'ecology', label: 'Ecological planning', tabs: ['NCSCM Ecological'] },
-  { id: 'alerting', label: 'Community alerting', tabs: ['SACHET / SAMUDRA'] },
-  { id: 'workflow', label: 'Workflow & enforcement', tabs: ['Workflow'] },
-  { id: 'liability', label: 'Liability register', tabs: ['Offender Registry'] },
-  { id: 'reports', label: 'Reports & analytics', tabs: ['Reports'] },
-  { id: 'data', label: 'Data management & IMAC', tabs: ['Data Management'] },
-  { id: 'archive', label: 'Case archive', tabs: ['Case Archive'] },
-  { id: 'admin', label: 'System administration', tabs: ['System Admin'] },
-];
+export const MODULES: { id: string; label: string; tabs: string[] }[] = shared.modules;
 
-const all = (level: AccessLevel, except: Record<string, AccessLevel> = {}) =>
-  Object.fromEntries(MODULES.map((m) => [m.id, except[m.id] ?? level])) as Record<string, AccessLevel>;
-
-export const ROLE_MATRIX: Record<string, Record<string, AccessLevel>> = {
-  'NTRO Admin': all('full'),
-  'NTRO Reviewer': all('full', { admin: 'read' }),
-  Analyst: all('full', { admin: 'none', data: 'none' }),
-  Regulator: all('none', { liability: 'full', workflow: 'full', incidents: 'read', reports: 'read', archive: 'read' }),
-  Liaison: all('none', { data: 'full', incidents: 'read', investigation: 'read', workflow: 'read', archive: 'read' }),
-  'Data Operator': all('none', { environment: 'full', satellite: 'full', data: 'read', incidents: 'read', reports: 'read' }),
-  Viewer: all('none', { incidents: 'read', ecology: 'read', reports: 'read', archive: 'read' }),
-};
+export const ROLE_MATRIX = shared.roles as Record<string, Record<string, AccessLevel>>;
 
 export function moduleForTab(tab: string) {
   return MODULES.find((m) => m.tabs.includes(tab));
@@ -48,7 +26,7 @@ export function allowedTabs(role: string): string[] {
 
 /** Restricted clearance withholds raw SAR imagery and vessel identifiers (MMSI / IMO). */
 export function clearanceAllowsIdentities(clearance: string): boolean {
-  return clearance !== 'Restricted';
+  return !shared.restrictedClearance.includes(clearance);
 }
 
 export const READ_ONLY_HINT = 'Your role has read-only access to this page';

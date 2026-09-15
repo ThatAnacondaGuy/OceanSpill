@@ -33,5 +33,7 @@ pipeline/.venv/
 pipeline/.cache/
 pipeline/downloads/
 pipeline/runs/
+pipeline/.secrets/
+pipeline/storage/
 __pycache__/
 *.pyc

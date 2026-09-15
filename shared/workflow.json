@@ -1,0 +1,26 @@
+{
+  "_comment": "Verification stages in order; a case moves one stage at a time. Statuses list the earliest stage they require.",
+  "stages": [
+    "Awaiting Dispatch",
+    "Patrol En Route",
+    "Sample Collected",
+    "Forensic Match Pending",
+    "Port Inspection Requested",
+    "Closed"
+  ],
+  "statuses": [
+    "New",
+    "Under Analysis",
+    "Attributed",
+    "Verification Dispatched",
+    "Verified",
+    "Enforcement",
+    "Closed",
+    "Dismissed — Look-alike"
+  ],
+  "statusMinStage": {
+    "Verification Dispatched": "Patrol En Route",
+    "Verified": "Sample Collected",
+    "Enforcement": "Forensic Match Pending"
+  }
+}
