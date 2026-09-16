@@ -82,6 +82,15 @@ describe('particle drift', () => {
     expect(onLand).toHaveLength(0);
   });
 
+  it('spreads at the rate real drifting buoys do', () => {
+    // NOAA Global Drifter Program buoys that started within 25 km of each other in the Indian Ocean
+    // were 11.3 km apart on average after a day (6,000 pairs; see pipeline/runs/drift_calibration).
+    // A cloud whose one-sigma radius is far below that is claiming more certainty than the ocean allows.
+    const day = runDrift(START, T0, 24, { particles: 300 }, 21, 0.5, steadySampler());
+    expect(day.finalSpreadKm).toBeGreaterThan(4);
+    expect(day.finalSpreadKm).toBeLessThan(20);
+  });
+
   it('gives a hindcast an uncertainty radius that grows with the look-back', () => {
     const near = hindcast(START, T0, 6, { particles: 60 }, 6, 3, steadySampler());
     const far = hindcast(START, T0, 24, { particles: 60 }, 6, 3, steadySampler());

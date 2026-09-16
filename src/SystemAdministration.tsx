@@ -8,7 +8,7 @@ import {
   Badge, Button, KeyValue, DataTable, SearchInput, Select, InfoBanner, Modal, Field,
   TextInput, StatCard, Toggle, ExportButton, downloadCsv, ProvenanceBadge, type Column,
 } from './components/ui';
-import { MODEL_STATUS } from './engine/detection';
+import { MODEL_STATUS, modelScoreLine } from './engine/detection';
 import type { SystemUser } from './data/types';
 import { MODULES, ROLE_MATRIX } from './data/access';
 import { SetPasswordModal, resetUserMfa } from './components/AccountSecurity';
@@ -298,13 +298,14 @@ export default function SystemAdministration() {
                   <h4 className="text-[0.75rem] font-bold text-gray-900">Segmentation model</h4>
                   <p className="text-[0.6875rem] text-gray-500">{MODEL_STATUS.version ?? 'No version'}</p>
                 </div>
-                <Badge tone="gray">Not trained</Badge>
+                <Badge tone={MODEL_STATUS.trained ? 'green' : 'gray'}>{MODEL_STATUS.trained ? 'Trained' : 'Not trained'}</Badge>
               </div>
               <KeyValue cols={1} items={[
-                ['Planned architecture', MODEL_STATUS.plannedArchitecture],
-                ['Planned training', MODEL_STATUS.plannedTraining],
-                ['Loss', MODEL_STATUS.plannedLoss],
-                ['Evaluation', MODEL_STATUS.evaluation.join('; ')],
+                ['Accuracy', modelScoreLine(MODEL_STATUS.models.sarSegmentation)],
+                ['Architecture', MODEL_STATUS.architecture],
+                ['Trained on', MODEL_STATUS.training],
+                ['Loss', MODEL_STATUS.loss],
+                ['Scoring', MODEL_STATUS.evaluation.join('; ')],
               ]} />
               <p className="text-[0.6875rem] text-gray-500 mt-1.5">{MODEL_STATUS.note}</p>
             </div>

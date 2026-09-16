@@ -12,7 +12,7 @@ import {
 import { analysePolygon, formatBearing, type LatLon, type PolygonShape } from './lib/geo';
 import { interpolateTrack } from './engine/attribution';
 import { OIL_TYPES, type OilProperties } from './engine/drift';
-import { MODEL_STATUS } from './engine/detection';
+import { MODEL_STATUS, modelScoreLine } from './engine/detection';
 import type { CaseAnalysis } from './store/store';
 import type { CaseStatus, SpillCase, WorkflowStage } from './data/types';
 import { CASE_STATUSES, WORKFLOW_ORDER, canMoveStage, canSetStatus } from './data/workflow';
@@ -632,11 +632,15 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
       )}
 
       <Section title="Segmentation model" icon={<Layers className="w-3.5 h-3.5" />}>
-        <div className="flex items-center gap-1.5 mb-1.5"><ProvenanceBadge p="pending" /><span className="text-[0.6875rem] text-gray-600">Not trained</span></div>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <ProvenanceBadge p={MODEL_STATUS.trained ? 'real' : 'pending'} />
+          <span className="text-[0.6875rem] text-gray-600">{MODEL_STATUS.trained ? MODEL_STATUS.version : 'Not trained'}</span>
+        </div>
         <KeyValue cols={1} items={[
-          ['Architecture', MODEL_STATUS.plannedArchitecture],
-          ['Training plan', MODEL_STATUS.plannedTraining],
-          ['Loss', MODEL_STATUS.plannedLoss],
+          ['Accuracy', modelScoreLine(MODEL_STATUS.models.sarSegmentation)],
+          ['Architecture', MODEL_STATUS.architecture],
+          ['Trained on', MODEL_STATUS.training],
+          ['Loss', MODEL_STATUS.loss],
         ]} />
         <p className="text-[0.6875rem] text-gray-500 mt-1.5 leading-normal">{MODEL_STATUS.note}</p>
       </Section>

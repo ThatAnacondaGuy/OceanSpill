@@ -37,3 +37,9 @@ pipeline/.secrets/
 pipeline/storage/
 __pycache__/
 *.pyc
+
+# Training datasets (tens of GB; kept outside version control)
+Datasetss/
+datasets/
+pipeline/runs/
+pipeline/scratch/

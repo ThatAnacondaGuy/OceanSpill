@@ -13,6 +13,14 @@ dependencies = [
 oceanspill = "oceanspill.cli:main"
 oceanspill-train = "oceanspill.ml.train:main"
 oceanspill-api = "oceanspill.api.cli:main"
+oceanspill-calibrate-drift = "oceanspill.ml.drift_calibration:main"
+oceanspill-prepare-sar = "oceanspill.ml.prepare_sar:main"
+oceanspill-train-sar = "oceanspill.ml.train_sar:main"
+oceanspill-train-ais = "oceanspill.ml.ais_anomaly:main"
+oceanspill-prepare-mados = "oceanspill.ml.prepare_mados:main"
+oceanspill-prepare-ships = "oceanspill.ml.prepare_ships:main"
+oceanspill-validate-drift = "oceanspill.ml.validate_drift:main"
+oceanspill-model-status = "oceanspill.ml.model_status:main"
 
 [project.optional-dependencies]
 sar = [
@@ -21,6 +29,9 @@ sar = [
 ]
 ml = [
     "onnx>=1.16",
+    "onnxruntime>=1.18",
+    "pandas>=2.2",
+    "pyarrow>=16.0",
     "onnxscript>=0.2",
     "torch>=2.4",
 ]

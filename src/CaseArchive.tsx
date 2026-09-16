@@ -11,7 +11,7 @@ import {
 } from './components/ui';
 import { MapView, type MapMarker } from './components/MapView';
 import { analysePolygon } from './lib/geo';
-import { MODEL_STATUS } from './engine/detection';
+import { MODEL_STATUS, modelScoreLine } from './engine/detection';
 import type { AuditEntry, HistoricalIncident, SpillCase } from './data/types';
 
 /**
@@ -142,7 +142,7 @@ export default function CaseArchive() {
     for (const g of c.detection.geometryAssumptions) L.push(`    assumption: ${g}`);
     L.push(`  SAR catalogue    : ${c.detection.scenes.length} scene(s)`);
     for (const sc of c.detection.scenes) L.push(`    ${sc.name} (${sc.provider}, ${fmt.utc(sc.start)}${sc.coversIncident ? ', covers incident' : ''})`);
-    L.push(`  Segmentation     : ${MODEL_STATUS.trained ? MODEL_STATUS.version : 'not run (no trained model yet)'}`);
+    L.push(`  Segmentation     : ${MODEL_STATUS.trained ? `${MODEL_STATUS.version} (${modelScoreLine(MODEL_STATUS.models.sarSegmentation)})` : 'not run (no trained model yet)'}`);
     if (c.detection.classProbabilities) {
       const cp = c.detection.classProbabilities;
       L.push(`  Raw class scores : oil ${cp.oil.toFixed(3)}, look-alike ${cp.lookalike.toFixed(3)}, sea ${cp.sea.toFixed(3)}`);

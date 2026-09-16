@@ -10,7 +10,7 @@ import {
   Panel, Badge, Button, KeyValue, Tabs, StatCard, BarChart, InfoBanner, ProvenanceBadge,
   Select, Modal, Field, Toggle, triggerDownload,
 } from './components/ui';
-import { MODEL_STATUS } from './engine/detection';
+import { MODEL_STATUS, modelScoreLine } from './engine/detection';
 import { haversineKm, type LatLon } from './lib/geo';
 import { CORRIDORS } from './data/geography';
 import type { HistoricalIncident } from './data/types';
@@ -367,22 +367,27 @@ export default function AnalyticsReporting() {
 
       {tab === 'performance' && (
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <InfoBanner tone="amber" icon={<Info className="w-3.5 h-3.5" />}>
-            <b>No accuracy figures are shown.</b> {MODEL_STATUS.note}
+          <InfoBanner tone={MODEL_STATUS.trained ? 'blue' : 'amber'} icon={<Info className="w-3.5 h-3.5" />}>
+            {MODEL_STATUS.trained
+              ? <><b>Measured on scenes the model never saw.</b> {MODEL_STATUS.note}</>
+              : <><b>No accuracy figures are shown.</b> {MODEL_STATUS.note}</>}
           </InfoBanner>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Panel title="Segmentation model" subtitle="Status and evaluation plan" dense>
+            <Panel title="Models" subtitle={MODEL_STATUS.trained ? 'Measured on held-out scenes' : 'Status and evaluation plan'} dense>
               <div className="p-4 space-y-4">
-                <div className="flex items-center gap-2"><ProvenanceBadge p="pending" /><span className="text-[0.75rem] font-semibold text-gray-700">Not trained</span></div>
-                <KeyValue cols={1} items={[
-                  ['Architecture', MODEL_STATUS.plannedArchitecture],
-                  ['Training', MODEL_STATUS.plannedTraining],
-                  ['Loss', MODEL_STATUS.plannedLoss],
-                  ['Public dataset', <a href={MODEL_STATUS.datasetUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{MODEL_STATUS.datasetUrl}</a>],
-                ]} />
+                {Object.entries(MODEL_STATUS.models).map(([id, model]) => (
+                  <div key={id} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ProvenanceBadge p={model.trained ? 'real' : 'pending'} />
+                      <span className="text-[0.75rem] font-semibold text-gray-800">{model.task}</span>
+                    </div>
+                    <p className="text-[0.71875rem] text-gray-700">{modelScoreLine(model)}</p>
+                    <p className="text-[0.6875rem] text-gray-500 mt-0.5">{model.architecture} · trained on {model.dataset}</p>
+                  </div>
+                ))}
                 <div>
-                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">Metrics to report once trained</p>
+                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">How they are scored</p>
                   <ul className="space-y-0.5">
                     {MODEL_STATUS.evaluation.map((e) => <li key={e} className="text-[0.71875rem] text-gray-700 flex gap-1.5"><span className="text-gray-400">•</span>{e}</li>)}
                   </ul>
@@ -520,8 +525,8 @@ function ReportModal({ open, onClose, period, stats, byCoast, bySource, hotspots
     }
     if (sections.quality) {
       L.push('5. MODEL AND DATA QUALITY', '-'.repeat(72));
-      L.push(`  Segmentation model: ${MODEL_STATUS.trained ? MODEL_STATUS.version : 'not trained; no accuracy figures reported'}`);
-      L.push(`  Planned: ${MODEL_STATUS.plannedArchitecture}`);
+      L.push(`  Segmentation model: ${MODEL_STATUS.trained ? `${MODEL_STATUS.version} — ${modelScoreLine(MODEL_STATUS.models.sarSegmentation)}` : 'not trained; no accuracy figures reported'}`);
+      L.push(`  Architecture: ${MODEL_STATUS.architecture}`);
       L.push('  Drift checks against reported observations:');
       if (!driftChecks.length) L.push('    none available');
       for (const d of driftChecks) {

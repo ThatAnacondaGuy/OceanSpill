@@ -1,5 +1,45 @@
 import { analysePolygon, type PolygonShape } from '../lib/geo';
 import type { Detection, SourceType } from '../data/types';
+import MODEL_FILE from '../../shared/model-status.json';
+
+export interface ModelEntry {
+  trained: boolean;
+  task: string;
+  architecture: string;
+  training: string;
+  dataset: string;
+  datasetUrl: string;
+  version?: string;
+  trainedAt?: string;
+  threshold?: number;
+  tiles?: { train: number; val: number };
+  scores?: { iou: number; dice: number; precision: number; recall: number };
+  falseAlarmRate?: number | null;
+  falseAlarmBasis?: string | null;
+  modelFile?: string | null;
+  note?: string;
+}
+
+export interface MeasuredFigures {
+  drift?: {
+    source: string;
+    observations: number;
+    buoys: number;
+    windage: { fraction: number; ci95: number[]; deflectionDeg: number; samples: number; group: string } | null;
+    diffusivity: { m2s: number; ci95: number[]; pairs: number; observedSeparationKm: Record<string, number> } | null;
+  };
+  driftValidation?: Record<string, unknown>;
+  aisGaps?: {
+    events: number; source: string; window: string;
+    hoursPercentiles: Record<string, number>;
+    distanceFromShorePercentiles: Record<string, number>;
+    calibration: Record<string, number>;
+    caveat: string;
+  };
+}
+
+const SAR = MODEL_FILE.models.sarSegmentation as ModelEntry;
+
 
 /**
  * Oil-vs-look-alike discrimination.
@@ -175,13 +215,41 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
 }
 
 /** Status of the segmentation model. No model has been trained yet, so no accuracy figures are shown. */
+/**
+ * What the models score, written by the training runs into shared/model-status.json. Nothing here is
+ * typed in by hand: if a model has not been trained, the pages say so rather than showing a figure.
+ */
 export const MODEL_STATUS = {
-  trained: false,
-  version: null as string | null,
-  plannedArchitecture: 'U-Net binary oil segmentation on 2-channel (co-pol, cross-pol) calibrated Sigma0 dB tiles',
-  plannedTraining: 'Pre-train on the public Sentinel-1 oil spill dataset (1,200 VV+VH scenes, binary masks, CC BY 4.0), then fine-tune on hand-labelled EOS-04 chips from the real Indian cases',
-  plannedLoss: 'Dice + focal loss to handle oil pixels being a tiny fraction of each scene',
-  evaluation: ['Per-class IoU and Dice (oil and look-alike reported separately)', 'False-positive rate on look-alikes', 'False-negative rate on officially confirmed spills'],
-  datasetUrl: 'https://zenodo.org/records/8346860',
-  note: 'No segmentation model has been trained yet. Detection confidence comes from official confirmation; processed scenes add classical dark-spot measurements, not model scores.',
+  trained: SAR.trained,
+  version: (SAR as { version?: string }).version ?? null,
+  architecture: SAR.architecture,
+  training: SAR.training,
+  loss: 'Dice + focal loss, because oil is a tiny fraction of the pixels in any scene',
+  scores: (SAR as { scores?: { iou: number; dice: number; precision: number; recall: number } }).scores ?? null,
+  falseAlarmRate: (SAR as { falseAlarmRate?: number | null }).falseAlarmRate ?? null,
+  falseAlarmBasis: (SAR as { falseAlarmBasis?: string | null }).falseAlarmBasis ?? null,
+  threshold: (SAR as { threshold?: number }).threshold ?? null,
+  tiles: (SAR as { tiles?: { train: number; val: number } }).tiles ?? null,
+  evaluation: [
+    'Intersection over union and Dice against hand-drawn masks, on scenes the model never saw',
+    'How often it fires on water with no oil in it',
+    'Scored on scenes, not tiles, so one scene cannot appear on both sides of the split',
+  ],
+  datasetUrl: SAR.datasetUrl,
+  note: SAR.trained
+    ? `Trained on ${SAR.dataset}. Detection confidence on a case still comes from official confirmation; the model measures the slick, it does not decide whether a spill happened.`
+    : 'No segmentation model has been trained yet. Detection confidence comes from official confirmation; processed scenes add classical dark-spot measurements, not model scores.',
+  /** Every model, including the optical and ship detectors. */
+  models: MODEL_FILE.models as Record<string, ModelEntry>,
+  /** Figures measured from observations rather than trained: drift and AIS gaps. */
+  measured: MODEL_FILE.measured as MeasuredFigures,
+  generatedAt: MODEL_FILE.generatedAt,
 };
+
+/** Reads as a percentage when the model has been trained, and says so plainly when it has not. */
+export function modelScoreLine(entry: { trained: boolean; scores?: { iou: number; precision: number; recall: number } | null; falseAlarmRate?: number | null }): string {
+  if (!entry.trained || !entry.scores) return 'Not trained — no accuracy figures';
+  const { iou, precision, recall } = entry.scores;
+  const alarms = entry.falseAlarmRate == null ? '' : ` · fires on ${(entry.falseAlarmRate * 100).toFixed(1)}% of water with nothing in it`;
+  return `IoU ${iou.toFixed(3)} · finds ${(recall * 100).toFixed(0)}% of the oil · ${(precision * 100).toFixed(0)}% of what it marks is oil${alarms}`;
+}

@@ -15,7 +15,19 @@ import { MODEL_SAMPLER, type FieldSampler } from './forcing';
  */
 
 export const WINDAGE_DEFAULT = 0.03;
-export const HORIZONTAL_DIFFUSIVITY_DEFAULT = 8; // m^2/s
+
+/**
+ * Horizontal diffusivity, m²/s. Measured from 6,000 pairs of NOAA Global Drifter Program buoys that
+ * began within 25 km of each other in the Indian Ocean: the rate they drift apart is the spreading
+ * this model has to reproduce. The textbook 8 m²/s used before predicted 1.5 km of spread after a
+ * day where real buoys spread 11.3 km, so every uncertainty radius the app drew was about eight
+ * times too small.
+ *
+ * Real spreading grows faster than a single diffusivity can follow — currents stretch a patch as
+ * well as mixing it — so this still under-predicts beyond about two days. See
+ * pipeline/runs/drift_calibration.
+ */
+export const HORIZONTAL_DIFFUSIVITY_DEFAULT = 564;
 
 export interface DriftParams {
   windage: number;

@@ -36,6 +36,29 @@ def cmd_build(settings: Settings, args: argparse.Namespace) -> int:
     return 1 if result["failures"] else 0
 
 
+def cmd_protected(settings: Settings, args: argparse.Namespace) -> int:
+    """Find the mapped boundary of each protected area the risk pages rank."""
+    import json as _json
+
+    from .api.settings import SHARED_DIR
+    from .protected_areas import build_protected_areas
+
+    areas = _json.loads((SHARED_DIR / "ecological-areas.json").read_text())["areas"]
+    http = CachedHttp(settings.cache_dir, offline=args.offline)
+    build_protected_areas(http, areas, settings.output_dir)
+    return 0
+
+
+def cmd_shoretype(settings: Settings, args: argparse.Namespace) -> int:
+    """Label each case's coastline with what the shore is made of."""
+    from .shoretype import build_shore_types
+
+    http = CachedHttp(settings.cache_dir, offline=args.offline)
+    for case in load_cases(args.case):
+        build_shore_types(http, case["id"], settings.output_dir)
+    return 0
+
+
 def cmd_coast(settings: Settings, args: argparse.Namespace) -> int:
     from .providers.ais_synthetic import LandMask
 
@@ -137,6 +160,13 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--case", action="append", help="case id (repeatable); default all")
     c.add_argument("--offline", action="store_true", help="use cached coastline responses only")
 
+    pa = sub.add_parser("protected-areas", help="fetch mapped boundaries for the protected areas on the ecological page")
+    pa.add_argument("--offline", action="store_true", help="use cached responses only")
+
+    st = sub.add_parser("shoretype", help="label each case coastline with beach, mangrove, rock or built shore")
+    st.add_argument("--case", action="append", help="case id (repeatable); default all")
+    st.add_argument("--offline", action="store_true", help="use cached responses only")
+
     d = sub.add_parser("download", help="download SAR scenes for a built case (needs credentials)")
     d.add_argument("--case", required=True)
     d.add_argument("--provider", choices=["cdse", "bhoonidhi"])
@@ -153,7 +183,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     settings = Settings.load(Path(args.env) if args.env else None)
     try:
-        handler = {"providers": cmd_providers, "build": cmd_build, "coast": cmd_coast, "download": cmd_download, "process": cmd_process}[args.command]
+        handler = {"providers": cmd_providers, "build": cmd_build, "coast": cmd_coast, "shoretype": cmd_shoretype, "protected-areas": cmd_protected,
+                   "download": cmd_download, "process": cmd_process}[args.command]
         return handler(settings, args)
     except ProviderConfigError as exc:
         print(f"configuration error: {exc}", file=sys.stderr)
