@@ -228,7 +228,15 @@ export default function VesselAnalysis() {
             initialSort={{ key: 'rank', dir: 'asc' }} />
         </div>
         <div className="p-2 border-t border-gray-200 flex items-center justify-between gap-2">
-          <span className="text-[0.6875rem] text-gray-500">AIS: {activeCase?.aisProvider}</span>
+          {/*
+            A vessel table beside a live map reads as a live picture. It is not: these are the tracks
+            for the case's own AIS window, which closed when the case was built. Saying so here costs
+            one line and stops an operator assuming a ship is still where the map puts it.
+          */}
+          <span className="text-[0.6875rem] text-gray-500">
+            AIS: {activeCase?.aisProvider}
+            {activeCase && ` · window closed ${fmt.utcShort(activeCase.aisWindow.end)}`}
+          </span>
           <ExportButton onExport={() => downloadCsv(`oceanspill-vessels-${caseId}.csv`, columns.filter((c) => c.value), filtered)} />
         </div>
       </aside>
