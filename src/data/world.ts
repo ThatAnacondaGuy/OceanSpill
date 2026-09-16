@@ -1,6 +1,7 @@
 import { analysePolygon } from '../lib/geo';
 import { observedSampler } from '../engine/forcing';
 import BUILT_IN_AOIS from '../../shared/aois.json';
+import { api, serverMode } from './api';
 import type {
   AreaOfInterest, AuditEntry, CaseArtifact, CoastArtifact, CommunityAlert, DataSource, EnforcementAction, ForcingArtifact,
   HistoricalIncident, IndexArtifact, OilQuantityBasis, RiskTier, SarMeasurement, SarSpot, SatellitePass, SightingReport, SpillCase,
@@ -31,6 +32,9 @@ export interface World {
 }
 
 async function getJson<T>(path: string): Promise<T> {
+  // With a server configured the same files come from it, so clearance rules apply to the data
+  // itself rather than only to what the pages choose to show.
+  if (serverMode) return api.data<T>(path);
   const res = await fetch(`${DATA_BASE}/${path}`);
   if (!res.ok) throw new Error(`Failed to load ${path}: HTTP ${res.status}`);
   return res.json() as Promise<T>;
@@ -424,6 +428,14 @@ function nearestSpot(measurements: SarMeasurement[], precisionKm: number): (SarS
 
 export function dataUrl(path: string): string {
   return `${DATA_BASE}/${path}`;
+}
+
+/**
+ * A supporting file as something an <img> can show. Against a server the file needs the session
+ * token, which an image tag cannot send, so it is fetched and handed over as an object URL.
+ */
+export async function fileUrl(path: string): Promise<string> {
+  return serverMode ? api.objectUrl(path) : dataUrl(path);
 }
 
 /**

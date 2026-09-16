@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
 import { legalSummary } from './data/world';
+import { reportPdf, serverMode, textToSections } from './data/server';
 import { MapView, BasemapSwitch, type BasemapStyle, type MapCircle, type MapMarker, type MapPath } from './components/MapView';
 import {
   Panel, Badge, Button, KeyValue, Tabs, StatCard, BarChart, InfoBanner, ProvenanceBadge,
@@ -546,13 +547,26 @@ function ReportModal({ open, onClose, period, stats, byCoast, bySource, hotspots
 
   return (
     <Modal open={open} onClose={onClose} title="Build report"
-      subtitle="Plain-text briefing computed from the loaded data."
+      subtitle={serverMode ? 'Signed PDF briefing computed from the loaded data.' : 'Plain-text briefing computed from the loaded data.'}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={() => {
-            triggerDownload(`oceanspill-report-${period}.txt`, build());
-            notify({ kind: 'success', title: 'Report generated', body: `${Object.values(sections).filter(Boolean).length} sections exported.` });
+            const count = Object.values(sections).filter(Boolean).length;
+            if (serverMode) {
+              // The server renders it, hashes what it says and signs the hash, so the file can be
+              // checked later against the issuing record.
+              reportPdf({
+                kind: 'briefing', title: `OceanSpill briefing — ${period}`,
+                subtitle: 'Computed from the recorded cases and the actions taken on them.',
+                sections: textToSections(build()),
+              })
+                .then((filename) => notify({ kind: 'success', title: 'Signed report generated', body: `${filename} · ${count} sections` }))
+                .catch((e: Error) => notify({ kind: 'error', title: 'Report not generated', body: e.message }));
+            } else {
+              triggerDownload(`oceanspill-report-${period}.txt`, build());
+              notify({ kind: 'success', title: 'Report generated', body: `${count} sections exported.` });
+            }
             onClose();
           }} icon={<Download className="w-3 h-3" />}>Generate</Button>
         </>

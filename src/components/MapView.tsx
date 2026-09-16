@@ -130,6 +130,23 @@ const BASEMAP_LAYERS: Record<BasemapStyle, string[]> = {
   dark: ['bm-dark', 'bm-dark-labels'],
 };
 const ALL_BASEMAP_LAYERS = Object.values(BASEMAP_LAYERS).flat();
+const ALL_BASEMAP_SOURCES = ['street', 'dark', 'darkLabels', 'imagery', 'imageryLabels', 'ocean', 'oceanLabels'];
+
+/** Natural Earth coastline for the Indian Ocean region, kept with the case data. */
+let offlineLand: GeoJSON.FeatureCollection | null = null;
+let offlineLandTried = false;
+
+async function loadOfflineLand(): Promise<GeoJSON.FeatureCollection | null> {
+  if (offlineLand || offlineLandTried) return offlineLand;
+  offlineLandTried = true;
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}data/coast/natural-earth-land.json`);
+    offlineLand = res.ok ? ((await res.json()) as GeoJSON.FeatureCollection) : null;
+  } catch {
+    offlineLand = null;
+  }
+  return offlineLand;
+}
 
 const ATTRIBUTION: Record<BasemapStyle, string> = {
   map: 'Esri, HERE, Garmin, USGS, NGA, © OpenStreetMap contributors',
@@ -155,6 +172,9 @@ function baseStyle(): maplibregl.StyleSpecification {
       imageryLabels: raster(ESRI('Reference/World_Boundaries_and_Places'), 13),
       ocean: raster(ESRI('Ocean/World_Ocean_Base'), 10),
       oceanLabels: raster(ESRI('Ocean/World_Ocean_Reference'), 10),
+      // Drawn from a local coastline file when tiles cannot be fetched, so a demo without a
+      // connection still shows land and sea rather than an empty blue rectangle.
+      offlineLand: emptyFc,
       graticule: emptyFc, eez: emptyFc, vectors: emptyFc, polygons: emptyFc, circles: emptyFc,
       particles: emptyFc, paths: emptyFc, arrows: emptyFc, markers: emptyFc, circleLabels: emptyFc,
     },
@@ -167,6 +187,9 @@ function baseStyle(): maplibregl.StyleSpecification {
       { id: 'bm-imagery-labels', type: 'raster', source: 'imageryLabels', layout: { visibility: 'none' } },
       { id: 'bm-ocean', type: 'raster', source: 'ocean', layout: { visibility: 'none' } },
       { id: 'bm-ocean-labels', type: 'raster', source: 'oceanLabels', layout: { visibility: 'none' } },
+
+      { id: 'offline-land', type: 'fill', source: 'offlineLand', layout: { visibility: 'none' },
+        paint: { 'fill-color': '#e7e2d6', 'fill-outline-color': '#9aa79b' } },
 
       { id: 'graticule', type: 'line', source: 'graticule', paint: { 'line-color': '#5b7f99', 'line-width': 0.5, 'line-opacity': 0.35 } },
       { id: 'eez', type: 'line', source: 'eez', paint: { 'line-color': '#2c7fb8', 'line-width': 1.3, 'line-opacity': 0.8, 'line-dasharray': [4, 3] } },
@@ -401,6 +424,31 @@ export function MapView({
     handlers.forEach((h) => (interactive ? h.enable() : h.disable()));
     if (interactive) map.touchZoomRotate.disableRotation();
   }, [interactive, ready]);
+
+  // ---- offline fallback ------------------------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || styledMap.current !== map) return;
+
+    let failures = 0;
+    const show = async () => {
+      if (tilesFailed) return;
+      setTilesFailed(true);
+      const land = await loadOfflineLand();
+      if (!land || styledMap.current !== map) return;
+      (map.getSource('offlineLand') as GeoJSONSource | undefined)?.setData(land);
+      map.setLayoutProperty('offline-land', 'visibility', 'visible');
+    };
+    // A handful of failed tiles means the basemap is not reachable; one is just a gap.
+    const onError = (e: maplibregl.ErrorEvent & { sourceId?: string }) => {
+      if (!e.sourceId || !ALL_BASEMAP_SOURCES.includes(e.sourceId)) return;
+      if (++failures >= 4) void show();
+    };
+    map.on('error', onError);
+    return () => {
+      map.off('error', onError);
+    };
+  }, [ready, tilesFailed]);
 
   // ---- basemap ---------------------------------------------------------------------------------
   useEffect(() => {
@@ -804,7 +852,7 @@ export function MapView({
           <span className="ml-2 text-gray-500">z{(view.zoom + ZOOM_OFFSET).toFixed(1)}</span>
         </div>
         <div className="bg-white/80 px-1.5 py-0.5 rounded text-[0.53125rem] text-gray-600 max-w-[260px] truncate" title={ATTRIBUTION[basemap]}>
-          {tilesFailed ? 'Basemap tiles unavailable offline · ' : ''}{ATTRIBUTION[basemap]}
+          {tilesFailed ? 'Offline: coastline from Natural Earth, no basemap tiles · ' : ''}{ATTRIBUTION[basemap]}
         </div>
       </div>
 

@@ -11,6 +11,7 @@ import {
 import { MODEL_STATUS } from './engine/detection';
 import type { SystemUser } from './data/types';
 import { MODULES, ROLE_MATRIX } from './data/access';
+import { SetPasswordModal, resetUserMfa } from './components/AccountSecurity';
 
 const SECTIONS = [
   { id: 'users', label: 'User management', icon: Users },
@@ -24,7 +25,8 @@ const SECTIONS = [
 
 // The matrix shown here is the one that controls navigation and editing across the app.
 export default function SystemAdministration() {
-  const { world, now, currentUser, addUser, updateUser, notify, revision, weights, getAnalysis } = useStore();
+  const { world, now, currentUser, addUser, updateUser, notify, revision, weights, getAnalysis, serverMode } = useStore();
+  const [passwordFor, setPasswordFor] = useState<SystemUser | null>(null);
   const [section, setSection] = useState('users');
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -73,17 +75,31 @@ export default function SystemAdministration() {
       render: (u) => u.lastLogin ? <div><div className="font-mono text-gray-700">{fmt.utcShort(u.lastLogin)}</div><div className="text-[0.65625rem] text-gray-400">{fmt.ago(u.lastLogin, now)}</div></div> : <span className="text-gray-300">Never</span>,
     },
     {
-      key: 'actions', header: '', width: '150px', sortable: false,
+      key: 'actions', header: '', width: serverMode ? '210px' : '150px', sortable: false,
       render: (u) => (
         <div className="flex gap-1">
           <Button size="sm" disabled={restricted} onClick={() => {
             updateUser(u.id, { status: u.status === 'Active' ? 'Suspended' : 'Active' });
             notify({ kind: 'info', title: `${u.name} ${u.status === 'Active' ? 'suspended' : 'reactivated'}` });
           }}>{u.status === 'Active' ? 'Suspend' : 'Activate'}</Button>
-          <Button size="sm" disabled={restricted || u.mfa} onClick={() => {
-            updateUser(u.id, { mfa: true });
-            notify({ kind: 'success', title: 'MFA enforced', body: `${u.name} must enrol at next sign-in.` });
-          }}>Force MFA</Button>
+          {serverMode ? (
+            <>
+              <Button size="sm" disabled={restricted} onClick={() => setPasswordFor(u)}>Set password</Button>
+              <Button size="sm" disabled={restricted || !u.mfa} onClick={() => {
+                resetUserMfa(u.id)
+                  .then(() => {
+                    updateUser(u.id, { mfa: false });
+                    notify({ kind: 'success', title: 'Two-factor reset', body: `${u.name} must enrol an authenticator app again.` });
+                  })
+                  .catch((e: Error) => notify({ kind: 'error', title: 'Not reset', body: e.message }));
+              }}>Reset 2FA</Button>
+            </>
+          ) : (
+            <Button size="sm" disabled={restricted || u.mfa} onClick={() => {
+              updateUser(u.id, { mfa: true });
+              notify({ kind: 'success', title: 'MFA enforced', body: `${u.name} must enrol at next sign-in.` });
+            }}>Force MFA</Button>
+          )}
         </div>
       ),
     },
@@ -409,6 +425,7 @@ export default function SystemAdministration() {
       </section>
 
       <AddUserModal open={addOpen} onClose={() => setAddOpen(false)} onAdd={addUser} />
+      <SetPasswordModal userId={passwordFor?.id ?? null} userName={passwordFor?.name ?? ''} onClose={() => setPasswordFor(null)} />
     </main>
   );
 }

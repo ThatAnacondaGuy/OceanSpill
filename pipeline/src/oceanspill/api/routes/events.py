@@ -37,7 +37,7 @@ def notifications(since: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=2
 
 @router.get("/events")
 async def stream(request: Request, since: int = Query(0, ge=0), user: User = Depends(current_user)):
-    """Live notifications. EventSource cannot send headers, so the token may come as ?access_token=."""
+    """Live notifications, as server-sent events over a normal authenticated request."""
     st = state(request)
 
     def latest_id() -> int:

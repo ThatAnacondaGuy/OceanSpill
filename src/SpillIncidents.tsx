@@ -6,11 +6,12 @@ import {
   Panel, DataTable, SearchInput, Select, Tier, StatusBadge, Badge, Button, InfoBanner, ExportButton, downloadCsv, ProvenanceBadge, type Column,
 } from './components/ui';
 import { MapView, type MapMarker, type MapPolygon } from './components/MapView';
+import { LiveMonitoring } from './components/LiveMonitoring';
 import { analysePolygon, pointInPolygon } from './lib/geo';
 import type { SpillCase } from './data/types';
 
 export default function SpillIncidents() {
-  const { world, navigate, getAnalysis, revision } = useStore();
+  const { world, navigate, getAnalysis, revision, serverMode } = useStore();
   const [query, setQuery] = useState('');
   const [region, setRegion] = useState('all');
   const [status, setStatus] = useState('all');
@@ -178,6 +179,8 @@ export default function SpillIncidents() {
           <ExportButton onExport={() => downloadCsv('oceanspill-cases.csv', columns.filter((c) => c.value), filtered)} />
         </div>
       </div>
+
+      {serverMode && <LiveMonitoring />}
 
       {filtersOpen && (
         <div className="bg-gray-50 border-b border-gray-200 px-4 py-2.5 flex-shrink-0">

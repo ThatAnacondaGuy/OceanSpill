@@ -376,7 +376,7 @@ export default function SatelliteTasking() {
 }
 
 function RequestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { world, notify, log, currentUser } = useStore();
+  const { notify, addAoi } = useStore();
   const [name, setName] = useState('');
   const [north, setNorth] = useState('15');
   const [south, setSouth] = useState('12');
@@ -389,14 +389,11 @@ function RequestModal({ open, onClose }: { open: boolean; onClose: () => void })
   const valid = name.trim() && nums.every(Number.isFinite) && nums[0] > nums[1] && nums[2] > nums[3];
 
   const submit = () => {
-    const id = `AOI-SES-${String(world.aois.length + 1).padStart(2, '0')}`;
-    world.aois.push({
-      id, name: name.trim(), priority,
+    addAoi({
+      name: name.trim(), priority,
       bounds: { north: nums[0], south: nums[1], east: nums[2], west: nums[3] },
       rationale: rationale.trim() || 'Analyst-requested planning area.',
-      pinned: false, requestedBy: currentUser.role, provenance: 'session',
     });
-    log({ actor: currentUser.name, role: currentUser.role, action: 'Planning area created', target: id, detail: name, category: 'System' });
     notify({ kind: 'success', title: 'Planning area added', body: `${name} added at priority ${priority}.` });
     setName(''); setRationale('');
     onClose();

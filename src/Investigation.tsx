@@ -17,7 +17,7 @@ import type { CaseAnalysis } from './store/store';
 import type { CaseStatus, SpillCase, WorkflowStage } from './data/types';
 import { CASE_STATUSES, WORKFLOW_ORDER, canMoveStage, canSetStatus } from './data/workflow';
 import { READ_ONLY_HINT } from './data/access';
-import { dataUrl } from './data/world';
+import { ArtifactImage } from './components/ArtifactImage';
 import { ECOLOGICAL_AREAS } from './data/geography';
 import { DEFAULT_WEIGHTS } from './engine/attribution';
 
@@ -601,7 +601,7 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
                 <ProvenanceBadge p="observed" />
               </div>
               {identitiesVisible
-                ? <img src={dataUrl(m.quicklook)} alt={`Calibrated ${m.polarisation} sigma0 quicklook with detected dark spots outlined`}
+                ? <ArtifactImage path={m.quicklook} alt={`Calibrated ${m.polarisation} sigma0 quicklook with detected dark spots outlined`}
                     className="w-full rounded border border-gray-200 bg-gray-900" />
                 : <div className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-6 text-center text-[0.75rem] text-gray-600">SAR imagery is withheld at your clearance level.</div>}
               <p className="text-[0.6875rem] text-gray-500 mt-1 leading-normal">{m.method}</p>

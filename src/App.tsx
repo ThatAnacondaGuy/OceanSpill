@@ -3,12 +3,14 @@ import {
   Bell, HelpCircle, LogOut, Search, Satellite, Home, AlertTriangle, FileText, Anchor,
   Database, Activity, ChevronDown, Map as MapIcon, Megaphone, CheckSquare, Shield, Archive,
   Settings, Clock, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship,
-  ChevronLeft, ChevronRight, Contrast, Leaf, History, Radar,
+  ChevronLeft, ChevronRight, Contrast, Leaf, History, Radar, KeyRound,
 } from 'lucide-react';
 import { allowedTabs } from './data/access';
 import { ECOLOGICAL_AREAS } from './data/geography';
 import { StoreProvider, useStore, fmt } from './store/store';
 import { Seal } from './components/Seal';
+import { MyAccount } from './components/AccountSecurity';
+import { Button, Modal } from './components/ui';
 import Dashboard from './Dashboard';
 import SpillIncidents from './SpillIncidents';
 import Investigation from './Investigation';
@@ -79,6 +81,7 @@ function Shell() {
   const [userMenu, setUserMenu] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState(false);
@@ -347,6 +350,37 @@ function Shell() {
                     {currentUser.agency} · clearance <span className="font-semibold">{currentUser.clearance}</span>
                   </div>
                 </div>
+                {/* Display controls, which the utility strip hides on small screens. */}
+                <div className="px-3 py-2 border-b border-gray-200 md:hidden">
+                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Display</p>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-[0.75rem] text-gray-700">Times shown in</span>
+                    <div className="flex rounded border border-gray-300 overflow-hidden" role="group" aria-label="Time zone">
+                      {(['UTC', 'IST'] as const).map((tz) => (
+                        <button key={tz} onClick={() => setTimeZone(tz)} aria-pressed={timeZone === tz}
+                          className={`px-2 py-0.5 text-[0.75rem] ${timeZone === tz ? 'bg-[#0b2a55] text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}>
+                          {tz}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[0.75rem] text-gray-700">Text size</span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setA11y((a) => ({ ...a, scale: Math.max(0, a.scale - 1) }))} disabled={a11y.scale === 0}
+                        aria-label="Smaller text" className="px-2 py-0.5 rounded border border-gray-300 text-[0.75rem] disabled:opacity-40">A-</button>
+                      <button onClick={() => setA11y((a) => ({ ...a, scale: 0 }))} aria-label="Normal text size"
+                        className={`px-2 py-0.5 rounded border border-gray-300 text-[0.75rem] ${a11y.scale === 0 ? 'bg-gray-100 font-semibold' : ''}`}>A</button>
+                      <button onClick={() => setA11y((a) => ({ ...a, scale: Math.min(TEXT_SCALES.length - 1, a.scale + 1) }))} disabled={a11y.scale === TEXT_SCALES.length - 1}
+                        aria-label="Larger text" className="px-2 py-0.5 rounded border border-gray-300 text-[0.75rem] disabled:opacity-40">A+</button>
+                      <button onClick={() => setA11y((a) => ({ ...a, contrast: !a.contrast }))} aria-pressed={a11y.contrast} aria-label="High contrast"
+                        className={`p-1 rounded border border-gray-300 ${a11y.contrast ? 'bg-gray-200' : ''}`}>
+                        <Contrast className="w-3.5 h-3.5 text-gray-700" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {store.canSwitchAccount && (
                 <div className="px-3 py-2 border-b border-gray-200">
                   <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Switch account</p>
                   <p className="text-[0.6875rem] text-gray-500 mb-2 leading-normal">
@@ -367,6 +401,13 @@ function Shell() {
                     ))}
                   </div>
                 </div>
+                )}
+                {store.serverMode && (
+                  <button onClick={() => { setUserMenu(false); setAccountOpen(true); }}
+                    className="w-full px-3 py-2 text-[0.75rem] font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-200">
+                    <KeyRound className="w-3.5 h-3.5" /> Password and two-factor sign-in
+                  </button>
+                )}
                 <button onClick={() => { setUserMenu(false); store.signOut(); }}
                   className="w-full px-3 py-2 text-[0.75rem] font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 rounded-b-lg">
                   <LogOut className="w-3.5 h-3.5" /> Sign out
@@ -443,6 +484,12 @@ function Shell() {
 
       <ToastHost />
       {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
+
+      <Modal open={accountOpen} onClose={() => setAccountOpen(false)} title="Your account"
+        subtitle={`${currentUser.name} · ${currentUser.role}, ${currentUser.agency}`}
+        footer={<Button onClick={() => setAccountOpen(false)}>Close</Button>}>
+        <MyAccount />
+      </Modal>
     </div>
   );
 }

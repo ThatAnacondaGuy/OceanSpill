@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
 import { legalSummary } from './data/world';
+import { chainOfCustodyPdf } from './data/server';
 import {
   Badge, Button, Tier, StatusBadge, KeyValue, Tabs, DataTable, SearchInput, Select,
   InfoBanner, EmptyState, ExportButton, downloadCsv, triggerDownload, StatCard, ProvenanceBadge, type Column,
@@ -21,7 +22,7 @@ import type { AuditEntry, HistoricalIncident, SpillCase } from './data/types';
  * attribution may have to be defended months after the analyst has moved on.
  */
 export default function CaseArchive() {
-  const { world, now, getAnalysis, navigate, consumeSection, revision, weights } = useStore();
+  const { world, now, getAnalysis, navigate, consumeSection, revision, weights, notify, serverMode } = useStore();
   const [tab, setTab] = useState('archive');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -111,6 +112,14 @@ export default function CaseArchive() {
   ];
 
   const exportChainOfCustody = (c: SpillCase) => {
+    if (serverMode) {
+      // The server builds this one from its own artifacts and audit trail and signs it, so the
+      // document can be checked later rather than taken on trust.
+      chainOfCustodyPdf(c.id)
+        .then((filename) => notify({ kind: 'success', title: 'Signed record exported', body: filename }))
+        .catch((e: Error) => notify({ kind: 'error', title: 'Record not exported', body: e.message }));
+      return;
+    }
     const a = getAnalysis(c.id);
     const shape = analysePolygon(c.detection.polygon.ring);
     const events = world.audit.filter((e) => e.target === c.id).sort((x, y) => x.t - y.t);

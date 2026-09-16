@@ -33,11 +33,11 @@ def session(request: Request) -> Iterator[Session]:
 
 
 def _bearer(request: Request) -> str | None:
+    """The session token, only ever from the Authorization header: a token in a URL would be
+    written to access logs, so the notification stream reads the response body instead of using
+    EventSource."""
     header = request.headers.get("authorization", "")
-    if header.lower().startswith("bearer "):
-        return header[7:].strip()
-    # EventSource cannot set headers, so the notification stream accepts the token as a query value.
-    return request.query_params.get("access_token")
+    return header[7:].strip() if header.lower().startswith("bearer ") else None
 
 
 def current_user(request: Request, db: Session = Depends(session)) -> User:
