@@ -30,7 +30,10 @@ const SHORE_TONE: Record<string, string> = {
 };
 
 export default function NcscmEcological() {
-  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, navigate, revision, canEdit, access, consumeSection } = useStore();
+  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, navigate, revision, canEdit, access, consumeSection, flowCaseId } = useStore();
+  // While the pipeline is running a case, this page belongs to that case alone.
+  const locked = flowCaseId != null;
+
   const [basemap, setBasemap] = useState<BasemapStyle>('bathymetry');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
@@ -211,10 +214,12 @@ export default function NcscmEcological() {
           </p>
         </div>
 
-        <div className="p-2 border-b border-gray-200">
-          <Select label="Active case" value={activeCase?.id ?? ''} onChange={(v) => setSelectedCaseId(v)}
-            options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
-        </div>
+        {!locked && (
+          <div className="p-2 border-b border-gray-200">
+            <Select label="Active case" value={activeCase?.id ?? ''} onChange={(v) => setSelectedCaseId(v)}
+              options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
+          </div>
+        )}
 
         <Tabs fill active={tab} onChange={setTab} tabs={[
           { id: 'priority', label: 'Response priority', count: priority.filter((p) => p.distanceKm < 250).length },

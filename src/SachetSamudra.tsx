@@ -89,7 +89,10 @@ ${infos}
 }
 
 export default function SachetSamudra() {
-  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, draftAlert, linkSighting, verifySighting, startFlow, revision, canEdit } = useStore();
+  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, draftAlert, linkSighting, verifySighting, startFlow, revision, canEdit, flowCaseId } = useStore();
+  // While the pipeline is running a case, this page belongs to that case alone.
+  const locked = flowCaseId != null;
+
   const editable = canEdit('SACHET / SAMUDRA');
   const [tab, setTab] = useState('compose');
   const [basemap, setBasemap] = useState<BasemapStyle>('map');
@@ -260,10 +263,12 @@ export default function SachetSamudra() {
 
         {tab === 'compose' && (
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <Field label="Case">
-              <Select value={activeCase?.id ?? ''} onChange={setSelectedCaseId}
-                options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
-            </Field>
+            {!locked && (
+              <Field label="Case">
+                <Select value={activeCase?.id ?? ''} onChange={setSelectedCaseId}
+                  options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
+              </Field>
+            )}
 
             {activeCase?.facts.impact.fishingRestrictionNm && (
               <InfoBanner tone="blue" icon={<ShieldAlert className="w-3.5 h-3.5" />}>

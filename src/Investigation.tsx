@@ -23,7 +23,11 @@ import { DEFAULT_WEIGHTS } from './engine/attribution';
 
 export default function Investigation() {
   const store = useStore();
-  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, navigate, weights, setWeights, resetWeights, revision } = store;
+  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, navigate, weights, setWeights, resetWeights, revision, flowCaseId } = store;
+  // While a case is running through the pipeline the page belongs to that case alone. Offering
+  // the others would let someone wander off mid-run and read one case's map beside another's
+  // vessel list, which is exactly the confusion the pipeline exists to remove.
+  const locked = flowCaseId != null;
   const editable = store.canEdit('Investigation');
 
   const [query, setQuery] = useState('');
@@ -244,7 +248,8 @@ export default function Investigation() {
 
   return (
     <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
-      {/* Case rail */}
+      {/* Case rail — hidden while the pipeline is running this case. */}
+      {!locked && (
       <aside className="w-full lg:w-[230px] xl:w-[260px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="p-2 border-b border-gray-200">
           <SearchInput value={query} onChange={setQuery} placeholder="Filter cases…" />
@@ -273,6 +278,7 @@ export default function Investigation() {
           })}
         </div>
       </aside>
+      )}
 
       {/* Map */}
       <section className="flex-1 min-w-0 min-h-[72vh] lg:min-h-0 flex flex-col flex-shrink-0 lg:flex-shrink">

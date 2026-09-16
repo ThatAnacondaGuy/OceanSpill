@@ -37,7 +37,10 @@ const TRACK_LABEL: Record<string, string> = {
 };
 
 export default function VesselAnalysis() {
-  const { world, selectedMmsi, setSelectedMmsi, selectedCaseId, setSelectedCaseId, navigate, getAnalysis, revision } = useStore();
+  const { world, selectedMmsi, setSelectedMmsi, selectedCaseId, setSelectedCaseId, navigate, getAnalysis, revision, flowCaseId } = useStore();
+  // While the pipeline is running a case, this page belongs to that case alone.
+  const locked = flowCaseId != null;
+
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [provenanceFilter, setProvenanceFilter] = useState('all');
@@ -210,7 +213,7 @@ export default function VesselAnalysis() {
           </p>
         </div>
         <div className="p-2 space-y-3 border-b border-gray-200">
-          <Select value={caseId} onChange={setCase} options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
+          {!locked && <Select value={caseId} onChange={setCase} options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />}
           <SearchInput value={query} onChange={setQuery} placeholder="Name, MMSI, IMO, operator…" />
           <div className="grid grid-cols-3 gap-2">
             <Select value={provenanceFilter} onChange={setProvenanceFilter}
