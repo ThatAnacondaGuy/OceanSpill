@@ -23,11 +23,30 @@ MODELS = [
     {
         "id": "sarSegmentation",
         "run": "runs/sar_oil",
-        "task": "Finds oil pixels in Sentinel-1 and EOS-04 radar scenes",
+        # Two channels in means Sentinel-1 only. EOS-04 transmits one polarisation, and handing the
+        # same band to both inputs is not the data the model was trained on.
+        "task": "Finds oil pixels in dual-polarisation Sentinel-1 radar scenes",
         "architecture": "U-Net, 2 input channels (co-polarised and cross-polarised backscatter in decibels)",
         "training": "Sentinel-1 oil spill scenes with hand-drawn masks, plus look-alike and clean-sea scenes as negatives",
         "dataset": "Sentinel-1 oil spill dataset (Zenodo 8346860)",
         "datasetUrl": "https://zenodo.org/records/8346860",
+    },
+    {
+        # EOS-04 flies one polarisation, so the dual-polarisation model above cannot be pointed at
+        # its scenes. This is the same architecture trained on the co-polarised channel alone, and
+        # it is published whatever it scores: a detector that does not work is a fact about what
+        # single-polarisation radar supports, not something to leave off the page.
+        "id": "sarSegmentationSinglePol",
+        "run": "runs/sar_oil_vv",
+        "task": "Finds oil in single-polarisation radar scenes, which is what EOS-04 provides",
+        "architecture": "U-Net, 1 input channel (co-polarised backscatter in decibels)",
+        "training": "The same Sentinel-1 scenes as the dual-polarisation model, with the cross-polarised channel withheld",
+        "dataset": "Sentinel-1 oil spill dataset (Zenodo 8346860)",
+        "datasetUrl": "https://zenodo.org/records/8346860",
+        "note": ("Trained and measured, and not used. Training loss barely moved across eight epochs "
+                 "and it finds under a fifth of the oil, so EOS-04 scenes keep the classical "
+                 "dark-spot detector. Published because the result is the finding: one polarisation "
+                 "did not carry enough signal for this architecture on this data."),
     },
     {
         "id": "opticalSegmentation",
@@ -56,6 +75,8 @@ def collect(pipeline_dir: Path) -> dict[str, Any]:
         run = pipeline_dir / spec["run"]
         meta_path = run / "unet_best.json"
         entry = {k: spec[k] for k in ("task", "architecture", "training", "dataset", "datasetUrl")}
+        if spec.get("note"):
+            entry["note"] = spec["note"]
         if not meta_path.exists():
             entry.update({"trained": False, "note": "Not trained yet; no accuracy figures."})
             models[spec["id"]] = entry
@@ -82,8 +103,39 @@ def collect(pipeline_dir: Path) -> dict[str, Any]:
                                 f"{alarms.get('minPixels', 0)} pixels") if alarms else None,
             "modelFile": str(onnx.relative_to(pipeline_dir)) if onnx.exists() else None,
         })
+        entry.update(breakdown(run))
         models[spec["id"]] = entry
     return models
+
+
+def breakdown(run: Path) -> dict[str, Any]:
+    """The evaluation split by what the tile actually holds, when one has been run.
+
+    The single false-alarm number from training averages two very different failures: firing on a
+    look-alike, which is the hard case a threshold detector also fails, and firing on clean water,
+    which is inexcusable. Averaging them hides which one the model is doing, so both are carried
+    through to the page rather than one blended figure.
+    """
+    path = run / "evaluation.json"
+    if not path.exists():
+        return {}
+    report = json.loads(path.read_text())
+    groups = report.get("groups", {})
+    out: dict[str, Any] = {}
+    target = groups.get("withTarget")
+    if target:
+        out["onTilesWithTarget"] = {
+            "tiles": target["tiles"], "iou": target["iou"], "dice": target["dice"],
+            "precision": target["precision"], "recall": target["recall"],
+        }
+    for key, label in (("lookalike", "lookalikeFalseAlarm"), ("cleanSea", "cleanSeaFalseAlarm")):
+        group = groups.get(key)
+        if group and group.get("falseAlarmRate") is not None:
+            out[label] = {"rate": group["falseAlarmRate"], "tiles": group["tiles"],
+                          "fired": group["tilesWithDetection"]}
+    if out:
+        out["evaluationThreshold"] = report.get("threshold")
+    return out
 
 
 def collect_measurements(pipeline_dir: Path) -> dict[str, Any]:

@@ -66,7 +66,13 @@ def main(argv: list[str] | None = None) -> int:
     state = torch.load(run / "unet_best.pt", map_location="cpu", weights_only=False)
     saved = state.get("args", {})
     device = device_for(args.device)
-    channels = int(np.load(cache / "images.npy", mmap_mode="r").shape[-1])
+    # A model trained on one polarisation must be fed one polarisation. The cache holds both, so the
+    # channel count comes from what the run selected, not from what happens to be on disk.
+    use_channels = saved.get("use_channels") or saved.get("useChannels")
+    if isinstance(use_channels, str):
+        use_channels = [int(c) for c in use_channels.split(",")]
+    cache_channels = int(np.load(cache / "images.npy", mmap_mode="r").shape[-1])
+    channels = len(use_channels) if use_channels else cache_channels
     model = UNet(in_channels=channels, base=saved.get("base", 32), depth=saved.get("depth", 4)).to(device)
     model.load_state_dict(state["model"])
 
@@ -92,7 +98,7 @@ def main(argv: list[str] | None = None) -> int:
 
     positives = groups["with the target in them"]
     if positives:
-        loader = DataLoader(Tiles(val_cache, positives, args.crop, augment=False, standardise=standardise),
+        loader = DataLoader(Tiles(val_cache, positives, args.crop, augment=False, standardise=standardise, channels=use_channels),
                             batch_size=args.batch, num_workers=args.workers)
         scores = evaluate(model, loader, device, [threshold])[0]
         report["groups"]["withTarget"] = {
@@ -107,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
         if not rows_here:
             print(f"  {name}: none in the validation split")
             continue
-        loader = DataLoader(Tiles(val_cache, rows_here, args.crop, augment=False, standardise=standardise),
+        loader = DataLoader(Tiles(val_cache, rows_here, args.crop, augment=False, standardise=standardise, channels=use_channels),
                             batch_size=args.batch, num_workers=args.workers)
         fired, total, areas = detections_per_tile(model, loader, device, threshold, args.min_pixels)
         report["groups"][key] = {

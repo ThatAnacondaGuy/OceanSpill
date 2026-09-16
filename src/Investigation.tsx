@@ -12,7 +12,7 @@ import {
 import { analysePolygon, formatBearing, type LatLon, type PolygonShape } from './lib/geo';
 import { interpolateTrack } from './engine/attribution';
 import { OIL_TYPES, type OilProperties } from './engine/drift';
-import { MODEL_STATUS, modelScoreLine } from './engine/detection';
+import { MODEL_STATUS, driftCalibrationNote, modelScoreLine } from './engine/detection';
 import type { CaseAnalysis } from './store/store';
 import type { CaseStatus, SpillCase, WorkflowStage } from './data/types';
 import { CASE_STATUSES, WORKFLOW_ORDER, canMoveStage, canSetStatus } from './data/workflow';
@@ -419,6 +419,16 @@ export default function Investigation() {
               </div>
             </div>
           )}
+          {/*
+            A number out of 100 next to a ship's name reads as "77% sure it was them". It is not
+            that. It orders the vessels that were transmitting against each other on proximity and
+            timing, and a vessel that was not transmitting cannot appear at all — so saying what the
+            number is matters more than the number.
+          */}
+          <p className="text-[0.65625rem] text-gray-500 leading-normal mt-1.5">
+            The score orders vessels against each other on how well their track fits the release window.
+            It is not a probability of guilt, and it can only rank ships that were transmitting.
+          </p>
         </div>
       </aside>
 
@@ -768,6 +778,7 @@ function RecordTab({ active }: { active: SpillCase }) {
 function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnalysis }) {
   const hc = analysis.hindcast;
   const fc = analysis.forecast;
+  const driftCalibration = driftCalibrationNote();
   return (
     <div className="p-4 space-y-4">
       <Section title="Hindcast — where it came from" icon={<Clock className="w-3.5 h-3.5" />}>
@@ -791,6 +802,11 @@ function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnaly
               <p className="text-[0.75rem] font-bold text-amber-900">± {hc.timeWindowHours.toFixed(1)} h</p>
             </div>
           </div>
+          {driftCalibration && (
+            <p className={`text-[0.6875rem] mt-2 pt-2 border-t border-amber-200 ${driftCalibration.optimistic ? 'text-amber-900' : 'text-amber-700'}`}>
+              {driftCalibration.line}
+            </p>
+          )}
         </div>
         <KeyValue cols={2} items={[
           ['Integration', `${((active.detection.acquiredAt - hc.estimatedTime) / 3600_000).toFixed(1)} h backward${

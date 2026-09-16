@@ -1,15 +1,91 @@
 {
  "_comment": "Written by oceanspill-model-status from the training runs. Do not edit by hand.",
- "generatedAt": "2026-09-16T09:06:20+00:00",
+ "generatedAt": "2026-09-16T19:59:16+00:00",
  "models": {
   "sarSegmentation": {
-   "task": "Finds oil pixels in Sentinel-1 and EOS-04 radar scenes",
+   "task": "Finds oil pixels in dual-polarisation Sentinel-1 radar scenes",
    "architecture": "U-Net, 2 input channels (co-polarised and cross-polarised backscatter in decibels)",
    "training": "Sentinel-1 oil spill scenes with hand-drawn masks, plus look-alike and clean-sea scenes as negatives",
    "dataset": "Sentinel-1 oil spill dataset (Zenodo 8346860)",
    "datasetUrl": "https://zenodo.org/records/8346860",
-   "trained": false,
-   "note": "Not trained yet; no accuracy figures."
+   "trained": true,
+   "version": "sarSegmentation-20260916",
+   "trainedAt": "2026-09-16T16:14:29+00:00",
+   "threshold": 0.7,
+   "tiles": {
+    "train": 18696,
+    "val": 3247
+   },
+   "scores": {
+    "iou": 0.3436,
+    "dice": 0.5115,
+    "precision": 0.4058,
+    "recall": 0.6915
+   },
+   "falseAlarmRate": 0.181,
+   "falseAlarmBasis": "409 of 2260 tiles with no target in them produced a detection of at least 50 pixels",
+   "modelFile": "runs/sar_oil/unet_best.onnx",
+   "onTilesWithTarget": {
+    "tiles": 987,
+    "iou": 0.6298,
+    "dice": 0.7729,
+    "precision": 0.8759,
+    "recall": 0.6915
+   },
+   "lookalikeFalseAlarm": {
+    "rate": 0.4709,
+    "tiles": 618,
+    "fired": 291
+   },
+   "cleanSeaFalseAlarm": {
+    "rate": 0.0841,
+    "tiles": 642,
+    "fired": 54
+   },
+   "evaluationThreshold": 0.7
+  },
+  "sarSegmentationSinglePol": {
+   "task": "Finds oil in single-polarisation radar scenes, which is what EOS-04 provides",
+   "architecture": "U-Net, 1 input channel (co-polarised backscatter in decibels)",
+   "training": "The same Sentinel-1 scenes as the dual-polarisation model, with the cross-polarised channel withheld",
+   "dataset": "Sentinel-1 oil spill dataset (Zenodo 8346860)",
+   "datasetUrl": "https://zenodo.org/records/8346860",
+   "note": "Trained and measured, and not used. Training loss barely moved across eight epochs and it finds under a fifth of the oil, so EOS-04 scenes keep the classical dark-spot detector. Published because the result is the finding: one polarisation did not carry enough signal for this architecture on this data.",
+   "trained": true,
+   "version": "sarSegmentationSinglePol-20260916",
+   "trainedAt": "2026-09-16T19:02:16+00:00",
+   "threshold": 0.4,
+   "tiles": {
+    "train": 18696,
+    "val": 3247
+   },
+   "scores": {
+    "iou": 0.063,
+    "dice": 0.1186,
+    "precision": 0.0918,
+    "recall": 0.1675
+   },
+   "falseAlarmRate": 0.2133,
+   "falseAlarmBasis": "482 of 2260 tiles with no target in them produced a detection of at least 50 pixels",
+   "modelFile": "runs/sar_oil_vv/unet_best.onnx",
+   "onTilesWithTarget": {
+    "tiles": 960,
+    "iou": 0.1152,
+    "dice": 0.2067,
+    "precision": 0.2698,
+    "recall": 0.1675
+   },
+   "lookalikeFalseAlarm": {
+    "rate": 0.2718,
+    "tiles": 206,
+    "fired": 56
+   },
+   "cleanSeaFalseAlarm": {
+    "rate": 0.1495,
+    "tiles": 214,
+    "fired": 32
+   },
+   "evaluationThreshold": 0.4
   },
   "opticalSegmentation": {
    "task": "Finds oil in Sentinel-2 optical scenes, where radar look-alikes behave differently",
@@ -57,7 +133,13 @@
    },
    "falseAlarmRate": 0.1125,
    "falseAlarmBasis": "45 of 400 tiles with no target in them produced a detection of at least 50 pixels",
-   "modelFile": "runs/ship_detection/unet_best.onnx"
+   "modelFile": "runs/ship_detection/unet_best.onnx",
+   "cleanSeaFalseAlarm": {
+    "rate": 0.1125,
+    "tiles": 400,
+    "fired": 45
+   },
+   "evaluationThreshold": 0.3
   }
  },
  "measured": {

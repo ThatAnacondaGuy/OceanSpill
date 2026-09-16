@@ -18,6 +18,13 @@ export interface ModelEntry {
   falseAlarmBasis?: string | null;
   modelFile?: string | null;
   note?: string;
+  /** Scored only on tiles that actually contain the target, so recall is not diluted by empty water. */
+  onTilesWithTarget?: { tiles: number; iou: number; dice: number; precision: number; recall: number };
+  /** Dark patches that are not oil: the hard case, and the one a plain threshold cannot do at all. */
+  lookalikeFalseAlarm?: { rate: number; tiles: number; fired: number };
+  /** Open water with nothing in it, where any detection at all is wrong. */
+  cleanSeaFalseAlarm?: { rate: number; tiles: number; fired: number };
+  evaluationThreshold?: number;
 }
 
 export interface MeasuredFigures {
@@ -28,7 +35,15 @@ export interface MeasuredFigures {
     windage: { fraction: number; ci95: number[]; deflectionDeg: number; samples: number; group: string } | null;
     diffusivity: { m2s: number; ci95: number[]; pairs: number; observedSeparationKm: Record<string, number> } | null;
   };
-  driftValidation?: Record<string, unknown>;
+  driftValidation?: {
+    spread?: Record<string, unknown>;
+    trackSkill?: {
+      tracks: number; hours: number; median_error_km: number; median_no_drift_km: number;
+      skill_against_no_drift: number;
+      inside_one_sigma: number; inside_two_sigma: number;
+      expected_one_sigma: number; expected_two_sigma: number;
+    };
+  };
   aisGaps?: {
     events: number; source: string; window: string;
     hoursPercentiles: Record<string, number>;
@@ -253,12 +268,55 @@ export const MODEL_STATUS = {
   generatedAt: MODEL_FILE.generatedAt,
 };
 
-/** Reads as a percentage when the model has been trained, and says so plainly when it has not. */
-export function modelScoreLine(entry: { trained: boolean; scores?: { iou: number; dice?: number; precision: number; recall: number } | null; falseAlarmRate?: number | null }): string {
-  if (!entry.trained || !entry.scores) return 'Not trained — no accuracy figures';
-  const { iou, precision, recall } = entry.scores;
-  const alarms = entry.falseAlarmRate == null ? '' : ` · fires on ${(entry.falseAlarmRate * 100).toFixed(1)}% of water with nothing in it`;
-  return `IoU ${iou.toFixed(3)} · finds ${(recall * 100).toFixed(0)}% of the oil · ${(precision * 100).toFixed(0)}% of what it marks is oil${alarms}`;
+/**
+ * Reads as a percentage when the model has been trained, and says so plainly when it has not.
+ *
+ * Where a group-wise evaluation exists it is preferred, because the single training figure averages
+ * scenes that hold the target with scenes that hold nothing, which drags the score down for a reason
+ * that has nothing to do with whether the model finds oil. The two kinds of false alarm are reported
+ * separately for the same reason: firing on a look-alike is the hard case, firing on clean water is
+ * not, and one number hides which is happening.
+ */
+export function modelScoreLine(entry: Pick<ModelEntry, 'trained' | 'scores' | 'falseAlarmRate' | 'onTilesWithTarget' | 'lookalikeFalseAlarm' | 'cleanSeaFalseAlarm'>): string {
+  const measured = entry.onTilesWithTarget ?? entry.scores;
+  if (!entry.trained || !measured) return 'Not trained — no accuracy figures';
+  const { iou, precision, recall } = measured;
+  const parts = [
+    `IoU ${iou.toFixed(3)}`,
+    `finds ${(recall * 100).toFixed(0)}% of the oil`,
+    `${(precision * 100).toFixed(0)}% of what it marks is oil`,
+  ];
+  if (entry.lookalikeFalseAlarm) parts.push(`fires on ${(entry.lookalikeFalseAlarm.rate * 100).toFixed(0)}% of look-alikes`);
+  if (entry.cleanSeaFalseAlarm) parts.push(`${(entry.cleanSeaFalseAlarm.rate * 100).toFixed(0)}% of clean sea`);
+  else if (entry.falseAlarmRate != null) parts.push(`fires on ${(entry.falseAlarmRate * 100).toFixed(1)}% of water with nothing in it`);
+  return parts.join(' · ');
+}
+
+/**
+ * How well the drift uncertainty held up when it was checked against real drifting buoys.
+ *
+ * A radius drawn on a map invites the reader to believe the thing is inside it. The buoy test says
+ * how often that was actually true: 25 tracks were run forward for a day from a known start, and the
+ * fraction that finished inside the one- and two-sigma circles was counted. A Gaussian would put 68%
+ * and 95% there. Anything below that means the circle is drawn too small, and an operator reading it
+ * deserves to be told so rather than left to assume.
+ *
+ * Returns null when no validation run has been recorded, so nothing is implied that was not measured.
+ */
+export function driftCalibrationNote(): { line: string; optimistic: boolean } | null {
+  const skill = MODEL_STATUS.measured?.driftValidation?.trackSkill;
+  if (!skill) return null;
+  const one = skill.inside_one_sigma;
+  const two = skill.inside_two_sigma;
+  const optimistic = one < skill.expected_one_sigma - 0.05 || two < skill.expected_two_sigma - 0.02;
+  const held = `Checked against ${skill.tracks} drifting buoys over ${skill.hours} h: ${(one * 100).toFixed(0)}% finished inside the ±1σ circle and ${(two * 100).toFixed(0)}% inside ±2σ`;
+  const expectation = `, where the model claims ${(skill.expected_one_sigma * 100).toFixed(0)}% and ${(skill.expected_two_sigma * 100).toFixed(0)}%`;
+  return {
+    line: optimistic
+      ? `${held}${expectation}. The circle is narrower than the real spread — treat it as a floor, not a bound.`
+      : `${held}${expectation}.`,
+    optimistic,
+  };
 }
 
 /**

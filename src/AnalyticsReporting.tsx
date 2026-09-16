@@ -384,6 +384,10 @@ export default function AnalyticsReporting() {
                     </div>
                     <p className="text-[0.71875rem] text-gray-700">{modelScoreLine(model)}</p>
                     <p className="text-[0.6875rem] text-gray-500 mt-0.5">{model.architecture} · trained on {model.dataset}</p>
+                    {/* A model that was trained and then rejected says so here, rather than sitting in the list looking used. */}
+                    {model.trained && model.note && (
+                      <p className="text-[0.6875rem] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">{model.note}</p>
+                    )}
                   </div>
                 ))}
                 <div>
