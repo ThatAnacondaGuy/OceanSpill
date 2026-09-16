@@ -247,7 +247,7 @@ export const MODEL_STATUS = {
 };
 
 /** Reads as a percentage when the model has been trained, and says so plainly when it has not. */
-export function modelScoreLine(entry: { trained: boolean; scores?: { iou: number; precision: number; recall: number } | null; falseAlarmRate?: number | null }): string {
+export function modelScoreLine(entry: { trained: boolean; scores?: { iou: number; dice?: number; precision: number; recall: number } | null; falseAlarmRate?: number | null }): string {
   if (!entry.trained || !entry.scores) return 'Not trained — no accuracy figures';
   const { iou, precision, recall } = entry.scores;
   const alarms = entry.falseAlarmRate == null ? '' : ` · fires on ${(entry.falseAlarmRate * 100).toFixed(1)}% of water with nothing in it`;
