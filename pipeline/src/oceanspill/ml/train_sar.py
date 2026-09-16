@@ -57,8 +57,12 @@ class Tiles:
 
     def __init__(self, root: Path, rows: list[int], crop: int, augment: bool, seed: int = 0,
                  standardise: bool = False, channels: list[int] | None = None):
-        self.images = np.load(root / "images.npy", mmap_mode="r")
-        self.masks = np.load(root / "masks.npy", mmap_mode="r")
+        # Only the path is kept. A memory-mapped array is an ndarray, so holding one here would make
+        # the loader pickle the whole cache — gigabytes — into every worker process on start-up.
+        # Each worker opens its own map the first time it reads a tile instead.
+        self.root = root
+        self._images: np.ndarray | None = None
+        self._masks: np.ndarray | None = None
         self.rows = rows
         self.crop = crop
         self.augment = augment
@@ -72,6 +76,18 @@ class Tiles:
 
     def __len__(self) -> int:
         return len(self.rows)
+
+    @property
+    def images(self) -> np.ndarray:
+        if self._images is None:
+            self._images = np.load(self.root / "images.npy", mmap_mode="r")
+        return self._images
+
+    @property
+    def masks(self) -> np.ndarray:
+        if self._masks is None:
+            self._masks = np.load(self.root / "masks.npy", mmap_mode="r")
+        return self._masks
 
     def __getitem__(self, i: int):
         import torch
