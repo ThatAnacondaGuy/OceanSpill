@@ -219,8 +219,10 @@ def main(argv: list[str] | None = None) -> int:
         val_fractions = [t["oilFraction"] for t in index["tiles"]]
     if args.limit:
         split.train = split.train[: args.limit]
-    labels = [t.get("label", "oil") for t in val_index["tiles"]]
-    clean_val = [i for i in split.val if labels[i] != "oil" or val_fractions[i] == 0]
+    # Tiles with none of the target in them at all. Keying this on a label name was wrong: the ship
+    # data labels its tiles "ship", so every chip counted as clean and the false-alarm figure was
+    # really the detection rate.
+    clean_val = [i for i in split.val if val_fractions[i] == 0]
 
     print(f"{len(split.train)} training tiles, {len(split.val)} validation tiles "
           f"({sum(val_fractions[i] > 0 for i in split.val)} of them contain oil)")
@@ -289,9 +291,12 @@ def main(argv: list[str] | None = None) -> int:
     model.load_state_dict(state["model"])
     scores = evaluate(model, val_loader, device, thresholds)
     chosen = max(scores, key=lambda s: s.iou)
-    alarms = false_alarm_rate(model, clean_loader, device, chosen.threshold, min_pixels=50)
-    print(f"false alarms on oil-free tiles: {alarms['falseAlarmRate'] * 100:.1f}% "
-          f"({alarms['tilesWithDetection']}/{alarms['tiles']} tiles)", flush=True)
+    alarms = false_alarm_rate(model, clean_loader, device, chosen.threshold, min_pixels=50) if clean_val else None
+    if alarms:
+        print(f"false alarms on tiles with nothing in them: {alarms['falseAlarmRate'] * 100:.1f}% "
+              f"({alarms['tilesWithDetection']}/{alarms['tiles']} tiles)", flush=True)
+    else:
+        print("false alarms: not measurable — every validation tile contains the target", flush=True)
 
     model = model.cpu().eval()
     dummy = torch.zeros(1, channels, args.crop, args.crop)
@@ -309,6 +314,7 @@ def main(argv: list[str] | None = None) -> int:
         "val": chosen.__dict__,
         "allThresholds": [s.__dict__ for s in scores],
         "falseAlarms": alarms,
+        "falseAlarmsNote": None if alarms else "Every validation tile contains the target, so there is nothing to measure false alarms on.",
         "channelRange": index.get("channelRange"),
         "note": "Pixel values are per-channel decibels scaled to [0, 1]; see channelRange.",
     }

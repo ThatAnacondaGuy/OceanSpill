@@ -1,6 +1,6 @@
 {
  "_comment": "Written by oceanspill-model-status from the training runs. Do not edit by hand.",
- "generatedAt": "2026-09-16T08:16:53+00:00",
+ "generatedAt": "2026-09-16T08:28:31+00:00",
  "models": {
   "sarSegmentation": {
    "task": "Finds oil pixels in Sentinel-1 and EOS-04 radar scenes",
@@ -41,8 +41,23 @@
    "training": "SAR Ship Detection Dataset, ship outlines rasterised from the annotations",
    "dataset": "SSDD (SAR Ship Detection Dataset)",
    "datasetUrl": "https://github.com/TianwenZhang0825/Official-SSDD",
-   "trained": false,
-   "note": "Not trained yet; no accuracy figures."
+   "trained": true,
+   "version": "shipDetection-20260916",
+   "trainedAt": "2026-09-16T08:28:24+00:00",
+   "threshold": 0.3,
+   "tiles": {
+    "train": 928,
+    "val": 232
+   },
+   "scores": {
+    "iou": 0.5504,
+    "dice": 0.71,
+    "precision": 0.6484,
+    "recall": 0.7846
+   },
+   "falseAlarmRate": null,
+   "falseAlarmBasis": null,
+   "modelFile": "runs/ship_detection/unet_best.onnx"
   }
  },
  "measured": {
@@ -51,27 +66,27 @@
    "observations": 696322,
    "buoys": 166,
    "windage": {
-    "fraction": 0.0132,
+    "fraction": 0.01263,
     "ci95": [
-     0.01227,
-     0.01413
+     0.01061,
+     0.01452
     ],
-    "deflectionDeg": -14.5,
-    "samples": 12474,
+    "deflectionDeg": -21.9,
+    "samples": 3741,
     "group": "undrogued (surface-following, like a slick)"
    },
    "diffusivity": {
-    "m2s": 590.3,
+    "m2s": 563.7,
     "ci95": [
-     531.5,
-     664.3
+     517.3,
+     611.3
     ],
-    "pairs": 4000,
+    "pairs": 6000,
     "observedSeparationKm": {
-     "6": 3.6,
+     "6": 3.7,
      "12": 6.2,
-     "24": 11.5,
-     "48": 21.5
+     "24": 11.3,
+     "48": 21.0
     }
    }
   },
@@ -109,6 +124,21 @@
     },
     "pairs": 6000,
     "verdict": "the measured 564 m\u00b2/s reproduces the observed spreading to within 34% on average; the model's old 8 m\u00b2/s is off by 85%"
+   },
+   "trackSkill": {
+    "tracks": 25,
+    "hours": 24,
+    "windage": 0.012628066733106954,
+    "diffusivity": 563.6957106674038,
+    "median_error_km": 15.715051068892127,
+    "mean_error_km": 16.983196338701795,
+    "median_no_drift_km": 21.64838831916131,
+    "median_current_only_km": 16.91792099934267,
+    "skill_against_no_drift": 0.27407755084555174,
+    "inside_one_sigma": 0.52,
+    "inside_two_sigma": 0.88,
+    "expected_one_sigma": 0.68,
+    "expected_two_sigma": 0.95
    }
   },
   "aisGaps": {

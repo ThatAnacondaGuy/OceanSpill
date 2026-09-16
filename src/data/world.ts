@@ -1,10 +1,11 @@
 import { analysePolygon } from '../lib/geo';
+import { ECOLOGICAL_AREAS } from './geography';
 import { observedSampler } from '../engine/forcing';
 import BUILT_IN_AOIS from '../../shared/aois.json';
 import { api, serverMode } from './api';
 import type {
   AreaOfInterest, AuditEntry, CaseArtifact, CoastArtifact, CommunityAlert, DataSource, EnforcementAction, ForcingArtifact,
-  HistoricalIncident, IndexArtifact, OilQuantityBasis, RiskTier, SarMeasurement, SarSpot, SatellitePass, SightingReport, SpillCase,
+  HistoricalIncident, IndexArtifact, OilQuantityBasis, RiskTier, SarMeasurement, SarSpot, SatellitePass, ShoreTypeArtifact, SightingReport, SpillCase,
   SystemUser, Vessel, VesselTrack,
 } from './types';
 
@@ -16,6 +17,9 @@ export interface World {
   artifacts: Map<string, CaseArtifact>;
   forcing: Map<string, ForcingArtifact>;
   coast: Map<string, CoastArtifact>;
+  shoreTypes: Map<string, ShoreTypeArtifact>;
+  /** How many protected areas carry a real mapped boundary rather than a hand-drawn one. */
+  protectedBoundaries: number;
   cases: SpillCase[];
   vessels: Vessel[];
   vesselsByMmsi: Map<string, Vessel>;
@@ -56,7 +60,27 @@ export async function loadWorld(): Promise<World> {
       }
     })
   );
-  return buildWorld(index, artifacts, new Map(forcingEntries), new Map(coastEntries.flat()));
+  // Shore type is an extra pass over the coastline and may not have been run; without it the
+  // pages simply do not mention what the shore is made of.
+  // Real boundaries for the protected areas, where OpenStreetMap has them.
+  let boundaries: Record<string, { ring: [number, number][] }> = {};
+  try {
+    boundaries = ((await getJson<{ areas: Record<string, { ring: [number, number][] }> }>('protected-areas.json')).areas) ?? {};
+  } catch {
+    // Not fetched yet; the hand-drawn outlines stand.
+  }
+
+  const shoreEntries = await Promise.all(
+    artifacts.filter((a) => a.coast).map(async (a) => {
+      try {
+        const file = a.coast!.file.replace(/\.json$/, '-shoretype.json');
+        return [[a.case.id, await getJson<ShoreTypeArtifact>(file)] as const];
+      } catch {
+        return [];
+      }
+    })
+  );
+  return buildWorld(index, artifacts, new Map(forcingEntries), new Map(coastEntries.flat()), new Map(shoreEntries.flat()), boundaries);
 }
 
 const ms = (iso: string) => new Date(iso).getTime();
@@ -102,7 +126,9 @@ const SEVERITY: Record<string, SightingReport['severity']> = {
 };
 
 export function buildWorld(
-  index: IndexArtifact, artifacts: CaseArtifact[], forcing: Map<string, ForcingArtifact>, coast: Map<string, CoastArtifact> = new Map()
+  index: IndexArtifact, artifacts: CaseArtifact[], forcing: Map<string, ForcingArtifact>,
+  coast: Map<string, CoastArtifact> = new Map(), shoreTypes: Map<string, ShoreTypeArtifact> = new Map(),
+  protectedBoundaries: Record<string, { ring: [number, number][] }> = {}
 ): World {
   const vessels: Vessel[] = [];
   const tracks = new Map<string, VesselTrack>();
@@ -338,6 +364,8 @@ export function buildWorld(
     artifacts: new Map(artifacts.map((a) => [a.case.id, a])),
     forcing,
     coast,
+    shoreTypes,
+    protectedBoundaries: applyProtectedBoundaries(protectedBoundaries),
     cases: cases.sort((x, y) => y.incidentTime - x.incidentTime),
     vessels,
     vesselsByMmsi: new Map(vessels.map((v) => [v.mmsi, v])),
@@ -456,4 +484,20 @@ export function legalSummary(world: Pick<World, 'enforcement'>) {
 /** The party authorities named as the source of a case, if any (a vessel, facility or pipeline). */
 export function reportedSource(world: Pick<World, 'vessels'>, caseId: string) {
   return world.vessels.find((v) => v.caseId === caseId && v.role === 'source') ?? null;
+}
+
+/**
+ * Replaces the hand-drawn outline of a protected area with its real mapped boundary where the
+ * pipeline found one. The areas are a single shared list, so this is applied once as the data
+ * loads; areas with no match keep the outline they had.
+ */
+function applyProtectedBoundaries(boundaries: Record<string, { ring: [number, number][] }>): number {
+  let applied = 0;
+  for (const area of ECOLOGICAL_AREAS) {
+    const match = boundaries[area.id];
+    if (!match?.ring?.length) continue;
+    area.ring = match.ring.map(([lon, lat]) => ({ lat, lon }));
+    applied++;
+  }
+  return applied;
 }

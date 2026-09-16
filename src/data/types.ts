@@ -231,6 +231,22 @@ export interface CoastArtifact {
   rings: [number, number][][];
 }
 
+/** What the shore is made of along a case's coastline, from OpenStreetMap. */
+export interface ShoreTypeArtifact {
+  caseId: string;
+  source: string;
+  matchRadiusKm: number;
+  descriptions: Record<string, string>;
+  /** One label per coastline vertex, in the same order as the coastline rings. */
+  types: string[][];
+  summary: {
+    kilometres: Record<string, number>;
+    totalKm: number;
+    classifiedFraction: number;
+  };
+  note: string;
+}
+
 export type OilQuantityBasis = 'released' | 'on board' | 'recovered' | 'unaccounted';
 
 export interface ForcingArtifact {
