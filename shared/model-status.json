@@ -1,6 +1,6 @@
 {
  "_comment": "Written by oceanspill-model-status from the training runs. Do not edit by hand.",
- "generatedAt": "2026-09-16T08:28:31+00:00",
+ "generatedAt": "2026-09-16T08:42:42+00:00",
  "models": {
   "sarSegmentation": {
    "task": "Finds oil pixels in Sentinel-1 and EOS-04 radar scenes",
@@ -43,7 +43,7 @@
    "datasetUrl": "https://github.com/TianwenZhang0825/Official-SSDD",
    "trained": true,
    "version": "shipDetection-20260916",
-   "trainedAt": "2026-09-16T08:28:24+00:00",
+   "trainedAt": "2026-09-16T08:42:42+00:00",
    "threshold": 0.3,
    "tiles": {
     "train": 928,
@@ -55,8 +55,8 @@
     "precision": 0.6484,
     "recall": 0.7846
    },
-   "falseAlarmRate": null,
-   "falseAlarmBasis": null,
+   "falseAlarmRate": 0.1125,
+   "falseAlarmBasis": "45 of 400 tiles with no target in them produced a detection of at least 50 pixels",
    "modelFile": "runs/ship_detection/unet_best.onnx"
   }
  },
@@ -66,14 +66,14 @@
    "observations": 696322,
    "buoys": 166,
    "windage": {
-    "fraction": 0.01263,
+    "fraction": 0.00806,
     "ci95": [
-     0.01061,
-     0.01452
+     0.00307,
+     0.02941
     ],
-    "deflectionDeg": -21.9,
-    "samples": 3741,
-    "group": "undrogued (surface-following, like a slick)"
+    "deflectionDeg": 15.3,
+    "samples": 61,
+    "group": "undrogued, northern hemisphere"
    },
    "diffusivity": {
     "m2s": 563.7,
