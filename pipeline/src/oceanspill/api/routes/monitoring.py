@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from .. import serialize
 from ..audit import notify, record
 from ..deps import current_user, require, session, state
-from ..models import AreaOfInterest, Detection, ForecastRun, Job, SceneRecord, User
+from ..models import AisPosition, AreaOfInterest, Detection, ForecastRun, Job, SceneRecord, User
 
 router = APIRouter(prefix="/api", tags=["monitoring"])
 
@@ -104,6 +104,41 @@ def forecast_grid(forecast_id: str, request: Request, user: User = Depends(requi
     except FileNotFoundError:
         raise HTTPException(410, "The stored forecast grid is no longer available") from None
     return Response(content=data, media_type="application/json", headers={"Cache-Control": "private, max-age=600"})
+
+
+@router.get("/ais/tracks")
+def ais_tracks(aoi_id: str | None = None, hours: int = Query(72, ge=1, le=24 * 60),
+               limit: int = Query(200, ge=1, le=2000),
+               user: User = Depends(require("vessels", "read")), db: Session = Depends(session)):
+    """Recent vessel tracks from the AIS feed, newest first.
+
+    The feed this project has access to runs a few days behind, so the response says how old its
+    newest position is. A page that draws this as a live picture would be misleading.
+    """
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    q = select(AisPosition).where(AisPosition.t >= since)
+    if aoi_id:
+        q = q.where(AisPosition.aoi_id == aoi_id)
+    rows = list(db.scalars(q.order_by(AisPosition.vessel_id, AisPosition.t)))
+
+    tracks: dict[str, dict] = {}
+    for row in rows:
+        track = tracks.setdefault(row.vessel_id, {"vesselId": row.vessel_id, "mmsi": row.mmsi,
+                                                  "source": row.source, "aoiId": row.aoi_id, "points": []})
+        track["points"].append([serialize.ms(row.t), round(row.lat, 5), round(row.lon, 5)])
+        if row.mmsi and not track["mmsi"]:
+            track["mmsi"] = row.mmsi
+
+    newest = db.scalar(select(func.max(AisPosition.t)))
+    ordered = sorted(tracks.values(), key=lambda t: t["points"][-1][0], reverse=True)[:limit]
+    return {
+        "tracks": ordered,
+        "vessels": len(tracks),
+        "positions": len(rows),
+        "newest": serialize.ms(newest),
+        "lagHours": None if newest is None else round((datetime.now(timezone.utc) - newest.replace(tzinfo=newest.tzinfo or timezone.utc)).total_seconds() / 3600, 1),
+        "note": "Global Fishing Watch presence, which trails real time by a few days. Not a live picture.",
+    }
 
 
 @router.get("/monitoring/summary")

@@ -389,6 +389,44 @@ def test_reviewing_a_detection_records_who_decided_and_why(client: TestClient):
     assert any("look-alike" in e["action"] and e["detail"].startswith("Low wind") for e in trail)
 
 
+def test_ais_tracks_come_back_grouped_by_vessel_and_dated(client: TestClient):
+    from datetime import datetime, timedelta, timezone
+
+    from oceanspill.api.models import AisPosition
+
+    now = datetime.now(timezone.utc)
+    with client.app.state.oceanspill.db.sessions() as s:
+        for minutes in (0, 60, 120):
+            s.add(AisPosition(vessel_id="gfw-abc-123", mmsi="563812000", t=now - timedelta(minutes=minutes),
+                              lat=9.2 + minutes / 1000, lon=76.1, source="gfw", aoi_id="AOI-TEST"))
+        # A second vessel, and one the feed gave no MMSI for.
+        s.add(AisPosition(vessel_id="gfw-def-456", mmsi=None, t=now - timedelta(minutes=30),
+                          lat=9.4, lon=76.3, source="gfw", aoi_id="AOI-TEST"))
+        s.commit()
+
+    body = client.get("/api/ais/tracks?hours=24", headers=auth(client, "analyst@example.gov.in")).json()
+    assert body["vessels"] == 2 and body["positions"] == 4
+    track = next(t for t in body["tracks"] if t["vesselId"] == "gfw-abc-123")
+    assert len(track["points"]) == 3 and track["mmsi"] == "563812000"
+    # A vessel the feed did not name keeps a null MMSI rather than borrowing the identifier.
+    assert next(t for t in body["tracks"] if t["vesselId"] == "gfw-def-456")["mmsi"] is None
+    assert body["lagHours"] is not None and body["lagHours"] < 1
+
+
+def test_the_ais_answer_says_how_far_behind_the_feed_is(client: TestClient):
+    from datetime import datetime, timedelta, timezone
+
+    from oceanspill.api.models import AisPosition
+
+    with client.app.state.oceanspill.db.sessions() as s:
+        s.add(AisPosition(vessel_id="gfw-old", mmsi=None, t=datetime.now(timezone.utc) - timedelta(days=3),
+                          lat=9.0, lon=76.0, source="gfw", aoi_id="AOI-TEST"))
+        s.commit()
+    body = client.get("/api/ais/tracks?hours=168", headers=auth(client, "analyst@example.gov.in")).json()
+    assert 70 < body["lagHours"] < 74
+    assert "not a live picture" in body["note"].lower()
+
+
 def test_a_viewer_cannot_queue_background_work(client: TestClient):
     assert client.post("/api/jobs", json={"kind": "scan-aoi", "params": {"aoiId": "AOI-TEST"}},
                        headers=auth(client, "viewer@example.gov.in")).status_code == 403
