@@ -1,6 +1,6 @@
 {
  "_comment": "Written by oceanspill-model-status from the training runs. Do not edit by hand.",
- "generatedAt": "2026-09-16T08:42:42+00:00",
+ "generatedAt": "2026-09-16T09:06:20+00:00",
  "models": {
   "sarSegmentation": {
    "task": "Finds oil pixels in Sentinel-1 and EOS-04 radar scenes",

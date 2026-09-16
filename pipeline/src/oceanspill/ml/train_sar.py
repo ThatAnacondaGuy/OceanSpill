@@ -234,8 +234,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{len(split.train)} training tiles, {len(split.val)} validation tiles "
           f"({sum(val_fractions[i] > 0 for i in split.val)} of them contain oil)")
 
+    # Which channels to train on, decided before any loader is built because they all read it.
+    selected = [int(c) for c in args.use_channels.split(",")] if args.use_channels else None
     device = device_for(args.device)
-    print(f"device: {device}")
+    print(f"device: {device}" + (f" · channels {selected}" if selected else ""))
 
     # Tiles holding the thing being looked for are rare, so they are drawn more often; without this
     # the model is rewarded for predicting nothing.
@@ -249,7 +251,6 @@ def main(argv: list[str] | None = None) -> int:
     clean_loader = DataLoader(Tiles(val_cache, clean_val, args.crop, augment=False, standardise=args.standardise, channels=selected),
                               batch_size=args.batch, num_workers=args.workers)
 
-    selected = [int(c) for c in args.use_channels.split(",")] if args.use_channels else None
     channels = len(selected) if selected else int(np.load(cache / "images.npy", mmap_mode="r").shape[-1])
     print(f"{channels} input channels: {', '.join(index.get('channels', []) or ['unnamed'])}")
     model = UNet(in_channels=channels, base=args.base, depth=args.depth).to(device)
