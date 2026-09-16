@@ -10,10 +10,13 @@ the interface says so rather than filling the gap.
 
 ## What it does
 
-- **Finds oil in radar imagery.** A U-Net trained on 1,200 Sentinel-1 scenes with hand-drawn masks,
-  plus 685 look-alike and 685 clean-sea scenes so it learns what to leave alone. The classical
-  adaptive-threshold detector is still there and still runs by default; the processed record names
-  whichever one produced it.
+- **Finds oil in radar imagery.** An adaptive-threshold dark-spot detector runs on every scene today
+  and is what the published measurements come from. A U-Net is being trained alongside it on 1,200
+  Sentinel-1 scenes with hand-drawn masks plus 685 look-alike and 685 clean-sea scenes; until it
+  earns its place the pages say it is not trained, and every processed record names whichever
+  detector produced it. Figures live in `shared/model-status.json`, written by the training runs.
+- **Finds ships in radar**, including ones transmitting nothing on AIS — trained, and measured on
+  chips of open sea to see how often it fires at nothing.
 - **Runs the oil backwards and forwards.** A particle model driven by ERA5 winds and Météo-France
   currents, with land taken from OpenStreetMap so oil does not drift through a headland. Running it
   backwards recovers where the discharge started and when.
