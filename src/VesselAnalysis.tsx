@@ -4,6 +4,7 @@ import {
   TrendingDown, Gauge, Flag, Shield, Clock, ArrowRight, Radio,
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
+import { aisGapPercentile } from './engine/detection';
 import { MapView, BasemapSwitch, type BasemapStyle, type MapMarker, type MapPath, type MapPolygon } from './components/MapView';
 import {
   DataTable, SearchInput, Select, Badge, Button, KeyValue, Toggle, Tabs, InfoBanner,
@@ -405,7 +406,9 @@ export default function VesselAnalysis() {
                   <div className="grid grid-cols-2 gap-2">
                     <StatCard icon={<Gauge className="w-4 h-4" />} title="Mean speed" value={`${behaviour.meanSpeedKn.toFixed(1)}`} trend={`knots over ${fmt.hoursOrDays(aisSpanHours)} of AIS`} />
                     <StatCard icon={<TrendingDown className="w-4 h-4" />} title="Min speed" value={`${behaviour.minSpeedKn.toFixed(1)}`} trend="knots" accent={behaviour.minSpeedKn < 8 ? 'amber' : 'blue'} />
-                    <StatCard icon={<EyeOff className="w-4 h-4" />} title="AIS dark" value={`${behaviour.darkMinutes}`} trend="minutes" accent={behaviour.darkMinutes > 0 ? 'red' : 'green'} />
+                    <StatCard icon={<EyeOff className="w-4 h-4" />} title="AIS dark" value={`${behaviour.darkMinutes}`}
+                      trend={aisGapPercentile(behaviour.darkMinutes)?.reading ?? 'minutes'}
+                      accent={behaviour.darkMinutes > 0 ? 'red' : 'green'} />
                     <StatCard icon={<Clock className="w-4 h-4" />} title="Loitering" value={`${behaviour.loiterMinutes}`} trend="minutes below 2 kn" accent={behaviour.loiterMinutes > 25 ? 'amber' : 'blue'} />
                   </div>
 

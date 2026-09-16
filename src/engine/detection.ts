@@ -253,3 +253,42 @@ export function modelScoreLine(entry: { trained: boolean; scores?: { iou: number
   const alarms = entry.falseAlarmRate == null ? '' : ` · fires on ${(entry.falseAlarmRate * 100).toFixed(1)}% of water with nothing in it`;
   return `IoU ${iou.toFixed(3)} · finds ${(recall * 100).toFixed(0)}% of the oil · ${(precision * 100).toFixed(0)}% of what it marks is oil${alarms}`;
 }
+
+/**
+ * Where a gap in AIS sits among gaps that Global Fishing Watch judged intentional. It answers "is
+ * this a long silence by the standards of ships that were actually switching off?" — which is what
+ * an analyst wants, rather than whether it crossed a number someone picked.
+ *
+ * It carries no base rate: most gaps are reception, not intent. See docs/models.md.
+ */
+export function aisGapPercentile(minutes: number): { percentile: number; reading: string } | null {
+  const scale = MODEL_STATUS.measured?.aisGaps;
+  if (!scale || minutes <= 0) return null;
+  const hours = minutes / 60;
+  const points = Object.entries(scale.hoursPercentiles)
+    .map(([key, value]) => ({ p: Number(key.slice(1)), hours: value }))
+    .sort((a, b) => a.hours - b.hours);
+
+  let percentile = 0;
+  if (hours >= points[points.length - 1].hours) percentile = points[points.length - 1].p;
+  else if (hours > points[0].hours) {
+    for (let i = 1; i < points.length; i++) {
+      if (hours <= points[i].hours) {
+        const span = points[i].hours - points[i - 1].hours;
+        const along = span > 0 ? (hours - points[i - 1].hours) / span : 0;
+        percentile = points[i - 1].p + along * (points[i].p - points[i - 1].p);
+        break;
+      }
+    }
+  }
+
+  const rounded = Math.round(percentile);
+  const reading = rounded < 5
+    ? `shorter than almost every deliberate one on record`
+    : rounded < 25
+      ? `short by the standards of deliberate ones`
+      : rounded < 75
+        ? `about as long as a typical deliberate one`
+        : `longer than ${rounded}% of ${scale.events.toLocaleString('en-IN')} confirmed deliberate ones`;
+  return { percentile: rounded, reading };
+}
