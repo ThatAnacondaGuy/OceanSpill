@@ -10,9 +10,10 @@ import { analysePolygon } from './lib/geo';
 import { ECOLOGICAL_AREAS, CORRIDORS, PORTS } from './data/geography';
 import { sampleField } from './engine/ocean';
 import { fetchMonitoring, serverMode, type Detection } from './data/server';
+import { liveCaseIds } from './flow/pipeline';
 
 export default function Dashboard() {
-  const { world, now, navigate, getAnalysis, revision } = useStore();
+  const { world, now, navigate, getAnalysis, revision, startFlow } = useStore();
   const [basemap, setBasemap] = useState<BasemapStyle>('map');
   const [layers, setLayers] = useState({ cases: true, historical: true, eez: true, esa: false, corridors: false, ports: false, currents: false, detections: true });
   const [layersOpen, setLayersOpen] = useState(false);
@@ -22,11 +23,11 @@ export default function Dashboard() {
   // static mode this stays empty and the layer toggle simply has nothing to show.
   useEffect(() => {
     if (!serverMode) return;
-    let live = true;
-    const load = () => { void fetchMonitoring().then((s) => { if (live) setDetections(s.newDetections); }).catch(() => {}); };
+    let active = true;
+    const load = () => { void fetchMonitoring().then((s) => { if (active) setDetections(s.newDetections); }).catch(() => {}); };
     load();
     const timer = window.setInterval(load, 60_000);
-    return () => { live = false; window.clearInterval(timer); };
+    return () => { active = false; window.clearInterval(timer); };
   }, []);
 
   const stats = useMemo(() => {
@@ -37,6 +38,9 @@ export default function Dashboard() {
     const legal = legalSummary(world);
     return { scenes, eosScenes, real, synthetic, legal: legal.actions, legalIncidents: legal.incidents, fines: legal.penaltiesInr, high: world.cases.filter((c) => c.tier === 'HIGH').length };
   }, [world, revision]);
+
+  /** The cases treated as running now: the most recent, marked live on the map and in the list. */
+  const live = useMemo(() => liveCaseIds(world.cases), [world.cases]);
 
   const ordered = useMemo(() => {
     const rank = { HIGH: 0, MEDIUM: 1, LOW: 2 };
@@ -58,10 +62,14 @@ export default function Dashboard() {
     if (layers.cases) {
       for (const c of world.cases) {
         const shape = analysePolygon(c.detection.polygon.ring);
+        // The two most recent are the ones being worked now. They pulse and sit above the rest, so
+        // the thing needing attention is the thing the eye lands on.
+        const isLive = live.includes(c.id);
         out.push({
           id: c.id, position: shape.centroid, kind: 'case',
-          color: c.tier === 'HIGH' ? '#dc2626' : c.tier === 'MEDIUM' ? '#f59e0b' : '#10b981',
-          size: 7, label: c.title, sublabel: c.subRegion, pulse: c.tier === 'HIGH', z: 3,
+          color: isLive ? '#e11d48' : c.tier === 'HIGH' ? '#dc2626' : c.tier === 'MEDIUM' ? '#f59e0b' : '#10b981',
+          size: isLive ? 9 : 7, label: c.title, sublabel: isLive ? 'LIVE — click to run the pipeline' : c.subRegion,
+          pulse: isLive, z: isLive ? 5 : 3,
           meta: {
             Date: fmt.precise(c.incidentTime, c.facts.incident.timePrecision),
             Source: c.sourceType,
@@ -94,7 +102,7 @@ export default function Dashboard() {
       }
     }
     return out;
-  }, [world, layers, detections, now]);
+  }, [world, layers, detections, now, live]);
 
   const polygons = useMemo<MapPolygon[]>(() => {
     const out: MapPolygon[] = [];
@@ -124,9 +132,9 @@ export default function Dashboard() {
         <StatCard icon={<ClipboardList className="w-6 h-6" />} title="Recorded cases" value={world.cases.length}
           trend={`${stats.high} high tier · retrospective`} onClick={() => navigate({ tab: 'Spill Incidents' })} />
         <StatCard icon={<Satellite className="w-6 h-6" />} title="SAR scenes catalogued" value={stats.scenes}
-          trend={`${stats.eosScenes} EOS-04 · ${stats.scenes - stats.eosScenes} Sentinel-1`} onClick={() => navigate({ tab: 'Satellite Tasking' })} />
+          trend={`${stats.eosScenes} EOS-04 · ${stats.scenes - stats.eosScenes} Sentinel-1`} />
         <StatCard icon={<Anchor className="w-6 h-6" />} title="Vessels in case windows" value={stats.real + stats.synthetic}
-          trend={stats.synthetic ? `${stats.synthetic} synthetic` : `across ${world.cases.length} cases`} onClick={() => navigate({ tab: 'Vessel Analysis' })} />
+          trend={stats.synthetic ? `${stats.synthetic} synthetic` : `across ${world.cases.length} cases`} />
         <StatCard icon={<History className="w-6 h-6" />} title="Historical incidents" value={world.historical.length}
           accent="amber" trend="Indian waters, 1970–2025" onClick={() => navigate({ tab: 'Case Archive', section: 'historical' })} />
         <StatCard icon={<Scale className="w-6 h-6" />} title="Legal actions on record" value={stats.legal}
@@ -140,7 +148,7 @@ export default function Dashboard() {
           vectorLabel={layers.currents ? 'Modelled current climatology (not observed data)' : undefined}
           showEez={layers.eez}
           onMarkerClick={(m) => {
-            if (m.kind === 'case') navigate({ tab: 'Investigation', caseId: m.id });
+            if (m.kind === 'case') startFlow(m.id);
             // A detection needs a decision, and the queue is where that is made.
             else if (m.kind === 'detection') navigate({ tab: 'Live Operations' });
           }}
@@ -173,6 +181,7 @@ export default function Dashboard() {
           legend={
             <div className="absolute bottom-16 left-3 z-20 bg-white/95 backdrop-blur border border-gray-300 rounded-lg p-3 text-[0.6875rem] shadow-lg">
               <h4 className="font-bold mb-1.5 text-gray-700 uppercase tracking-wide">Legend</h4>
+              <LegendDot color="#e11d48" label="Live — click to run the pipeline" />
               <LegendDot color="#dc2626" label="Case, high tier (≥250 t)" />
               <LegendDot color="#f59e0b" label="Case, medium / unknown quantity" />
               <LegendDot color="#10b981" label="Case, low tier" />
@@ -189,13 +198,21 @@ export default function Dashboard() {
           {ordered.map((c, i) => {
             const a = getAnalysis(c.id);
             return (
-              <button key={c.id} onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}
+              <button key={c.id} onClick={() => startFlow(c.id)}
                 className="w-full text-left px-4 py-3.5 border-b border-gray-100 hover:bg-blue-50/60 flex items-start gap-3 group">
                 <div className="font-bold text-gray-300 text-base pt-0.5 w-4 text-center flex-shrink-0">{i + 1}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start gap-2 mb-0.5">
                     <span className="font-bold text-[0.75rem] text-[#0a192f] group-hover:text-blue-700 leading-snug">{c.title}</span>
-                    <Tier tier={c.tier} />
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {/* The two being worked now. Same marker language as the pulsing dots on the map. */}
+                      {live.includes(c.id) && (
+                        <span className="inline-flex items-center gap-1 bg-rose-600 text-white text-[0.625rem] font-bold px-1.5 py-0.5 rounded uppercase">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> Live
+                        </span>
+                      )}
+                      <Tier tier={c.tier} />
+                    </div>
                   </div>
                   <p className="text-[0.6875rem] text-gray-500 truncate">{fmt.precise(c.incidentTime, c.facts.incident.timePrecision)} · {c.region}</p>
                   <div className="flex items-center gap-1.5 mt-2 flex-wrap">

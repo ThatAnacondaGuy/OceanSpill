@@ -41,7 +41,7 @@ interface Party {
  * registry histories exist only to exercise the scoring model, are kept on a separate tab.
  */
 export default function OffenderRegistry() {
-  const { world, selectedMmsi, setSelectedMmsi, navigate, getAnalysis, revision, weights, canEdit } = useStore();
+  const { world, selectedMmsi, setSelectedMmsi, navigate, startFlow, getAnalysis, revision, weights, canEdit } = useStore();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState('register');
   const [kindFilter, setKindFilter] = useState('all');
@@ -271,7 +271,7 @@ export default function OffenderRegistry() {
               </div>
               <div className="flex-1 min-h-0">
                 <DataTable columns={syntheticColumns} rows={synthetic} rowKey={(r) => r.vessel.mmsi} dense
-                  onRowClick={(r) => navigate({ tab: 'Vessel Analysis', mmsi: r.vessel.mmsi })} initialSort={{ key: 'boost', dir: 'desc' }} />
+                  onRowClick={(r) => setSelectedMmsi(r.vessel.mmsi)} initialSort={{ key: 'boost', dir: 'desc' }} />
               </div>
             </div>
           )}
@@ -336,7 +336,7 @@ export default function OffenderRegistry() {
                       const h = world.historical.find((x) => x.id === id);
                       const score = c && selected.vessel ? getAnalysis(c.id)?.ranked.find((r) => r.mmsi === selected.vessel!.mmsi) : undefined;
                       return (
-                        <button key={id} onClick={() => (c ? navigate({ tab: 'Investigation', caseId: c.id }) : navigate({ tab: 'Case Archive', section: 'historical' }))}
+                        <button key={id} onClick={() => (c ? startFlow(c.id) : navigate({ tab: 'Case Archive', section: 'historical' }))}
                           className="w-full text-left border border-gray-200 rounded p-2 hover:border-blue-400 hover:bg-blue-50/40">
                           <div className="flex justify-between items-start gap-2">
                             <div className="min-w-0">
@@ -383,7 +383,7 @@ export default function OffenderRegistry() {
               <div className="p-3 border-t border-gray-200 flex gap-2">
                 <Button size="sm" className="flex-1 justify-center" disabled={!selected.vessel}
                   title={selected.vessel ? 'Open this vessel in Vessel Analysis' : 'No vessel is linked to this party, so there is no track to open'}
-                  onClick={() => selected.vessel && navigate({ tab: 'Vessel Analysis', mmsi: selected.vessel.mmsi })} icon={<Ship className="w-3 h-3" />}>
+                  onClick={() => selected.vessel && setSelectedMmsi(selected.vessel.mmsi)} icon={<Ship className="w-3 h-3" />}>
                   Track
                 </Button>
                 <Button size="sm" variant="primary" className="flex-1 justify-center" disabled={!canEdit('Offender Registry')}

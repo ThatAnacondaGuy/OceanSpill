@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  Bell, HelpCircle, LogOut, Search, Satellite, Home, AlertTriangle, FileText, Anchor,
-  Database, Activity, ChevronDown, Map as MapIcon, Megaphone, CheckSquare, Shield, Archive,
+  Bell, HelpCircle, LogOut, Search, Home, AlertTriangle,
+  Database, ChevronDown, CheckSquare, Shield, Archive,
   Settings, Clock, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship,
   ChevronLeft, ChevronRight, Contrast, Leaf, History, Radar, KeyRound,
 } from 'lucide-react';
@@ -12,7 +12,8 @@ import { Seal } from './components/Seal';
 import { MyAccount } from './components/AccountSecurity';
 import { Button, Modal } from './components/ui';
 import Dashboard from './Dashboard';
-import LiveOperations from './LiveOperations';
+import { PipelineFrame } from './flow/PipelineFrame';
+import { isStageTab } from './flow/pipeline';
 import SpillIncidents from './SpillIncidents';
 import Investigation from './Investigation';
 import SatelliteTasking from './SatelliteTasking';
@@ -27,31 +28,29 @@ import AnalyticsReporting from './AnalyticsReporting';
 import CaseArchive from './CaseArchive';
 import SystemAdministration from './SystemAdministration';
 
-/** `label` is the page id used for navigation; `display` is shown when it differs. */
+/**
+ * `label` is the page id used for navigation; `display` is shown when it differs.
+ *
+ * Investigation, Vessel Analysis, Environmental Data, Satellite Tasking, NCSCM Ecological,
+ * SACHET / SAMUDRA and Reports are deliberately absent. They are not destinations — they are the
+ * stages a case passes through, reached by opening a case from the dashboard or the incident list
+ * and carried from one to the next by the pipeline itself. See src/flow/pipeline.ts.
+ */
 const NAV: { label: string; display?: string; icon: ReactNode }[] = [
   { label: 'Dashboard', icon: <Home className="w-4 h-4" /> },
-  { label: 'Live Operations', icon: <Radar className="w-4 h-4" /> },
   { label: 'Spill Incidents', icon: <AlertTriangle className="w-4 h-4" /> },
-  { label: 'Investigation', icon: <Search className="w-4 h-4" /> },
-  { label: 'Vessel Analysis', icon: <Anchor className="w-4 h-4" /> },
-  { label: 'Environmental Data', icon: <Activity className="w-4 h-4" /> },
-  { label: 'Satellite Tasking', icon: <Satellite className="w-4 h-4" /> },
-  { label: 'NCSCM Ecological', icon: <MapIcon className="w-4 h-4" /> },
-  { label: 'SACHET / SAMUDRA', icon: <Megaphone className="w-4 h-4" /> },
   { label: 'Workflow', icon: <CheckSquare className="w-4 h-4" /> },
   { label: 'Offender Registry', display: 'Liability Register', icon: <Shield className="w-4 h-4" /> },
-  { label: 'Reports', icon: <FileText className="w-4 h-4" /> },
   { label: 'Data Management', icon: <Database className="w-4 h-4" /> },
   { label: 'Case Archive', icon: <Archive className="w-4 h-4" /> },
   { label: 'System Admin', icon: <Settings className="w-4 h-4" /> },
 ];
 
-/** Navigation sections in workflow order, separated by dividers in the tab bar. */
+/** Navigation sections, separated by dividers in the tab bar. */
 const NAV_GROUPS: { title: string; items: string[] }[] = [
-  { title: 'Operations', items: ['Dashboard', 'Live Operations', 'Spill Incidents', 'Investigation', 'Vessel Analysis'] },
-  { title: 'Environment', items: ['Environmental Data', 'Satellite Tasking', 'NCSCM Ecological'] },
-  { title: 'Response', items: ['SACHET / SAMUDRA', 'Workflow', 'Offender Registry'] },
-  { title: 'Records', items: ['Reports', 'Data Management', 'Case Archive', 'System Admin'] },
+  { title: 'Operations', items: ['Dashboard', 'Spill Incidents'] },
+  { title: 'Response', items: ['Workflow', 'Offender Registry'] },
+  { title: 'Records', items: ['Data Management', 'Case Archive', 'System Admin'] },
 ];
 
 const A11Y_KEY = 'oceanspill.a11y.v1';
@@ -136,7 +135,7 @@ function Shell() {
     const can = (tab: string) => allowed.includes(tab);
     for (const c of world.cases) {
       if (`${c.id} ${c.title} ${c.region} ${c.subRegion}`.toLowerCase().includes(q)) {
-        out.push({ kind: 'Case', label: c.title, sub: `${c.id} · ${c.subRegion}`, go: () => navigate({ tab: can('Investigation') ? 'Investigation' : 'Spill Incidents', caseId: c.id }) });
+        out.push({ kind: 'Case', label: c.title, sub: `${c.id} · ${c.subRegion}`, go: () => (can('Investigation') ? store.startFlow(c.id) : navigate({ tab: 'Spill Incidents', caseId: c.id })) });
       }
     }
     if (can('Vessel Analysis')) {
@@ -469,20 +468,25 @@ function Shell() {
       {/* Keyed by time zone so every formatted time on the page is recomputed when it changes. */}
       <div key={timeZone} id="main-content" tabIndex={-1} className="flex-1 min-w-0 min-h-0 flex flex-col outline-none">
         {activeTab === 'Dashboard' && <Dashboard />}
-        {activeTab === 'Live Operations' && <LiveOperations />}
         {activeTab === 'Spill Incidents' && <SpillIncidents />}
-        {activeTab === 'Investigation' && <Investigation />}
-        {activeTab === 'Vessel Analysis' && <VesselAnalysis />}
-        {activeTab === 'Environmental Data' && <EnvironmentalData />}
-        {activeTab === 'Satellite Tasking' && <SatelliteTasking />}
-        {activeTab === 'NCSCM Ecological' && <NcscmEcological />}
-        {activeTab === 'SACHET / SAMUDRA' && <SachetSamudra />}
         {activeTab === 'Workflow' && <Workflow />}
         {activeTab === 'Offender Registry' && <OffenderRegistry />}
-        {activeTab === 'Reports' && <AnalyticsReporting />}
         {activeTab === 'Data Management' && <ImacIntegration />}
         {activeTab === 'Case Archive' && <CaseArchive />}
         {activeTab === 'System Admin' && <SystemAdministration />}
+
+        {/* The pipeline stages. Each is wrapped so it carries the progress strip and the hand-off. */}
+        {isStageTab(activeTab) && (
+          <PipelineFrame tab={activeTab}>
+            {activeTab === 'Investigation' && <Investigation />}
+            {activeTab === 'Vessel Analysis' && <VesselAnalysis />}
+            {activeTab === 'Environmental Data' && <EnvironmentalData />}
+            {activeTab === 'Satellite Tasking' && <SatelliteTasking />}
+            {activeTab === 'NCSCM Ecological' && <NcscmEcological />}
+            {activeTab === 'SACHET / SAMUDRA' && <SachetSamudra />}
+            {activeTab === 'Reports' && <AnalyticsReporting />}
+          </PipelineFrame>
+        )}
       </div>
 
       <ToastHost />

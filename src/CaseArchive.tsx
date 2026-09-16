@@ -22,7 +22,7 @@ import type { AuditEntry, HistoricalIncident, SpillCase } from './data/types';
  * attribution may have to be defended months after the analyst has moved on.
  */
 export default function CaseArchive() {
-  const { world, now, getAnalysis, navigate, consumeSection, revision, weights, notify, serverMode } = useStore();
+  const { world, now, getAnalysis, startFlow, consumeSection, revision, weights, notify, serverMode } = useStore();
   const [tab, setTab] = useState('archive');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -98,7 +98,7 @@ export default function CaseArchive() {
     {
       key: 'target', header: 'Target', width: '150px', value: (e) => e.target,
       render: (e) => world.cases.some((c) => c.id === e.target)
-        ? <button onClick={() => navigate({ tab: 'Investigation', caseId: e.target })} className="font-mono text-blue-600 hover:underline">{e.target}</button>
+        ? <button onClick={() => startFlow(e.target)} className="font-mono text-blue-600 hover:underline">{e.target}</button>
         : <span className="font-mono text-gray-600 text-[0.6875rem]">{e.target}</span>,
     },
     { key: 'detail', header: 'Detail', value: (e) => e.detail, render: (e) => e.detail ? <span className="text-gray-600">{e.detail}</span> : <span className="text-gray-400">Case timeline entry</span> },
@@ -365,7 +365,7 @@ export default function CaseArchive() {
                   </div>
                 </div>
                 <div className="p-3 border-t border-gray-200 flex gap-2">
-                  <Button size="sm" className="flex-1 justify-center" onClick={() => navigate({ tab: 'Investigation', caseId: active.id })}>
+                  <Button size="sm" className="flex-1 justify-center" onClick={() => startFlow(active.id)}>
                     Reopen in workspace
                   </Button>
                   <Button size="sm" variant="primary" className="flex-1 justify-center" onClick={() => exportChainOfCustody(active)} icon={<Download className="w-3 h-3" />}>
@@ -405,7 +405,7 @@ export default function CaseArchive() {
 }
 
 function HistoricalRegister() {
-  const { world, navigate } = useStore();
+  const { world, startFlow } = useStore();
   const [query, setQuery] = useState('');
   const [decade, setDecade] = useState('all');
   const [selected, setSelected] = useState<string | null>(null);
@@ -501,7 +501,7 @@ function HistoricalRegister() {
                   <ExternalLink className="w-3 h-3" /> Source
                 </a>
                 {active.activeCaseId && (
-                  <Button size="sm" variant="primary" onClick={() => navigate({ tab: 'Investigation', caseId: active.activeCaseId })}>Open analysed case</Button>
+                  <Button size="sm" variant="primary" onClick={() => active.activeCaseId && startFlow(active.activeCaseId)}>Open analysed case</Button>
                 )}
               </div>
             </div>

@@ -17,7 +17,7 @@ const HOUR = 3600_000;
  * engine integrates. Model mode shows the climatological fallback and is labelled as modelled.
  */
 export default function EnvironmentalData() {
-  const { now, world, navigate, selectedCaseId, samplerFor } = useStore();
+  const { now, world, startFlow, selectedCaseId, samplerFor } = useStore();
   const casesWithForcing = useMemo(() => world.cases.filter((c) => world.forcing.has(c.id)), [world]);
 
   const [mode, setMode] = useState<'case' | 'model'>(casesWithForcing.length ? 'case' : 'model');
@@ -430,7 +430,7 @@ export default function EnvironmentalData() {
             fitTo={forcing ? [{ lat: forcing.lats[0], lon: forcing.lons[0] }, { lat: forcing.lats[forcing.lats.length - 1], lon: forcing.lons[forcing.lons.length - 1] }] : undefined}
             fitKey={`${mode}-${caseId}`}
             onMapClick={(p) => setProbe(p)}
-            onMarkerClick={(m) => { if (m.kind === 'case') navigate({ tab: 'Investigation', caseId: m.id }); }}
+            onMarkerClick={(m) => { if (m.kind === 'case') startFlow(m.id); }}
             overlay={
               <div className="absolute top-3 left-3 z-20 flex flex-col gap-2 items-start">
                 <BasemapSwitch value={basemap} onChange={setBasemap} />

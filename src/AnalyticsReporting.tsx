@@ -51,7 +51,7 @@ export interface DriftCheck {
 }
 
 export default function AnalyticsReporting() {
-  const { world, getAnalysis, navigate, revision } = useStore();
+  const { world, getAnalysis, navigate, startFlow, revision } = useStore();
   const [tab, setTab] = useState('overview');
   const [basemap, setBasemap] = useState<BasemapStyle>('dark');
   const [period, setPeriod] = useState('all');
@@ -276,7 +276,7 @@ export default function AnalyticsReporting() {
             <Panel title="Analysed cases: incident → first report" dense>
               <div className="p-4 space-y-2">
                 {timelines.map(({ c, toObservationH, spanDays, events }) => (
-                  <button key={c.id} onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}
+                  <button key={c.id} onClick={() => startFlow(c.id)}
                     className="w-full text-left flex items-center gap-2 text-[0.71875rem] hover:bg-gray-50 rounded px-1 py-0.5">
                     <span className="flex-1 truncate font-semibold text-gray-800" title={c.title}>{c.title}</span>
                     <span className="font-mono text-gray-700 w-16 text-right">{toObservationH != null && ['minute', 'hour'].includes(c.facts.incident.timePrecision) ? fmt.hoursOrDays(toObservationH) : 'Not known'}</span>
@@ -349,7 +349,7 @@ export default function AnalyticsReporting() {
               initialCentre={{ lat: 14, lon: 80 }} initialZoom={3.7}
               onMarkerClick={(m) => {
                 const h = world.historical.find((x) => x.id === m.id);
-                if (h?.activeCaseId) navigate({ tab: 'Investigation', caseId: h.activeCaseId });
+                if (h?.activeCaseId) startFlow(h.activeCaseId);
                 else navigate({ tab: 'Case Archive', section: 'historical' });
               }}
               overlay={<div className="absolute top-3 left-3 z-20"><BasemapSwitch value={basemap} onChange={setBasemap} /></div>}
@@ -436,7 +436,7 @@ export default function AnalyticsReporting() {
                 {driftChecks.map((d) => (
                   <div key={`${d.caseId}-${d.to.time}`} className="border border-gray-200 rounded p-2">
                     <div className="flex items-center justify-between gap-2">
-                      <button onClick={() => navigate({ tab: 'Investigation', caseId: d.caseId })} className="text-[0.75rem] font-bold text-blue-700 hover:underline text-left">{d.title}</button>
+                      <button onClick={() => startFlow(d.caseId)} className="text-[0.75rem] font-bold text-blue-700 hover:underline text-left">{d.title}</button>
                       <Badge tone={d.errorKm <= Math.max(10, d.precisionKm) ? 'green' : 'amber'}><Crosshair className="w-2.5 h-2.5" /> {d.errorKm.toFixed(1)} km</Badge>
                     </div>
                     <KeyValue cols={2} items={[
@@ -460,7 +460,7 @@ export default function AnalyticsReporting() {
           <Panel title="Detection basis per analysed case" dense>
             <div className="p-4 space-y-2">
               {completeness.map(({ c, sar, sarCovers, current, realAis, precise }) => (
-                <button key={c.id} onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}
+                <button key={c.id} onClick={() => startFlow(c.id)}
                   className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded border border-gray-200 hover:border-blue-400 hover:bg-blue-50/40">
                   <span className="text-[0.71875rem] font-bold text-gray-900 w-[220px] flex-shrink-0 truncate" title={c.title}>{c.title}</span>
                   <Badge tone={c.confidenceBasis === 'official-report' ? 'blue' : 'violet'} className="w-[84px] justify-center flex-shrink-0">{fmt.confidence(c)}</Badge>

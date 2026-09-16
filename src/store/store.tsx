@@ -10,6 +10,7 @@ import { loadWorld, type World } from '../data/world';
 import { ApiError, hasToken, serverMode, setSignedOutHandler, signOut as apiSignOut, streamNotifications, whoAmI, type Account } from '../data/api';
 import * as server from '../data/server';
 import { SignIn } from '../SignIn';
+import { STAGES } from '../flow/pipeline';
 import { ECOLOGICAL_AREAS } from '../data/geography';
 import type { AreaOfInterest, AuditEntry, CaseStatus, CommunityAlert, EnforcementAction, SightingReport, SpillCase, SystemUser, WorkflowStage } from '../data/types';
 import { clearanceAllowsIdentities, tabAccess, type AccessLevel } from '../data/access';
@@ -69,6 +70,25 @@ interface StoreValue {
   setSelectedMmsi: (m: string | null) => void;
   pendingSection: string | null;
   consumeSection: () => string | null;
+
+  /**
+   * The pipeline: which case is running through it, and which stages have been reached.
+   *
+   * A stage is "run" once it has been opened for this case, which is what lets the progress strip
+   * offer a stage back without pretending the operator has seen one they have not.
+   */
+  flowCaseId: string | null;
+  runStages: string[];
+  /**
+   * Opens the pipeline on a case, at its first stage unless another is named. The live markers and
+   * the incident list use the plain form; `at` exists for the few places that want a specific stage,
+   * such as the tasking suggestions, which would otherwise have nowhere to go.
+   */
+  startFlow: (caseId: string, at?: string) => void;
+  /** Moves to a stage of the running case, recording that it has now been reached. */
+  goToStage: (tab: string) => void;
+  /** Leaves the pipeline without changing which case is selected. */
+  exitFlow: () => void;
 
   weights: ScoringWeights;
   setWeights: (w: ScoringWeights) => void;
@@ -285,6 +305,9 @@ function LoadedStore({ world, account, children }: { world: World; account: Acco
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(world.cases[0]?.id ?? null);
   const [selectedMmsi, setSelectedMmsi] = useState<string | null>(null);
   const [pendingSection, setPendingSection] = useState<string | null>(null);
+  // Null when nobody is running a case through the pipeline; the stage pages are then unreachable.
+  const [flowCaseId, setFlowCaseId] = useState<string | null>(null);
+  const [runStages, setRunStages] = useState<string[]>([]);
   const [weights, setWeightsState] = useState<ScoringWeights>(restored?.weights ?? DEFAULT_WEIGHTS);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [currentUser, setCurrentUserState] = useState<SystemUser>(
@@ -506,6 +529,30 @@ function LoadedStore({ world, account, children }: { world: World; account: Acco
     setPendingSection(null);
     return s;
   }, [pendingSection]);
+
+  const startFlow = useCallback((caseId: string, at?: string) => {
+    setFlowCaseId(caseId);
+    setSelectedCaseId(caseId);
+    // Starting again on the same case starts again properly: every stage is unseen, so the pipeline
+    // plays through from the beginning rather than skipping to wherever it was left. Opening at a
+    // named stage marks the ones before it as reached, so the strip can go back to them.
+    const target = at && STAGES.some((s) => s.tab === at) ? at : STAGES[0].tab;
+    const upto = STAGES.findIndex((s) => s.tab === target);
+    setRunStages(STAGES.slice(0, upto + 1).map((s) => s.tab));
+    setActiveTab(target);
+    setPendingSection(null);
+  }, []);
+
+  const goToStage = useCallback((tab: string) => {
+    setRunStages((seen) => (seen.includes(tab) ? seen : [...seen, tab]));
+    setActiveTab(tab);
+    setPendingSection(null);
+  }, []);
+
+  const exitFlow = useCallback(() => {
+    setFlowCaseId(null);
+    setRunStages([]);
+  }, []);
 
   const updateCase = useCallback(
     (id: string, patch: Partial<SpillCase>) => {
@@ -787,6 +834,7 @@ function LoadedStore({ world, account, children }: { world: World; account: Acco
       world, now, currentUser, setCurrentUser,
       activeTab, navigate, selectedCaseId, setSelectedCaseId, selectedMmsi, setSelectedMmsi,
       pendingSection, consumeSection, weights, setWeights, resetWeights, getAnalysis, samplerFor,
+      flowCaseId, runStages, startFlow, goToStage, exitFlow,
       updateCase, setCaseStatus, setWorkflowStage, replayCase, pushToImac, draftAlert, addEnforcement,
       addSighting, linkSighting, verifySighting, addUser, updateUser, addAoi, toggleAoiPin, reorderAoi, log,
       toasts, dismissToast, notify, revision,
@@ -795,6 +843,7 @@ function LoadedStore({ world, account, children }: { world: World; account: Acco
     }),
     [
       world, now, currentUser, activeTab, navigate, selectedCaseId, selectedMmsi, pendingSection, consumeSection,
+      flowCaseId, runStages, startFlow, goToStage, exitFlow,
       weights, setWeights, resetWeights, getAnalysis, samplerFor, updateCase, setCaseStatus, setWorkflowStage,
       replayCase, pushToImac, draftAlert, addEnforcement, addSighting, linkSighting, verifySighting, addUser, updateUser,
       addAoi, toggleAoiPin, reorderAoi, log, toasts, dismissToast, notify, revision,

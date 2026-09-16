@@ -881,7 +881,8 @@ function distance(path: LatLon[]): number {
   return d;
 }
 
-function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, onSeek }: any) {
+function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, onSeek }: any) {
+  const { goToStage, setSelectedMmsi } = useStore();
   const [showExcluded, setShowExcluded] = useState(false);
   // Where authorities named the source, the case doubles as a check on the method.
   const reportedSources = world.vessels.filter((v: any) => v.caseId === analysis.caseId && v.role === 'source' && !v.isFacility);
@@ -1039,7 +1040,7 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
 
                 <div className="flex gap-1.5">
                   <Button size="sm" onClick={() => onSeek(s.cpaTime)} icon={<Clock className="w-3 h-3" />}>Seek to CPA</Button>
-                  <Button size="sm" onClick={() => navigate({ tab: 'Vessel Analysis', mmsi: s.mmsi })} icon={<Ship className="w-3 h-3" />}>Vessel record</Button>
+                  <Button size="sm" onClick={() => { setSelectedMmsi(s.mmsi); goToStage('Vessel Analysis'); }} icon={<Ship className="w-3 h-3" />}>Vessel record</Button>
                 </div>
               </div>
             )}
@@ -1083,7 +1084,8 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
   );
 }
 
-function ImpactTab({ active, analysis, navigate }: any) {
+function ImpactTab({ active, analysis }: any) {
+  const { goToStage } = useStore();
   const threatened = analysis.threatenedAreas.filter((t: any) => t.distanceKm < 250);
   return (
     <div className="p-4 space-y-4">
@@ -1113,7 +1115,7 @@ function ImpactTab({ active, analysis, navigate }: any) {
             ))}
           </div>
         )}
-        <Button size="sm" className="mt-2 w-full justify-center" onClick={() => navigate({ tab: 'NCSCM Ecological', caseId: active.id })}>
+        <Button size="sm" className="mt-2 w-full justify-center" onClick={() => goToStage('NCSCM Ecological')}>
           Open response planning
         </Button>
       </Section>
@@ -1179,7 +1181,7 @@ function WeightsModal({ open, onClose, weights, setWeights, reset }: any) {
 }
 
 function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () => void; caseId: string }) {
-  const { world, setWorkflowStage, setCaseStatus, pushToImac, addEnforcement, navigate } = useStore();
+  const { world, setWorkflowStage, setCaseStatus, pushToImac, addEnforcement, goToStage } = useStore();
   const c = world.cases.find((x) => x.id === caseId)!;
   const [stage, setStage] = useState(c.workflowStage);
   const [status, setStatus] = useState(c.status);
@@ -1228,7 +1230,7 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
             <Button icon={<Radio className="w-3 h-3" />} disabled={c.imacPushed} onClick={() => { pushToImac(caseId); onClose(); }}>
               {c.imacPushed ? 'IMAC payload generated' : 'Generate IMAC payload'}
             </Button>
-            <Button icon={<AlertTriangle className="w-3 h-3" />} onClick={() => { navigate({ tab: 'SACHET / SAMUDRA', caseId }); onClose(); }}>
+            <Button icon={<AlertTriangle className="w-3 h-3" />} onClick={() => { goToStage('SACHET / SAMUDRA'); onClose(); }}>
               Compose community alert
             </Button>
             <Button variant="danger" icon={<Scale className="w-3 h-3" />}

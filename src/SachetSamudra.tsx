@@ -89,7 +89,7 @@ ${infos}
 }
 
 export default function SachetSamudra() {
-  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, draftAlert, linkSighting, verifySighting, navigate, revision, canEdit } = useStore();
+  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, draftAlert, linkSighting, verifySighting, startFlow, revision, canEdit } = useStore();
   const editable = canEdit('SACHET / SAMUDRA');
   const [tab, setTab] = useState('compose');
   const [basemap, setBasemap] = useState<BasemapStyle>('map');
@@ -225,7 +225,7 @@ export default function SachetSamudra() {
     {
       key: 'case', header: 'Linked case', width: '150px', value: (s) => s.linkedCaseId ?? '',
       render: (s) => s.linkedCaseId
-        ? <button onClick={(e) => { e.stopPropagation(); navigate({ tab: 'Investigation', caseId: s.linkedCaseId! }); }}
+        ? <button onClick={(e) => { e.stopPropagation(); startFlow(s.linkedCaseId!); }}
             className="text-blue-600 hover:underline font-semibold text-left truncate max-w-[140px]">{world.cases.find((c) => c.id === s.linkedCaseId)?.title ?? s.linkedCaseId}</button>
         : <span className="text-gray-300">—</span>,
     },

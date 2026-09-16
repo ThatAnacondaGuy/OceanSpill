@@ -18,7 +18,7 @@ import { READ_ONLY_HINT } from './data/access';
  * and can be downloaded. Nothing on this page claims delivery.
  */
 export default function ImacIntegration() {
-  const { world, now, pushToImac, navigate, consumeSection, notify, getAnalysis, revision, canEdit } = useStore();
+  const { world, now, pushToImac, startFlow, consumeSection, notify, getAnalysis, revision, canEdit } = useStore();
   const [tab, setTab] = useState('imac');
   const [query, setQuery] = useState('');
   const [kindFilter, setKindFilter] = useState('all');
@@ -162,7 +162,7 @@ export default function ImacIntegration() {
                     </div>
                     <p className="text-[0.6875rem] text-gray-400 mb-1.5">{c.status} · {fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</p>
                     <div className="flex gap-1.5">
-                      <Button size="sm" className="flex-1 justify-center" onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}>Review</Button>
+                      <Button size="sm" className="flex-1 justify-center" onClick={() => startFlow(c.id)}>Review</Button>
                       <Button size="sm" variant="primary" className="flex-1 justify-center" disabled={!canEdit('Data Management')} title={canEdit('Data Management') ? undefined : READ_ONLY_HINT} onClick={() => { pushToImac(c.id); setPayloadFor(c.id); }} icon={<ArrowUpRight className="w-3 h-3" />}>Generate</Button>
                     </div>
                   </div>
