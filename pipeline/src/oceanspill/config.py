@@ -39,6 +39,9 @@ class Settings:
     output_dir: Path = OUTPUT_DIR
     # A trained segmentation model exported to ONNX. Empty means the classical detector is used.
     sar_model: str = ""
+    # A trained ship detector exported to ONNX. Empty means no vessel detection is attempted, and the
+    # scene record says nobody looked rather than that nothing was there.
+    ship_model: str = ""
 
     @classmethod
     def load(cls, env_file: Path | None = None) -> "Settings":
@@ -63,4 +66,5 @@ class Settings:
             cache_dir=cache_path,
             output_dir=output_path,
             sar_model=os.getenv("SAR_MODEL", ""),
+            ship_model=os.getenv("SHIP_MODEL", ""),
         )

@@ -170,6 +170,31 @@ def collect_measurements(pipeline_dir: Path) -> dict[str, Any]:
     if validation.exists():
         data = json.loads(validation.read_text())
         out["driftValidation"] = {k: data.get(k) for k in ("spread", "trackSkill") if data.get(k)}
+    # What the ship detector did on a real Indian scene, against the vessels that were transmitting.
+    # The SSDD figures say how well it outlines a ship in a chip; this says whether it finds one in
+    # eighty kilometres of the Bay of Bengal, which is the question an operator is actually asking.
+    vessels = pipeline_dir / "runs" / "ship_detection" / "real_scene_check.json"
+    if vessels.exists():
+        data = json.loads(vessels.read_text())
+        scenes = data.get("scenes") or []
+        if scenes:
+            first = scenes[0]
+            out["vesselDetectionOnRealScene"] = {
+                "case": data.get("case"),
+                "scene": first["scene"],
+                "sceneTime": first["sceneTime"],
+                "pixelSpacingM": first["pixelSpacingM"],
+                "threshold": first["threshold"],
+                "matchRadiusKm": first["matchRadiusKm"],
+                "aisVesselsInScene": first["aisVesselsInScene"],
+                "foundByRadar": first["foundByRadar"],
+                "recall": first["recall"],
+                "radarTargets": first["radarTargets"],
+                "unmatchedTargets": first["unmatchedTargets"],
+                # Every miss with its interpolation gap, because that is what explains most of them.
+                "missed": first["missed"],
+                "caveats": first["caveats"],
+            }
     gaps = pipeline_dir / "runs" / "ais_anomaly" / "ais_gap_scale.json"
     if gaps.exists():
         data = json.loads(gaps.read_text())

@@ -151,6 +151,7 @@ def analyse_linear(
     looks: float,
     params: dict[str, Any],
     segmenter: Any | None = None,
+    ship_detector: Any | None = None,
 ) -> dict[str, Any]:
     """Filter, mask and detect over a calibrated multilooked window (linear backscatter)."""
     filtered = lee_filter(linear, int(params["leeWindow"]), looks)
@@ -199,9 +200,25 @@ def analyse_linear(
             spot["modelPeakProbability"] = round(float(inside.max()), 4)
         out_spots.append(spot)
     out_spots.sort(key=lambda s: (s["distanceKm"], -s["areaKm2"]))
+
+    # The same window, read for the opposite thing. Oil damps the return and steel brightens it, so
+    # one pass of the ship detector over the water mask says what traffic was physically there when
+    # the satellite went over — including whatever was not transmitting.
+    vessels: list[dict[str, Any]] | None = None
+    vessels_unavailable: str | None = None
+    if ship_detector is not None:
+        from .vessels import SCENE_THRESHOLD, TooCoarse, as_records, detect_vessels
+        try:
+            ship_probability = ship_detector.mask(db, sea)
+            vessels = as_records(detect_vessels(ship_probability, sea, lat, lon, pixel_km, incident,
+                                                max(ship_detector.info.threshold, SCENE_THRESHOLD)))
+        except TooCoarse as exc:
+            vessels_unavailable = str(exc)
+
     sea_db = db[sea]
     return {
         "db": db, "land": near_land | ~valid, "labels": labels, "spots": out_spots,
+        "vessels": vessels, "vesselsUnavailable": vessels_unavailable,
         "sea": {"meanDb": round(float(sea_db.mean()), 2) if sea_db.size else None,
                 "stdDb": round(float(sea_db.std()), 2) if sea_db.size else None, "pixels": int(sea_db.size)},
     }
@@ -217,6 +234,7 @@ def process_scene(
     factor: int | None = None,
     params: dict[str, Any] | None = None,
     model_path: Path | str | None = None,
+    ship_model_path: Path | str | None = None,
 ) -> dict[str, Any]:
     # 2 km is enough with the Natural Earth coastline; the coarse fallback outlines need about 8 km.
     params = {"leeWindow": 7, "detectorWindow": 51, "kSigma": 1.5, "minContrastDb": 3.0, "minAreaKm2": 0.5,
@@ -235,8 +253,10 @@ def process_scene(
     # detector runs — which is what the record then says it used.
     from ..ml.infer import segmenter as load_segmenter
     detector = load_segmenter(model_path)
+    # Independent of the oil model: a scene can have a ship detector and no oil detector, or neither.
+    ship_detector = load_segmenter(ship_model_path)
     result = analyse_linear(scene.linear, scene.valid, scene.lat, scene.lon, land_source, pixel_km,
-                            incident, scene.looks, params, segmenter=detector)
+                            incident, scene.looks, params, segmenter=detector, ship_detector=ship_detector)
 
     case_dir = out_dir / "sar" / case["id"]
     quicklook = write_quicklook(case_dir / f"{scene_name}.png", result["db"], result["land"], result["labels"])
@@ -267,10 +287,29 @@ def process_scene(
         "sea": result["sea"],
         "quicklook": str(quicklook.relative_to(out_dir)).replace("\\", "/"),
         "spots": result["spots"][:20],
+        # Absent, not empty, when no ship detector ran or the window was too coarse for one: "the
+        # radar found no vessels", "nobody looked" and "this window cannot tell" are three different
+        # claims, and the interface has to be able to say which one it is.
+        "vessels": result["vessels"],
+        "vesselsUnavailable": result["vesselsUnavailable"],
+        "vesselModel": None if ship_detector is None else {
+            "name": ship_detector.name,
+            "threshold": max(ship_detector.info.threshold, _scene_threshold()),
+            "chipThreshold": ship_detector.info.threshold,
+            "thresholdNote": ("The training threshold was chosen on chips cropped around a ship. Scene-wide "
+                              "use raises it, because a scene is mostly water and the chip score barely "
+                              "moves across that range."),
+            "trainedOn": ship_detector.info.trained_on,
+        },
         "limitations": [*LIMITATIONS, f"The quicklook is in {scene.geometry}; use the outlines on the map for location"],
     }
     (case_dir / f"{scene_name}.json").write_text(json.dumps(record, indent=1))
     return record
+
+
+def _scene_threshold() -> float:
+    from .vessels import SCENE_THRESHOLD
+    return SCENE_THRESHOLD
 
 
 def haversine_grid(lat: np.ndarray, lon: np.ndarray, lat0: float, lon0: float) -> np.ndarray:

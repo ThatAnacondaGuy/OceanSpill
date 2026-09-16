@@ -186,7 +186,26 @@ export interface SarMeasurement {
   sea: { meanDb: number | null; stdDb: number | null; pixels: number };
   quicklook: string;
   spots: SarSpot[];
+  /**
+   * Vessels the radar itself saw. Three states, and they mean different things: a list is what the
+   * detector found, `null` with a reason in `vesselsUnavailable` means the window could not resolve
+   * a ship, and `undefined` means no ship detector was run at all.
+   */
+  vessels?: RadarVessel[] | null;
+  vesselsUnavailable?: string | null;
+  vesselModel?: { name: string; threshold: number; trainedOn: string } | null;
   limitations: string[];
+}
+
+/** A bright, compact, ship-sized return. It has a position; it has no identity and no AIS. */
+export interface RadarVessel {
+  position: LatLon;
+  pixels: number;
+  /** Null when the blob is too small for its axes to mean anything. */
+  lengthM: number | null;
+  widthM: number | null;
+  confidence: number;
+  distanceKm: number;
 }
 
 export interface CaseArtifact {

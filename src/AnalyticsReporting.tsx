@@ -151,6 +151,8 @@ export default function AnalyticsReporting() {
     };
   }), [world.cases]);
 
+  const realScene = MODEL_STATUS.measured?.vesselDetectionOnRealScene;
+
   /** Drift skill: forecast from one reported oil observation, compared with a later one. */
   const driftChecks = useMemo<DriftCheck[]>(() => {
     const out: DriftCheck[] = [];
@@ -390,6 +392,35 @@ export default function AnalyticsReporting() {
                     )}
                   </div>
                 ))}
+                {/*
+                  Training chips say how well a detector outlines a ship it has been handed. This
+                  says whether it finds one in eighty kilometres of the Bay of Bengal, which is the
+                  only version of the question an operator ever asks.
+                */}
+                {realScene && (
+                  <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                    <p className="text-[0.6875rem] font-bold text-blue-900 uppercase mb-1">Ship detector on a real scene</p>
+                    <p className="text-[0.75rem] text-blue-950">
+                      <b>{realScene.foundByRadar} of {realScene.aisVesselsInScene}</b> vessels that were transmitting
+                      when the satellite passed had a radar detection within {realScene.matchRadiusKm} km
+                      ({(realScene.recall * 100).toFixed(0)}%).
+                    </p>
+                    <p className="text-[0.6875rem] text-blue-800 mt-1">
+                      {realScene.radarTargets} targets in the scene at {realScene.pixelSpacingM} m pixels,
+                      of which {realScene.unmatchedTargets} had no AIS near them. Those are candidates for a
+                      human to look at, not dark ships: small craft here often never transmit, and the
+                      detector's false-alarm rate over open sea has not been measured.
+                    </p>
+                    {realScene.missed.length > 0 && (
+                      <p className="text-[0.6875rem] text-blue-800 mt-1">
+                        Of the {realScene.missed.length} not found,{' '}
+                        {realScene.missed.filter((m) => m.aisGapMinutes >= 60).length} had an AIS report at least an
+                        hour stale — at twelve knots that alone puts a ship over twenty kilometres from where the
+                        interpolated line says it was.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div>
                   <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">How they are scored</p>
                   <ul className="space-y-0.5">

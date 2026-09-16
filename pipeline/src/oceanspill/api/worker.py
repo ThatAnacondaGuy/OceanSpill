@@ -216,7 +216,8 @@ class Worker:
                                                              "time": scene_row.start.isoformat()}}
         radius_km = max(40.0, _half_span_km(area))
         result = run_detector(path, pseudo_case, scene_row.id, self.land, self.settings.data_dir,
-                              radius_km=radius_km, model_path=self.pipeline.sar_model or None)
+                              radius_km=radius_km, model_path=self.pipeline.sar_model or None,
+                              ship_model_path=self.pipeline.ship_model or None)
 
         made = 0
         for i, spot in enumerate(result.get("spots", [])):

@@ -44,6 +44,14 @@ export interface MeasuredFigures {
       expected_one_sigma: number; expected_two_sigma: number;
     };
   };
+  /** The ship detector run against AIS on a real Indian scene, rather than on training chips. */
+  vesselDetectionOnRealScene?: {
+    case: string; scene: string; sceneTime: string; pixelSpacingM: number; threshold: number;
+    matchRadiusKm: number; aisVesselsInScene: number; foundByRadar: number; recall: number;
+    radarTargets: number; unmatchedTargets: number;
+    missed: { key: string; nearestRadarKm: number; aisGapMinutes: number }[];
+    caveats: string[];
+  };
   aisGaps?: {
     events: number; source: string; window: string;
     hoursPercentiles: Record<string, number>;

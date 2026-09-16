@@ -342,7 +342,12 @@ def main(argv: list[str] | None = None) -> int:
         "falseAlarms": alarms,
         "falseAlarmsNote": None if alarms else "Every validation tile contains the target, so there is nothing to measure false alarms on.",
         "channelRange": index.get("channelRange"),
-        "note": "Pixel values are per-channel decibels scaled to [0, 1]; see channelRange.",
+        # What the training pixels actually were, so inference can reproduce the same domain. A
+        # cache built from calibrated decibels and one built from display JPEGs both arrive here as
+        # bytes in [0, 1], and a model fed the wrong one of the two simply finds nothing.
+        "inputScaling": index.get("inputScaling", "decibel-range"),
+        "note": (index.get("scalingNote")
+                 or "Pixel values are per-channel decibels scaled to [0, 1]; see channelRange."),
     }
     (out / "unet_best.json").write_text(json.dumps(meta, indent=1))
     print(f"best IoU {chosen.iou:.4f} · Dice {chosen.dice:.4f} · precision {chosen.precision:.3f} · recall {chosen.recall:.3f}")

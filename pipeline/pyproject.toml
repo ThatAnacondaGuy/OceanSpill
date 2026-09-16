@@ -22,6 +22,7 @@ oceanspill-prepare-ships = "oceanspill.ml.prepare_ships:main"
 oceanspill-validate-drift = "oceanspill.ml.validate_drift:main"
 oceanspill-model-status = "oceanspill.ml.model_status:main"
 oceanspill-evaluate = "oceanspill.ml.evaluate:main"
+oceanspill-validate-vessels = "oceanspill.ml.validate_vessels:main"
 
 [project.optional-dependencies]
 sar = [

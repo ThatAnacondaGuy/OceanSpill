@@ -43,10 +43,34 @@ class ModelInfo:
     validation: dict[str, Any]
     #: The decibel range each channel was scaled over during training, in channel order.
     channel_ranges: list[tuple[float, float]]
+    #: How the training pixels were produced. See `normalise_for`.
+    scaling: str = "decibel-range"
 
 
 def normalise(db: np.ndarray, low: float = DB_MIN, high: float = DB_MAX) -> np.ndarray:
     """Decibels to [0, 1] over the range the model was trained on."""
+    return np.clip((db - low) / (high - low), 0.0, 1.0).astype(np.float32)
+
+
+def display_stretch(db: np.ndarray, sea: np.ndarray, low_pct: float = 2.0, high_pct: float = 98.0) -> np.ndarray:
+    """A calibrated scene made to look like a display product.
+
+    Some training sets are not calibrated radar at all. SSDD ships are 8-bit JPEG chips: amplitude
+    already contrast-stretched for a human to look at, with no absolute scale behind the numbers. A
+    model trained on those has learnt "bright relative to this chip", not "so many decibels", so
+    handing it sigma-nought over a fixed decibel range shows it a distribution it has never seen and
+    it finds nothing.
+
+    This reproduces what the chips are: percentiles of the water in this scene stretched across the
+    byte range. It is a fair reconstruction of the training domain, not a calibration, and it is why
+    a detection from such a model carries no absolute radar cross-section with it.
+    """
+    water = db[sea]
+    if water.size < 16:
+        return normalise(db)
+    low, high = np.percentile(water, [low_pct, high_pct])
+    if not np.isfinite(low) or not np.isfinite(high) or high - low < 1e-6:
+        return normalise(db)
     return np.clip((db - low) / (high - low), 0.0, 1.0).astype(np.float32)
 
 
@@ -78,7 +102,10 @@ class OnnxSegmenter:
         h, w = db.shape
         # One scaled copy per channel, each over the range that channel was trained on. Getting this
         # wrong shifts every pixel the model sees and quietly ruins the result.
-        planes = [normalise(db, low, high) for low, high in self.info.channel_ranges[: self.info.channels]]
+        if self.info.scaling == "display-stretch":
+            planes = [display_stretch(db, sea)]
+        else:
+            planes = [normalise(db, low, high) for low, high in self.info.channel_ranges[: self.info.channels]]
         while len(planes) < self.info.channels:
             planes.append(planes[-1])
         # The model never sees land or invalid pixels; they go in at the sea median.
@@ -124,6 +151,7 @@ def load_model(path: Path) -> ModelInfo:
         trained_on=str(meta.get("trainedOn", "an unrecorded dataset")),
         validation=meta.get("val", {}),
         channel_ranges=ordered,
+        scaling=str(meta.get("inputScaling", "decibel-range")),
     )
 
 

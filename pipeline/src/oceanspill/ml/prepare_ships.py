@@ -108,6 +108,13 @@ def build(root: Path, split: str, out: Path) -> dict:
     images.flush()
     masks.flush()
     index = {
+        # SSDD chips are display JPEGs, not calibrated radar. Recording that here is what stops a
+        # model trained on them from later being fed sigma-nought decibels and silently finding
+        # nothing at all.
+        "inputScaling": "display-stretch",
+        "scalingNote": ("Trained on 8-bit JPEG chips from SSDD: amplitude already contrast-stretched "
+                        "for display, with no absolute radar scale behind the values. Inference "
+                        "reproduces that domain by stretching the scene's own water percentiles."),
         "tile": CANVAS, "channelCount": 1, "channels": ["sar_amplitude"], "count": written,
         "split": split, "tiles": tiles[:written], "scenes": [t["scene"] for t in tiles[:written]],
         "ships": ships,

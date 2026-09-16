@@ -4,9 +4,17 @@
  "scene": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_6D04",
  "product": "Sentinel-1 GRD",
  "radiometry": "Sigma0 (thermal noise removed)",
- "processedAt": "2026-09-16T10:10:15Z",
+ "processedAt": "2026-09-16T20:12:31Z",
  "polarisation": "VV",
- "method": "Adaptive-threshold dark-spot detection on Lee-filtered calibrated backscatter (classical method, not a trained model)",
+ "method": "U-Net segmentation (unet_best.onnx), trained on Sentinel-1 oil spill, look-alike and clean-sea scenes (dual polarisation, decibels), threshold 0.7; the scene supplies one polarisation and the model expects 2, so the same band is used for each",
+ "model": {
+  "name": "unet-onnx:unet_best",
+  "threshold": 0.7,
+  "trainedOn": "Sentinel-1 oil spill, look-alike and clean-sea scenes (dual polarisation, decibels)",
+  "channelsExpected": 2,
+  "channelsSupplied": 1,
+  "duplicatedChannels": true
+ },
  "landMask": "Natural Earth 1:10m coastline (data/reference/coastline_ne10m.json)",
  "parameters": {
   "leeWindow": 7,
@@ -54,505 +62,380 @@
  "quicklook": "sar/IND-2017-01-ENNORE-COLLISION/S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_6D04.png",
  "spots": [
   {
-   "areaKm2": 0.8,
-   "meanDb": -28.24,
-   "backgroundDb": -21.37,
-   "contrastDb": -6.88,
+   "areaKm2": 1.094,
+   "meanDb": -27.82,
+   "backgroundDb": -26.54,
+   "contrastDb": -1.28,
    "centroid": {
-    "lat": 13.25312,
-    "lon": 80.44049
+    "lat": 13.35268,
+    "lon": 80.43414
    },
-   "distanceKm": 6.59,
-   "elongation": 3.34,
-   "orientationDeg": 16.7,
+   "distanceKm": 11.85,
+   "elongation": 3.66,
+   "orientationDeg": 6.8,
    "outline": [
     {
-     "lat": 13.26164,
-     "lon": 80.44274
+     "lat": 13.36272,
+     "lon": 80.43557
     },
     {
-     "lat": 13.26078,
-     "lon": 80.44332
+     "lat": 13.36099,
+     "lon": 80.43673
     },
     {
-     "lat": 13.25919,
-     "lon": 80.44375
+     "lat": 13.35783,
+     "lon": 80.43758
     },
     {
-     "lat": 13.25026,
-     "lon": 80.44344
+     "lat": 13.34414,
+     "lon": 80.43478
     },
     {
-     "lat": 13.24564,
-     "lon": 80.44024
+     "lat": 13.34226,
+     "lon": 80.43289
     },
     {
-     "lat": 13.2452,
-     "lon": 80.43864
+     "lat": 13.3424,
+     "lon": 80.43216
     },
     {
-     "lat": 13.24535,
-     "lon": 80.43792
+     "lat": 13.34326,
+     "lon": 80.43159
     },
     {
-     "lat": 13.24635,
-     "lon": 80.43662
+     "lat": 13.34485,
+     "lon": 80.43116
     },
     {
-     "lat": 13.25226,
-     "lon": 80.43707
+     "lat": 13.34787,
+     "lon": 80.43102
     },
     {
-     "lat": 13.25846,
-     "lon": 80.43984
+     "lat": 13.35838,
+     "lon": 80.43092
     },
     {
-     "lat": 13.26048,
-     "lon": 80.441
+     "lat": 13.35982,
+     "lon": 80.43121
     },
     {
-     "lat": 13.26178,
-     "lon": 80.44202
+     "lat": 13.36286,
+     "lon": 80.43485
     }
-   ]
+   ],
+   "modelOilProbability": 0.7156,
+   "modelPeakProbability": 0.7402
   },
   {
-   "areaKm2": 0.736,
-   "meanDb": -27.02,
-   "backgroundDb": -22.01,
-   "contrastDb": -5.01,
+   "areaKm2": 10.47,
+   "meanDb": -28.01,
+   "backgroundDb": -24.93,
+   "contrastDb": -3.07,
    "centroid": {
-    "lat": 13.27298,
-    "lon": 80.45005
+    "lat": 13.18188,
+    "lon": 80.48801
    },
-   "distanceKm": 7.72,
-   "elongation": 4.4,
-   "orientationDeg": 27.4,
+   "distanceKm": 14.57,
+   "elongation": 3.64,
+   "orientationDeg": 21.8,
    "outline": [
     {
-     "lat": 13.28011,
-     "lon": 80.45554
+     "lat": 13.21168,
+     "lon": 80.50632
     },
     {
-     "lat": 13.27853,
-     "lon": 80.45597
+     "lat": 13.21068,
+     "lon": 80.50762
     },
     {
-     "lat": 13.27305,
-     "lon": 80.45335
+     "lat": 13.2091,
+     "lon": 80.50805
     },
     {
-     "lat": 13.26511,
-     "lon": 80.44797
+     "lat": 13.17694,
+     "lon": 80.49623
     },
     {
-     "lat": 13.26381,
-     "lon": 80.44695
+     "lat": 13.17146,
+     "lon": 80.4936
     },
     {
-     "lat": 13.26193,
-     "lon": 80.44506
+     "lat": 13.15443,
+     "lon": 80.48486
     },
     {
-     "lat": 13.26208,
-     "lon": 80.44434
+     "lat": 13.15096,
+     "lon": 80.47964
     },
     {
-     "lat": 13.26568,
-     "lon": 80.44507
+     "lat": 13.15584,
+     "lon": 80.47386
     },
     {
-     "lat": 13.27923,
-     "lon": 80.44858
+     "lat": 13.15757,
+     "lon": 80.47271
     },
     {
-     "lat": 13.28068,
-     "lon": 80.45264
+     "lat": 13.16448,
+     "lon": 80.47186
+    },
+    {
+     "lat": 13.16823,
+     "lon": 80.47187
+    },
+    {
+     "lat": 13.16895,
+     "lon": 80.47202
+    },
+    {
+     "lat": 13.18856,
+     "lon": 80.47903
+    },
+    {
+     "lat": 13.19274,
+     "lon": 80.48063
+    },
+    {
+     "lat": 13.19924,
+     "lon": 80.48572
+    },
+    {
+     "lat": 13.20112,
+     "lon": 80.48761
+    },
+    {
+     "lat": 13.21022,
+     "lon": 80.4985
+    },
+    {
+     "lat": 13.21138,
+     "lon": 80.50024
+    },
+    {
+     "lat": 13.21197,
+     "lon": 80.50488
     }
-   ]
+   ],
+   "modelOilProbability": 0.7491,
+   "modelPeakProbability": 0.8202
   },
   {
-   "areaKm2": 0.806,
-   "meanDb": -25.86,
-   "backgroundDb": -21.27,
-   "contrastDb": -4.58,
+   "areaKm2": 7.533,
+   "meanDb": -28.59,
+   "backgroundDb": -26.66,
+   "contrastDb": -1.94,
    "centroid": {
-    "lat": 13.13915,
-    "lon": 80.37284
+    "lat": 13.45714,
+    "lon": 80.41065
    },
-   "distanceKm": 13.46,
-   "elongation": 4.19,
-   "orientationDeg": 24.8,
+   "distanceKm": 22.17,
+   "elongation": 2.34,
+   "orientationDeg": 169.3,
    "outline": [
     {
-     "lat": 13.14995,
-     "lon": 80.37786
+     "lat": 13.47726,
+     "lon": 80.41308
     },
     {
-     "lat": 13.14679,
-     "lon": 80.37872
+     "lat": 13.47612,
+     "lon": 80.41511
     },
     {
-     "lat": 13.14448,
-     "lon": 80.379
+     "lat": 13.47253,
+     "lon": 80.41814
     },
     {
-     "lat": 13.14376,
-     "lon": 80.37885
+     "lat": 13.44691,
+     "lon": 80.42269
     },
     {
-     "lat": 13.13222,
-     "lon": 80.37274
+     "lat": 13.44259,
+     "lon": 80.42181
     },
     {
-     "lat": 13.1302,
-     "lon": 80.37158
+     "lat": 13.43927,
+     "lon": 80.41962
     },
     {
-     "lat": 13.1299,
-     "lon": 80.36926
+     "lat": 13.43811,
+     "lon": 80.41788
     },
     {
-     "lat": 13.13004,
-     "lon": 80.36854
+     "lat": 13.43622,
+     "lon": 80.41221
     },
     {
-     "lat": 13.13249,
-     "lon": 80.36753
+     "lat": 13.4365,
+     "lon": 80.41077
     },
     {
-     "lat": 13.13321,
-     "lon": 80.36768
+     "lat": 13.44024,
+     "lon": 80.40701
     },
     {
-     "lat": 13.14316,
-     "lon": 80.37045
+     "lat": 13.45058,
+     "lon": 80.40009
     },
     {
-     "lat": 13.15009,
-     "lon": 80.37713
+     "lat": 13.45216,
+     "lon": 80.39966
+    },
+    {
+     "lat": 13.47821,
+     "lon": 80.3967
+    },
+    {
+     "lat": 13.47879,
+     "lon": 80.39757
+    },
+    {
+     "lat": 13.47923,
+     "lon": 80.39917
+    },
+    {
+     "lat": 13.47754,
+     "lon": 80.41164
     }
-   ]
+   ],
+   "modelOilProbability": 0.7532,
+   "modelPeakProbability": 0.8456
   },
   {
-   "areaKm2": 0.723,
-   "meanDb": -27.26,
-   "backgroundDb": -20.95,
-   "contrastDb": -6.31,
+   "areaKm2": 5.517,
+   "meanDb": -28.05,
+   "backgroundDb": -24.32,
+   "contrastDb": -3.73,
    "centroid": {
-    "lat": 13.39454,
-    "lon": 80.41295
+    "lat": 13.42769,
+    "lon": 80.50451
    },
-   "distanceKm": 15.38,
-   "elongation": 5.52,
-   "orientationDeg": 121.1,
+   "distanceKm": 23.0,
+   "elongation": 2.42,
+   "orientationDeg": 164.6,
    "outline": [
     {
-     "lat": 13.40034,
-     "lon": 80.40411
+     "lat": 13.4476,
+     "lon": 80.50346
     },
     {
-     "lat": 13.39849,
-     "lon": 80.40976
+     "lat": 13.43983,
+     "lon": 80.50865
     },
     {
-     "lat": 13.39348,
-     "lon": 80.42003
+     "lat": 13.42228,
+     "lon": 80.51409
     },
     {
-     "lat": 13.38945,
-     "lon": 80.42147
+     "lat": 13.41911,
+     "lon": 80.51494
     },
     {
-     "lat": 13.38715,
-     "lon": 80.42175
+     "lat": 13.41335,
+     "lon": 80.51376
     },
     {
-     "lat": 13.38643,
-     "lon": 80.4216
+     "lat": 13.41205,
+     "lon": 80.51274
     },
     {
-     "lat": 13.3966,
-     "lon": 80.4041
+     "lat": 13.40916,
+     "lon": 80.50838
     },
     {
-     "lat": 13.40005,
-     "lon": 80.40179
+     "lat": 13.41476,
+     "lon": 80.50275
     },
     {
-     "lat": 13.40077,
-     "lon": 80.40194
+     "lat": 13.41749,
+     "lon": 80.50029
+    },
+    {
+     "lat": 13.42266,
+     "lon": 80.49683
+    },
+    {
+     "lat": 13.42511,
+     "lon": 80.49583
+    },
+    {
+     "lat": 13.42899,
+     "lon": 80.49512
+    },
+    {
+     "lat": 13.4313,
+     "lon": 80.49484
+    },
+    {
+     "lat": 13.4421,
+     "lon": 80.49706
+    },
+    {
+     "lat": 13.44412,
+     "lon": 80.49822
     }
-   ]
+   ],
+   "modelOilProbability": 0.7626,
+   "modelPeakProbability": 0.8302
   },
   {
-   "areaKm2": 0.538,
-   "meanDb": -26.29,
-   "backgroundDb": -21.08,
-   "contrastDb": -5.2,
+   "areaKm2": 0.96,
+   "meanDb": -29.24,
+   "backgroundDb": -29.23,
+   "contrastDb": -0.0,
    "centroid": {
-    "lat": 13.40322,
-    "lon": 80.39356
+    "lat": 13.48149,
+    "lon": 80.37771
    },
-   "distanceKm": 15.99,
-   "elongation": 3.31,
-   "orientationDeg": 148.8,
+   "distanceKm": 24.63,
+   "elongation": 11.87,
+   "orientationDeg": 101.7,
    "outline": [
     {
-     "lat": 13.41196,
-     "lon": 80.39067
+     "lat": 13.47978,
+     "lon": 80.3925
     },
     {
-     "lat": 13.40033,
-     "lon": 80.40034
+     "lat": 13.47864,
+     "lon": 80.39453
     },
     {
-     "lat": 13.39643,
-     "lon": 80.39728
+     "lat": 13.47734,
+     "lon": 80.39351
     },
     {
-     "lat": 13.39786,
-     "lon": 80.39381
+     "lat": 13.47676,
+     "lon": 80.39264
     },
     {
-     "lat": 13.40375,
-     "lon": 80.3905
+     "lat": 13.48044,
+     "lon": 80.3738
     },
     {
-     "lat": 13.40692,
-     "lon": 80.38964
+     "lat": 13.48357,
+     "lon": 80.36163
     },
     {
-     "lat": 13.40994,
-     "lon": 80.3895
+     "lat": 13.48443,
+     "lon": 80.36105
     },
     {
-     "lat": 13.4121,
-     "lon": 80.38995
+     "lat": 13.48573,
+     "lon": 80.36207
     }
-   ]
-  },
-  {
-   "areaKm2": 0.672,
-   "meanDb": -26.66,
-   "backgroundDb": -21.79,
-   "contrastDb": -4.87,
-   "centroid": {
-    "lat": 13.27142,
-    "lon": 80.56471
-   },
-   "distanceKm": 20.03,
-   "elongation": 1.5,
-   "orientationDeg": 15.8,
-   "outline": [
-    {
-     "lat": 13.27653,
-     "lon": 80.56926
-    },
-    {
-     "lat": 13.27553,
-     "lon": 80.57056
-    },
-    {
-     "lat": 13.26659,
-     "lon": 80.56647
-    },
-    {
-     "lat": 13.26601,
-     "lon": 80.5656
-    },
-    {
-     "lat": 13.26557,
-     "lon": 80.564
-    },
-    {
-     "lat": 13.26701,
-     "lon": 80.56053
-    },
-    {
-     "lat": 13.27233,
-     "lon": 80.56012
-    },
-    {
-     "lat": 13.27306,
-     "lon": 80.56027
-    },
-    {
-     "lat": 13.27435,
-     "lon": 80.56129
-    },
-    {
-     "lat": 13.27623,
-     "lon": 80.56318
-    },
-    {
-     "lat": 13.27739,
-     "lon": 80.56492
-    }
-   ]
-  },
-  {
-   "areaKm2": 0.499,
-   "meanDb": -27.27,
-   "backgroundDb": -22.94,
-   "contrastDb": -4.33,
-   "centroid": {
-    "lat": 13.07652,
-    "lon": 80.44554
-   },
-   "distanceKm": 21.6,
-   "elongation": 2.19,
-   "orientationDeg": 164.0,
-   "outline": [
-    {
-     "lat": 13.08359,
-     "lon": 80.44482
-    },
-    {
-     "lat": 13.07841,
-     "lon": 80.44828
-    },
-    {
-     "lat": 13.07381,
-     "lon": 80.44884
-    },
-    {
-     "lat": 13.07309,
-     "lon": 80.44869
-    },
-    {
-     "lat": 13.07107,
-     "lon": 80.44752
-    },
-    {
-     "lat": 13.07135,
-     "lon": 80.44608
-    },
-    {
-     "lat": 13.07509,
-     "lon": 80.44233
-    },
-    {
-     "lat": 13.07667,
-     "lon": 80.4419
-    },
-    {
-     "lat": 13.08315,
-     "lon": 80.44323
-    }
-   ]
-  },
-  {
-   "areaKm2": 0.518,
-   "meanDb": -23.56,
-   "backgroundDb": -20.25,
-   "contrastDb": -3.31,
-   "centroid": {
-    "lat": 13.25045,
-    "lon": 80.65573
-   },
-   "distanceKm": 29.86,
-   "elongation": 2.2,
-   "orientationDeg": 5.7,
-   "outline": [
-    {
-     "lat": 13.25514,
-     "lon": 80.659
-    },
-    {
-     "lat": 13.2514,
-     "lon": 80.65898
-    },
-    {
-     "lat": 13.24779,
-     "lon": 80.65824
-    },
-    {
-     "lat": 13.24577,
-     "lon": 80.65707
-    },
-    {
-     "lat": 13.2439,
-     "lon": 80.65517
-    },
-    {
-     "lat": 13.24404,
-     "lon": 80.65445
-    },
-    {
-     "lat": 13.24735,
-     "lon": 80.65287
-    },
-    {
-     "lat": 13.25253,
-     "lon": 80.65319
-    },
-    {
-     "lat": 13.2547,
-     "lon": 80.65363
-    },
-    {
-     "lat": 13.25571,
-     "lon": 80.6561
-    }
-   ]
-  },
-  {
-   "areaKm2": 0.525,
-   "meanDb": -23.89,
-   "backgroundDb": -19.94,
-   "contrastDb": -3.95,
-   "centroid": {
-    "lat": 13.2613,
-    "lon": 80.6635
-   },
-   "distanceKm": 30.68,
-   "elongation": 1.39,
-   "orientationDeg": 146.9,
-   "outline": [
-    {
-     "lat": 13.26538,
-     "lon": 80.66412
-    },
-    {
-     "lat": 13.26251,
-     "lon": 80.66729
-    },
-    {
-     "lat": 13.26164,
-     "lon": 80.66787
-    },
-    {
-     "lat": 13.25616,
-     "lon": 80.66523
-    },
-    {
-     "lat": 13.2563,
-     "lon": 80.66451
-    },
-    {
-     "lat": 13.25731,
-     "lon": 80.66321
-    },
-    {
-     "lat": 13.26091,
-     "lon": 80.66018
-    },
-    {
-     "lat": 13.26263,
-     "lon": 80.65903
-    },
-    {
-     "lat": 13.26335,
-     "lon": 80.65918
-    },
-    {
-     "lat": 13.26509,
-     "lon": 80.6618
-    }
-   ]
+   ],
+   "modelOilProbability": 0.7092,
+   "modelPeakProbability": 0.7273
   }
  ],
+ "vessels": null,
+ "vesselsUnavailable": "vessel detection needs pixels of 30 m or finer; this window is 80 m, where a 200 m ship is under 2.5 pixels across",
+ "vesselModel": {
+  "name": "unet-onnx:unet_best",
+  "threshold": 0.7,
+  "chipThreshold": 0.3,
+  "thresholdNote": "The training threshold was chosen on chips cropped around a ship. Scene-wide use raises it, because a scene is mostly water and the chip score barely moves across that range.",
+  "trainedOn": "SAR Ship Detection Dataset (SSDD), ship outlines rasterised from the annotations"
+ },
  "limitations": [
   "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
   "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",

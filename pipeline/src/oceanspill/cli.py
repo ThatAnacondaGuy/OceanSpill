@@ -155,13 +155,17 @@ def cmd_process(settings: Settings, args: argparse.Namespace) -> int:
         name = path.name.removesuffix(".zip").removesuffix(".SAFE")
         try:
             record = process_scene(path, case, name, land_source, settings.output_dir, radius_km=args.radius_km,
-                                   factor=args.factor, model_path=args.model or settings.sar_model or None)
+                                   factor=args.factor, model_path=args.model or settings.sar_model or None,
+                                   ship_model_path=args.ship_model or settings.ship_model or None)
         except Exception as exc:  # one bad scene must not stop the rest
             print(f"FAILED {name}: {exc}", file=sys.stderr)
             continue
         top = record["spots"][0] if record["spots"] else None
+        vessels, no_vessels = record.get("vessels"), record.get("vesselsUnavailable")
         print(f"processed {name}: {len(record['spots'])} dark spot(s)"
-              + (f"; nearest {top['distanceKm']} km, {top['areaKm2']} km2, contrast {top['contrastDb']} dB" if top else ""))
+              + (f"; nearest {top['distanceKm']} km, {top['areaKm2']} km2, contrast {top['contrastDb']} dB" if top else "")
+              + (f"; {len(vessels)} vessel(s) in the radar" if vessels is not None
+                 else f"; no vessel detection: {no_vessels}" if no_vessels else ""))
         done += 1
     artifact_path = settings.output_dir / "cases" / f"{args.case}.json"
     if done and artifact_path.exists():
@@ -223,6 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--radius-km", type=float, default=40.0, help="analysis radius around the incident")
     pr.add_argument("--factor", type=int, help="multilook factor (default: 8 for Sentinel-1 GRDH, 4 for EOS-04 MRS, about 75 m pixels)")
     pr.add_argument("--model", help="a trained segmentation model in ONNX form; without it the classical detector runs")
+    pr.add_argument("--ship-model", help="a trained ship detector in ONNX form; without it no vessel detection is attempted")
 
     args = parser.parse_args(argv)
     settings = Settings.load(Path(args.env) if args.env else None)

@@ -1,6 +1,6 @@
 {
  "_comment": "Written by oceanspill-model-status from the training runs. Do not edit by hand.",
- "generatedAt": "2026-09-16T19:59:16+00:00",
+ "generatedAt": "2026-09-16T20:10:35+00:00",
  "models": {
   "sarSegmentation": {
    "task": "Finds oil pixels in dual-polarisation Sentinel-1 radar scenes",
@@ -95,20 +95,20 @@
    "datasetUrl": "https://zenodo.org/records/10664073",
    "trained": true,
    "version": "opticalSegmentation-20260916",
-   "trainedAt": "2026-09-16T08:03:38+00:00",
-   "threshold": 0.7,
+   "trainedAt": "2026-09-16T20:07:19+00:00",
+   "threshold": 0.5,
    "tiles": {
     "train": 1433,
     "val": 642
    },
    "scores": {
-    "iou": 0.1073,
-    "dice": 0.1939,
-    "precision": 0.2226,
-    "recall": 0.1717
+    "iou": 0.2032,
+    "dice": 0.3378,
+    "precision": 0.2976,
+    "recall": 0.3905
    },
-   "falseAlarmRate": 0.1044,
-   "falseAlarmBasis": "59 of 565 tiles with no target in them produced a detection of at least 50 pixels",
+   "falseAlarmRate": 0.0336,
+   "falseAlarmBasis": "19 of 565 tiles with no target in them produced a detection of at least 50 pixels",
    "modelFile": "runs/mados_optical/unet_best.onnx"
   },
   "shipDetection": {
@@ -119,7 +119,7 @@
    "datasetUrl": "https://github.com/TianwenZhang0825/Official-SSDD",
    "trained": true,
    "version": "shipDetection-20260916",
-   "trainedAt": "2026-09-16T08:42:42+00:00",
+   "trainedAt": "2026-09-16T20:03:18+00:00",
    "threshold": 0.3,
    "tiles": {
     "train": 928,
@@ -222,6 +222,68 @@
     "expected_one_sigma": 0.68,
     "expected_two_sigma": 0.95
    }
+  },
+  "vesselDetectionOnRealScene": {
+   "case": "IND-2017-01-ENNORE-COLLISION",
+   "scene": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_6D04",
+   "sceneTime": "2017-01-29T00:31:32+00:00",
+   "pixelSpacingM": 20.0,
+   "threshold": 0.7,
+   "matchRadiusKm": 2.0,
+   "aisVesselsInScene": 23,
+   "foundByRadar": 16,
+   "recall": 0.696,
+   "radarTargets": 200,
+   "unmatchedTargets": 176,
+   "missed": [
+    {
+     "key": "MMSI-419000988",
+     "provenance": "real",
+     "nearestRadarKm": 2.9,
+     "aisGapMinutes": 1260.0
+    },
+    {
+     "key": "REF-BW-MAPLE",
+     "provenance": "synthetic-anchored",
+     "nearestRadarKm": 2.61,
+     "aisGapMinutes": 10.0
+    },
+    {
+     "key": "MMSI-419009300",
+     "provenance": "real",
+     "nearestRadarKm": 3.2,
+     "aisGapMinutes": 60.0
+    },
+    {
+     "key": "MMSI-419000842",
+     "provenance": "real",
+     "nearestRadarKm": 13.45,
+     "aisGapMinutes": 60.0
+    },
+    {
+     "key": "MMSI-419000806",
+     "provenance": "real",
+     "nearestRadarKm": 3.73,
+     "aisGapMinutes": 60.0
+    },
+    {
+     "key": "MMSI-371559000",
+     "provenance": "real",
+     "nearestRadarKm": 3.73,
+     "aisGapMinutes": 60.0
+    },
+    {
+     "key": "MMSI-565567000",
+     "provenance": "real",
+     "nearestRadarKm": 3.85,
+     "aisGapMinutes": 60.0
+    }
+   ],
+   "caveats": [
+    "AIS positions between pings are interpolated, so a stale report puts a vessel where it is not and counts as a miss against the detector.",
+    "Unmatched radar targets are not dark ships. Small craft that never transmit are ordinary here, and the detector's false-alarm rate over open sea has not been measured.",
+    "One scene over one stretch of coast. This is evidence the detector works on real data, not a performance figure for the system."
+   ]
   },
   "aisGaps": {
    "events": 55368,
