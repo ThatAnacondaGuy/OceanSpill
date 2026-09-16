@@ -105,6 +105,18 @@ windows. It scored a perfect AUC, which was the giveaway: the two sides came fro
 so it separated the datasets rather than the behaviour. Without a comparable sample of ordinary gaps
 from the same feed there is no base rate, and the scale says so.
 
+## How current the AIS is
+
+"Live AIS" from Global Fishing Watch is not live. Asked for the last two days over the Kerala
+corridor, the feed returns nothing; asked for thirty, it returns 144,205 positions from 7,213
+vessels, the newest of them three days old. 143,607 of those positions carry an MMSI and the rest
+carry only the feed's own vessel identifier, which is why both are stored and neither is inferred
+from the other.
+
+Three days is fine for reconstructing who was near a spill last week, and useless for catching a
+discharge in progress. National AIS through DGLL would close that gap and is not connected. The
+endpoint reports the age of its newest position so no page can quietly present this as real time.
+
 ## Attribution ranking
 
 Still a weighted score, not a learned model, and deliberately so: six cases have an officially named
