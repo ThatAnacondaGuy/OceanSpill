@@ -124,8 +124,14 @@ def build(root: Path, masks: Path | None, out: Path, tiles_per_clean: int, seed:
         scene = quantise(tifffile.imread(scenes[key]))
         mask = tifffile.imread(mask_files[scene_id]) if label == "oil" and scene_id in mask_files else None
         for index, plan in items:
-            images[index] = scene[plan.row : plan.row + TILE, plan.col : plan.col + TILE]
-            masks_out[index] = 0 if mask is None else (mask[plan.row : plan.row + TILE, plan.col : plan.col + TILE] > 0).astype(np.uint8)
+            # A few scenes are a pixel or two short of 2048, so an edge tile comes back small. It is
+            # written into the corner of an empty tile rather than dropped, which keeps the planned
+            # index and the written tile in step.
+            patch = scene[plan.row : plan.row + TILE, plan.col : plan.col + TILE]
+            images[index, : patch.shape[0], : patch.shape[1]] = patch
+            if mask is not None:
+                window = (mask[plan.row : plan.row + TILE, plan.col : plan.col + TILE] > 0).astype(np.uint8)
+                masks_out[index, : window.shape[0], : window.shape[1]] = window
         done += 1
         if done % 100 == 0:
             print(f"  {done}/{len(by_scene)} scenes written")
