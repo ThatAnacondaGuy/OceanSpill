@@ -203,6 +203,18 @@ export function markerIcon(kind: string, color: string, r: number, shape: Vessel
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.stroke();
+  } else if (kind === 'detection') {
+    // A hollow diamond, deliberately unlike the filled circle a confirmed case gets. Nobody has
+    // decided anything about this yet, and the marker should not look like they have.
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r - 1);
+    ctx.lineTo(cx + r + 1, cy);
+    ctx.lineTo(cx, cy + r + 1);
+    ctx.lineTo(cx - r - 1, cy);
+    ctx.closePath();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 2;
+    ctx.stroke();
   } else {
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);

@@ -19,7 +19,7 @@ export type BasemapStyle = 'map' | 'satellite' | 'dark' | 'bathymetry';
 export interface MapMarker {
   id: string;
   position: LatLon;
-  kind: 'case' | 'vessel' | 'port' | 'origin' | 'sighting' | 'asset' | 'platform';
+  kind: 'case' | 'vessel' | 'port' | 'origin' | 'sighting' | 'asset' | 'platform' | 'detection';
   /** The vessel's type from the registry, which decides which silhouette is drawn. */
   vesselType?: string | null;
   color?: string;

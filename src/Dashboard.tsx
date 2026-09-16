@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Satellite, FileText, Anchor, Activity, ClipboardList, ArrowRight, Search, BarChart2, Settings, Layers, Scale, History, AlertTriangle,
 } from 'lucide-react';
@@ -9,12 +9,25 @@ import { Panel, StatCard, Tier, StatusBadge, Badge, Toggle, InfoBanner, Provenan
 import { analysePolygon } from './lib/geo';
 import { ECOLOGICAL_AREAS, CORRIDORS, PORTS } from './data/geography';
 import { sampleField } from './engine/ocean';
+import { fetchMonitoring, serverMode, type Detection } from './data/server';
 
 export default function Dashboard() {
   const { world, now, navigate, getAnalysis, revision } = useStore();
   const [basemap, setBasemap] = useState<BasemapStyle>('map');
-  const [layers, setLayers] = useState({ cases: true, historical: true, eez: true, esa: false, corridors: false, ports: false, currents: false });
+  const [layers, setLayers] = useState({ cases: true, historical: true, eez: true, esa: false, corridors: false, ports: false, currents: false, detections: true });
   const [layersOpen, setLayersOpen] = useState(false);
+  const [detections, setDetections] = useState<Detection[]>([]);
+
+  // What the scene watcher has found and nobody has judged yet. Only the server watches, so in
+  // static mode this stays empty and the layer toggle simply has nothing to show.
+  useEffect(() => {
+    if (!serverMode) return;
+    let live = true;
+    const load = () => { void fetchMonitoring().then((s) => { if (live) setDetections(s.newDetections); }).catch(() => {}); };
+    load();
+    const timer = window.setInterval(load, 60_000);
+    return () => { live = false; window.clearInterval(timer); };
+  }, []);
 
   const stats = useMemo(() => {
     const scenes = world.passes.length;
@@ -63,8 +76,25 @@ export default function Dashboard() {
         out.push({ id: `port-${p.name}`, position: p, kind: 'port', color: p.oilTerminal ? '#7c3aed' : '#64748b', size: p.tier === 1 ? 4.5 : 3.5, label: p.name, sublabel: p.state, z: 2 });
       }
     }
+    // Dark patches the watcher found and nobody has looked at yet. They sit above the recorded cases
+    // because they are the only thing on this map that needs a decision today, and they are drawn in
+    // a colour of their own: a detection is a candidate, not a spill.
+    if (layers.detections) {
+      for (const d of detections) {
+        out.push({
+          id: `det-${d.id}`, position: d.position, kind: 'detection', color: '#7c3aed', size: 6,
+          label: `${d.areaKm2.toFixed(1)} km² dark patch`, sublabel: 'awaiting review', pulse: true, z: 4,
+          meta: {
+            Seen: fmt.utcShort(d.acquiredAt),
+            Scene: d.sceneId,
+            Method: d.method,
+            Age: fmt.hoursOrDays((now - d.acquiredAt) / 3600_000),
+          },
+        });
+      }
+    }
     return out;
-  }, [world, layers]);
+  }, [world, layers, detections, now]);
 
   const polygons = useMemo<MapPolygon[]>(() => {
     const out: MapPolygon[] = [];
@@ -109,7 +139,11 @@ export default function Dashboard() {
           markers={markers} polygons={polygons} paths={paths} vectors={vectors}
           vectorLabel={layers.currents ? 'Modelled current climatology (not observed data)' : undefined}
           showEez={layers.eez}
-          onMarkerClick={(m) => { if (m.kind === 'case') navigate({ tab: 'Investigation', caseId: m.id }); }}
+          onMarkerClick={(m) => {
+            if (m.kind === 'case') navigate({ tab: 'Investigation', caseId: m.id });
+            // A detection needs a decision, and the queue is where that is made.
+            else if (m.kind === 'detection') navigate({ tab: 'Live Operations' });
+          }}
           overlay={
             <div className="absolute top-3 left-3 z-20 flex gap-2 items-start">
               <BasemapSwitch value={basemap} onChange={setBasemap} />
@@ -121,6 +155,10 @@ export default function Dashboard() {
                 {layersOpen && (
                   <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-56 z-30">
                     <Toggle checked={layers.cases} onChange={(v) => setLayers({ ...layers, cases: v })} label="Recorded cases" count={world.cases.length} />
+                    {serverMode && (
+                      <Toggle checked={layers.detections} onChange={(v) => setLayers({ ...layers, detections: v })}
+                        label="Awaiting review" count={detections.length} />
+                    )}
                     <Toggle checked={layers.historical} onChange={(v) => setLayers({ ...layers, historical: v })} label="Historical register" count={world.historical.filter((h) => !h.activeCaseId && h.lat != null).length} />
                     <Toggle checked={layers.eez} onChange={(v) => setLayers({ ...layers, eez: v })} label="Indian EEZ (approx.)" />
                     <Toggle checked={layers.esa} onChange={(v) => setLayers({ ...layers, esa: v })} label="Sensitive areas" count={ECOLOGICAL_AREAS.length} />
