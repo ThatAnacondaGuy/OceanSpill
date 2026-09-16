@@ -121,3 +121,56 @@ def test_an_unknown_job_kind_fails_cleanly(worker: Worker):
         worker.run_once(db)
         job = db.query(Job).one()
     assert job.status == "failed" and "polish-the-brass" in job.error
+
+
+def test_a_detection_becomes_a_case_definition(worker: Worker, tmp_path, monkeypatch):
+    """The case a detection turns into has to say what is known and what is not.
+
+    The satellite time is when the slick was seen, not when it started; recording it as the
+    incident time with full precision would let the hindcast skip the very question it exists to
+    answer.
+    """
+    import json
+    from datetime import datetime, timezone
+
+    from oceanspill.api.models import Detection
+
+    written = {}
+
+    def fake_build(settings, case_ids=None, offline=False):
+        written["case_ids"] = case_ids
+        return {"index": {}, "failures": []}
+
+    cases_dir = tmp_path / "cases"
+    monkeypatch.setattr("oceanspill.build.build", fake_build)
+    monkeypatch.setattr("oceanspill.config.CASES_DIR", cases_dir)
+
+    with worker.db.sessions() as db:
+        db.add(Detection(id="DET-XYZ-007", scene_id="S1A-SCENE", aoi_id="AOI-TEST",
+                         acquired_at=datetime(2026, 6, 1, 4, 30, tzinfo=timezone.utc),
+                         outline=[{"lat": 9.2, "lon": 76.2}], lat=9.2, lon=76.2, area_km2=2.5,
+                         method="classical"))
+        db.commit()
+        detail = worker.build_case(db, {"detectionId": "DET-XYZ-007"})
+        promoted = db.get(Detection, "DET-XYZ-007")
+
+    assert "DET-XYZ-007" in detail
+    assert promoted.status == "promoted" and promoted.case_id
+    case = json.loads((cases_dir / f"{promoted.case_id}.json").read_text())
+    assert case["officiallyConfirmed"] is False
+    assert case["sourceType"] == "unknown"
+    assert case["incident"]["timePrecision"] == "unknown"
+    assert case["observations"][0]["extentKm2"] == 2.5
+    assert case["oil"]["spilledTonnes"] is None
+    # The forcing box surrounds the detection rather than sitting somewhere arbitrary.
+    box = case["analysis"]["forcingBox"]
+    assert box["west"] < 76.2 < box["east"] and box["south"] < 9.2 < box["north"]
+
+
+def test_a_missing_detection_fails_the_job_rather_than_inventing_a_case(worker: Worker):
+    with worker.db.sessions() as db:
+        try:
+            worker.build_case(db, {"detectionId": "nothing-here"})
+            raise AssertionError("should have refused")
+        except ValueError as exc:
+            assert "nothing-here" in str(exc)

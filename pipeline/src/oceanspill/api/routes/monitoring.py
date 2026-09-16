@@ -17,7 +17,7 @@ from ..models import AisPosition, AreaOfInterest, Detection, ForecastRun, Job, S
 
 router = APIRouter(prefix="/api", tags=["monitoring"])
 
-JOB_KINDS = Literal["scan-aoi", "process-scene", "refresh-ais", "refresh-forecast"]
+JOB_KINDS = Literal["scan-aoi", "process-scene", "refresh-ais", "refresh-forecast", "build-case"]
 
 
 class JobBody(BaseModel):
@@ -63,6 +63,48 @@ def review_detection(detection_id: str, body: ReviewBody, user: User = Depends(r
     record(db, user, f"Detection {verb}", detection_id, body.notes or f"{d.area_km2:.1f} km² near {d.lat:.3f}, {d.lon:.3f}", "Detection")
     db.commit()
     return serialize.detection(d)
+
+
+class PromoteBody(BaseModel):
+    note: str | None = Field(default=None, max_length=2000)
+
+
+@router.post("/detections/{detection_id}/promote")
+def promote_detection(detection_id: str, body: PromoteBody, user: User = Depends(require("investigation", "full")),
+                      db: Session = Depends(session)):
+    """Open a case from a detection, and queue the work that fills it in.
+
+    Confirming a detection used to be the end of the line: it was marked confirmed and nothing
+    followed. This is the step that turns it into something the rest of the system can act on —
+    the forcing, the coastline, the traffic around it and a workflow to move through.
+    """
+    detection = db.get(Detection, detection_id)
+    if detection is None:
+        raise HTTPException(404, "Detection not found")
+    if detection.case_id:
+        raise HTTPException(409, f"Already opened as {detection.case_id}")
+    # The case identifier only exists once the worker has built it, so a second click moments later
+    # would otherwise queue the work twice.
+    already = db.scalar(
+        select(Job).where(Job.kind == "build-case", Job.status.in_(("queued", "running")))
+        .order_by(Job.created_at.desc())
+    )
+    if already is not None and (already.params or {}).get("detectionId") == detection_id:
+        raise HTTPException(409, "A case is already being opened from this detection")
+    if detection.status == "dismissed":
+        raise HTTPException(422, "This detection was dismissed as a look-alike")
+
+    detection.status = "confirmed"
+    detection.reviewed_by, detection.reviewed_at = user.id, datetime.now(timezone.utc)
+    if body.note:
+        detection.notes = body.note
+    job = Job(kind="build-case", params={"detectionId": detection_id}, requested_by=user.id)
+    db.add(job)
+    record(db, user, "Detection promoted to a case", detection_id,
+           body.note or f"{detection.area_km2:.2f} km² at {detection.lat:.3f}, {detection.lon:.3f}", "Detection")
+    notify(db, "Case being opened", f"From detection {detection_id}", "info", detection_id, "incidents")
+    db.commit()
+    return {"detection": serialize.detection(detection), "job": serialize.job(job)}
 
 
 @router.get("/jobs")

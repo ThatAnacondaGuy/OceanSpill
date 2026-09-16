@@ -24,7 +24,7 @@ from ..providers.base import BBox, SarScene
 from ..providers.metocean_forecast import MAX_FORECAST_DAYS, OpenMeteoForecast
 from .audit import notify, record
 from .db import Database
-from .models import AisPosition, AreaOfInterest, Detection, ForecastRun, Job, SceneRecord
+from .models import AisPosition, AreaOfInterest, CaseState, Detection, ForecastRun, Job, SceneRecord
 from .settings import ApiSettings
 from .storage import Storage, make_storage
 
@@ -122,6 +122,7 @@ class Worker:
         handlers = {
             "scan-aoi": self.scan_aoi, "refresh-ais": self.refresh_ais,
             "refresh-forecast": self.refresh_forecast, "process-scene": self.process_scene,
+            "build-case": self.build_case,
         }
         ran = 0
         while (job := self.claim(db)) is not None:
@@ -238,6 +239,83 @@ class Worker:
                    f"{made} dark spots from {scene_row.id}", "Detection", provenance="automated")
         db.commit()
         return f"{made} candidate detections from {scene_row.id}"
+
+    def build_case(self, db: Session, params: dict) -> str:
+        """Turn a confirmed detection into a case the rest of the system can work on.
+
+        A detection is a dark patch with a position, a time and an area. A case is that plus the
+        weather and currents around it, the coastline it might reach, the traffic that was nearby,
+        and a place to record what people decide. This writes the case definition and runs the same
+        build every recorded case goes through, so a new spill is handled exactly like a known one.
+        """
+        from ..build import build
+        from ..config import CASES_DIR
+
+        detection = db.get(Detection, params.get("detectionId", ""))
+        if detection is None:
+            raise ValueError(f"unknown detection {params.get('detectionId')!r}")
+        area = db.get(AreaOfInterest, detection.aoi_id or "")
+        region = area.name if area else "Indian waters"
+
+        observed = detection.acquired_at.replace(tzinfo=detection.acquired_at.tzinfo or timezone.utc)
+        case_id = params.get("caseId") or f"IND-{observed:%Y-%m}-WATCH-{detection.id[-6:].upper()}"
+        pad = 1.0
+        case = {
+            "id": case_id,
+            "title": f"Unattributed slick off {region}",
+            "region": region,
+            "subRegion": f"{detection.lat:.2f} N, {detection.lon:.2f} E",
+            "sourceType": "unknown",
+            "officiallyConfirmed": False,
+            "incident": {
+                # What is known is when the satellite saw it, not when it started. Saying the
+                # precision is unknown is what makes the hindcast search the full window rather than
+                # pretending the release time is the acquisition time.
+                "time": observed.isoformat().replace("+00:00", "Z"),
+                "timePrecision": "unknown",
+                "timeNote": "Time the scene was acquired; the release time is what the hindcast estimates",
+                "position": {"lat": round(detection.lat, 4), "lon": round(detection.lon, 4)},
+                "positionPrecisionKm": 1.0,
+                "positionSource": f"Dark-patch detection in {detection.scene_id}",
+            },
+            "oil": {"modelType": "crudeMedium", "onboard": [], "spilledTonnes": None,
+                    "spilledNote": "Nothing reported; this is a detection, not a declared spill."},
+            "vessels": [], "facilities": [],
+            "observations": [{
+                "time": observed.isoformat().replace("+00:00", "Z"),
+                "type": "slick",
+                "description": f"{detection.area_km2:.2f} km² dark patch, {detection.method}",
+                "lat": round(detection.lat, 4), "lon": round(detection.lon, 4),
+                "extentKm2": round(detection.area_km2, 3),
+                "source": detection.scene_id,
+            }],
+            "timeline": [], "response": [], "impact": {},
+            "officialFindings": "No authority has assessed this detection.",
+            "sources": [],
+            "analysis": {
+                "hindcastHours": 24, "forecastHours": 48, "sarWindowDays": [-2, 3],
+                "forcingBox": {"west": round(detection.lon - pad, 2), "south": round(detection.lat - pad, 2),
+                               "east": round(detection.lon + pad, 2), "north": round(detection.lat + pad, 2)},
+                "forcingStepDeg": 0.25, "backgroundVessels": 10, "corridorIds": [],
+            },
+        }
+
+        CASES_DIR.mkdir(parents=True, exist_ok=True)
+        (CASES_DIR / f"{case_id}.json").write_text(json.dumps(case, indent=1))
+        result = build(self.pipeline, case_ids=[case_id], offline=self.offline)
+        failures = result.get("failures", [])
+        if failures:
+            raise RuntimeError(f"case build failed: {failures[0].get('error')}")
+
+        if db.get(CaseState, case_id) is None:
+            db.add(CaseState(case_id=case_id, status="Under Analysis", workflow_stage="Awaiting Dispatch"))
+        detection.status = "promoted"
+        detection.case_id = case_id
+        notify(db, "New case opened", f"{case_id} — {detection.area_km2:.1f} km² off {region}", "warning", case_id, "incidents")
+        record(db, None, "Case opened from detection", case_id,
+               f"{detection.area_km2:.2f} km² patch in {detection.scene_id}", "Detection", provenance="automated")
+        db.commit()
+        return f"built {case_id} from {detection.id}"
 
     def refresh_ais(self, db: Session, params: dict) -> str:
         """Store recent AIS presence inside the area, for the live vessel picture."""

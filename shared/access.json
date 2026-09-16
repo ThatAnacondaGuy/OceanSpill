@@ -6,6 +6,7 @@
       "label": "Dashboard & incidents",
       "tabs": [
         "Dashboard",
+        "Live Operations",
         "Spill Incidents"
       ]
     },

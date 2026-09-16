@@ -12,6 +12,7 @@ import { Seal } from './components/Seal';
 import { MyAccount } from './components/AccountSecurity';
 import { Button, Modal } from './components/ui';
 import Dashboard from './Dashboard';
+import LiveOperations from './LiveOperations';
 import SpillIncidents from './SpillIncidents';
 import Investigation from './Investigation';
 import SatelliteTasking from './SatelliteTasking';
@@ -29,6 +30,7 @@ import SystemAdministration from './SystemAdministration';
 /** `label` is the page id used for navigation; `display` is shown when it differs. */
 const NAV: { label: string; display?: string; icon: ReactNode }[] = [
   { label: 'Dashboard', icon: <Home className="w-4 h-4" /> },
+  { label: 'Live Operations', icon: <Radar className="w-4 h-4" /> },
   { label: 'Spill Incidents', icon: <AlertTriangle className="w-4 h-4" /> },
   { label: 'Investigation', icon: <Search className="w-4 h-4" /> },
   { label: 'Vessel Analysis', icon: <Anchor className="w-4 h-4" /> },
@@ -46,7 +48,7 @@ const NAV: { label: string; display?: string; icon: ReactNode }[] = [
 
 /** Navigation sections in workflow order, separated by dividers in the tab bar. */
 const NAV_GROUPS: { title: string; items: string[] }[] = [
-  { title: 'Operations', items: ['Dashboard', 'Spill Incidents', 'Investigation', 'Vessel Analysis'] },
+  { title: 'Operations', items: ['Dashboard', 'Live Operations', 'Spill Incidents', 'Investigation', 'Vessel Analysis'] },
   { title: 'Environment', items: ['Environmental Data', 'Satellite Tasking', 'NCSCM Ecological'] },
   { title: 'Response', items: ['SACHET / SAMUDRA', 'Workflow', 'Offender Registry'] },
   { title: 'Records', items: ['Reports', 'Data Management', 'Case Archive', 'System Admin'] },
@@ -467,6 +469,7 @@ function Shell() {
       {/* Keyed by time zone so every formatted time on the page is recomputed when it changes. */}
       <div key={timeZone} id="main-content" tabIndex={-1} className="flex-1 min-w-0 min-h-0 flex flex-col outline-none">
         {activeTab === 'Dashboard' && <Dashboard />}
+        {activeTab === 'Live Operations' && <LiveOperations />}
         {activeTab === 'Spill Incidents' && <SpillIncidents />}
         {activeTab === 'Investigation' && <Investigation />}
         {activeTab === 'Vessel Analysis' && <VesselAnalysis />}

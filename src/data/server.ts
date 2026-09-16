@@ -217,6 +217,29 @@ export function reviewDetection(id: string, status: 'confirmed' | 'dismissed', n
   return api.post<Detection>(`/api/detections/${id}/review`, { status, notes });
 }
 
+export interface JobRow {
+  id: string;
+  kind: string;
+  status: 'queued' | 'running' | 'done' | 'failed';
+  params: Record<string, unknown>;
+  createdAt: number;
+  startedAt: number | null;
+  finishedAt: number | null;
+  detail: string | null;
+  error: string | null;
+}
+
+/**
+ * Turn a detection into a case.
+ *
+ * The work is not done here: the server queues a build that fetches the forcing, the coastline and
+ * the traffic for that position and time. The case appears when it finishes, which is why this
+ * returns a job rather than a case.
+ */
+export function promoteDetection(id: string): Promise<{ detection: Detection; job: JobRow }> {
+  return api.post<{ detection: Detection; job: JobRow }>(`/api/detections/${id}/promote`, {});
+}
+
 export interface ReportSection {
   heading: string;
   lines?: string[];

@@ -427,6 +427,43 @@ def test_the_ais_answer_says_how_far_behind_the_feed_is(client: TestClient):
     assert "not a live picture" in body["note"].lower()
 
 
+def test_confirming_a_detection_opens_a_case_and_queues_the_work(client: TestClient):
+    _watch_data(client)
+    headers = auth(client, "analyst@example.gov.in")
+    res = client.post("/api/detections/DET-TEST-001/promote", json={"note": "Linear, 5 dB, no wind excuse"},
+                      headers=headers)
+    assert res.status_code == 200
+    body = res.json()
+    assert body["detection"]["status"] == "confirmed"
+    assert body["job"]["kind"] == "build-case"
+    assert body["job"]["params"]["detectionId"] == "DET-TEST-001"
+    # The decision and its reason are on the record, not just the status flag.
+    trail = client.get("/api/state", headers=headers).json()["audit"]
+    assert any(e["action"] == "Detection promoted to a case" and "Linear" in e["detail"] for e in trail)
+
+
+def test_a_detection_is_not_opened_twice(client: TestClient):
+    _watch_data(client)
+    headers = auth(client, "analyst@example.gov.in")
+    assert client.post("/api/detections/DET-TEST-001/promote", json={}, headers=headers).status_code == 200
+    again = client.post("/api/detections/DET-TEST-001/promote", json={}, headers=headers)
+    assert again.status_code == 409
+
+
+def test_a_look_alike_cannot_be_promoted(client: TestClient):
+    _watch_data(client)
+    headers = auth(client, "analyst@example.gov.in")
+    client.post("/api/detections/DET-TEST-001/review", json={"status": "dismissed"}, headers=headers)
+    res = client.post("/api/detections/DET-TEST-001/promote", json={}, headers=headers)
+    assert res.status_code == 422
+
+
+def test_a_viewer_cannot_open_a_case(client: TestClient):
+    _watch_data(client)
+    res = client.post("/api/detections/DET-TEST-001/promote", json={}, headers=auth(client, "viewer@example.gov.in"))
+    assert res.status_code == 403
+
+
 def test_a_viewer_cannot_queue_background_work(client: TestClient):
     assert client.post("/api/jobs", json={"kind": "scan-aoi", "params": {"aoiId": "AOI-TEST"}},
                        headers=auth(client, "viewer@example.gov.in")).status_code == 403
