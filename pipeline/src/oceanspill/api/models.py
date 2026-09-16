@@ -190,7 +190,11 @@ class Detection(Base):
 class AisPosition(Base):
     __tablename__ = "ais_positions"
     id: Mapped[int] = mapped_column(BigId, primary_key=True, autoincrement=True)
-    mmsi: Mapped[str] = mapped_column(String(20))
+    # Global Fishing Watch groups presence by its own vessel identifier, which is a UUID rather than
+    # an MMSI, and only some rows carry the MMSI as well. Both are kept: the identifier always, the
+    # MMSI when the feed gives one.
+    vessel_id: Mapped[str] = mapped_column(String(64), index=True)
+    mmsi: Mapped[str | None] = mapped_column(String(20), nullable=True)
     t: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     lat: Mapped[float] = mapped_column(Float)
     lon: Mapped[float] = mapped_column(Float)
@@ -198,7 +202,7 @@ class AisPosition(Base):
     cog: Mapped[float | None] = mapped_column(Float, nullable=True)
     source: Mapped[str] = mapped_column(String(30))
     aoi_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
-    __table_args__ = (Index("ix_ais_mmsi_t", "mmsi", "t"),)
+    __table_args__ = (Index("ix_ais_vessel_t", "vessel_id", "t"),)
 
 
 class ForecastRun(Base):

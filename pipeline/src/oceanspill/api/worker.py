@@ -252,12 +252,15 @@ class Worker:
         stored = 0
         for vessel_id, track in tracks.items():
             meta = track.get("meta", {})
-            # Presence reports are grouped by GFW vessel id; keep the MMSI when the row carries one.
-            mmsi = str(meta.get("ssvid") or meta.get("mmsi") or vessel_id)
+            # Presence is grouped by the feed's own vessel identifier; the MMSI is there only
+            # sometimes, so it is stored when present and left empty when not.
+            raw_mmsi = meta.get("ssvid") or meta.get("mmsi")
+            mmsi = str(raw_mmsi)[:20] if raw_mmsi else None
             for when, lat, lon in track.get("points", []):
-                if db.scalar(select(AisPosition.id).where(AisPosition.mmsi == mmsi, AisPosition.t == when)):
+                if db.scalar(select(AisPosition.id).where(AisPosition.vessel_id == str(vessel_id), AisPosition.t == when)):
                     continue
-                db.add(AisPosition(mmsi=mmsi, t=when, lat=lat, lon=lon, source="gfw", aoi_id=area.id))
+                db.add(AisPosition(vessel_id=str(vessel_id)[:64], mmsi=mmsi, t=when, lat=lat, lon=lon,
+                                   source="gfw", aoi_id=area.id))
                 stored += 1
         db.commit()
         return f"{stored} AIS positions stored for {area.name}"
