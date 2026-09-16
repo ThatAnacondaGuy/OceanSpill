@@ -107,20 +107,23 @@ from the same feed there is no base rate, and the scale says so.
 
 ## Attribution ranking
 
-Still a weighted score, not a learned model, and deliberately so: there are four cases with an
-officially named source, which is nowhere near enough to train on. Replaying those four through the
-same scoring the interface uses:
+Still a weighted score, not a learned model, and deliberately so: six cases have an officially named
+source, which is nowhere near enough to train on. Replaying all six through the same scoring the
+interface uses:
 
 | Case | Named source | Where the ranking put it |
 | --- | --- | --- |
-| Wan Hai 503 | WAN HAI 503 | 1st of 4 |
-| MSC ELSA 3 | MSC ELSA 3 | 2nd of 5 |
+| Wan Hai 503 2025 | WAN HAI 503 | 1st of 4 |
+| MSC ELSA 3 2025 | MSC ELSA 3 | 2nd of 5 |
+| Ennore Creek 2023 | CPCL Manali refinery storm outlet | 2nd of 10 |
+| Nagapattinam 2023 | CPCL CBR undersea crude pipeline | 6th of 11 |
 | Ennore collision 2017 | DAWN KANCHIPURAM | 15th of 21 |
 | SSL Kolkata 2018 | SSL KOLKATA | not among the 6 scored |
 
-Two of three found sit in the top three. The two failures are honest and both come from the same
-cause: hourly AIS positions are too coarse to place a vessel at an anchorage, and a wreck that has
-stopped transmitting cannot be ranked at all. `npm test` re-runs this check.
+Found in five of six, median rank two, three of the five in the top three. The two failures have one
+cause between them: hourly AIS positions are too coarse to place a vessel at an anchorage, and a
+wreck that has stopped transmitting cannot be ranked at all. `npm test` re-runs this check, so a
+change that quietly makes the ranking worse shows up as a failure.
 
 ## Optical coverage
 
