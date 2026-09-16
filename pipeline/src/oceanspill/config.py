@@ -45,6 +45,9 @@ class Settings:
         load_dotenv(env_file or PIPELINE_DIR / ".env", override=False)
         cache = os.getenv("CACHE_DIR", ".cache")
         cache_path = Path(cache) if Path(cache).is_absolute() else PIPELINE_DIR / cache
+        # Somewhere other than public/data, for comparing a run against the published one.
+        output = os.getenv("OUTPUT_DIR")
+        output_path = Path(output) if output else OUTPUT_DIR
         return cls(
             sar_providers=_list(os.getenv("SAR_PROVIDERS"), ["eos04", "sentinel1"]),
             metocean_providers=_list(os.getenv("METOCEAN_PROVIDER"), ["openmeteo"]),
@@ -58,5 +61,6 @@ class Settings:
             cmems_username=os.getenv("CMEMS_USERNAME", ""),
             cmems_password=os.getenv("CMEMS_PASSWORD", ""),
             cache_dir=cache_path,
+            output_dir=output_path,
             sar_model=os.getenv("SAR_MODEL", ""),
         )
