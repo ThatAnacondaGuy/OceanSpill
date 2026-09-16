@@ -66,6 +66,11 @@ export function PipelineFrame({ tab, children }: { tab: string; children: ReactN
   const { world, flowCaseId, runStages, goToStage, exitFlow, startFlow, selectedCaseId, getAnalysis, access } = useStore();
   const [running, setRunning] = useState<string | null>(null);
   const played = useRef(new Set<string>());
+  const stripRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    stripRef.current?.querySelector('[aria-current="step"]')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }, [tab]);
 
   const spill = world.cases.find((c) => c.id === flowCaseId) ?? null;
   const selected = world.cases.find((c) => c.id === selectedCaseId) ?? world.cases[0] ?? null;
@@ -136,7 +141,9 @@ export function PipelineFrame({ tab, children }: { tab: string; children: ReactN
           </button>
         </div>
 
-        <div className="px-2 py-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+        {/* On a phone the strip is wider than the screen, so the stage in progress brings itself into
+            view as the pipeline advances rather than leaving the operator scrolling to find it. */}
+        <div ref={stripRef} className="px-2 py-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
           {visible.map((s, i) => {
             const seen = runStages.includes(s.tab);
             const current = s.tab === tab;
