@@ -5,7 +5,7 @@ import BUILT_IN_AOIS from '../../shared/aois.json';
 import { api, serverMode } from './api';
 import type {
   AreaOfInterest, AuditEntry, CaseArtifact, CoastArtifact, CommunityAlert, DataSource, EnforcementAction, ForcingArtifact,
-  HistoricalIncident, IndexArtifact, OilQuantityBasis, RiskTier, SarMeasurement, SarSpot, SatellitePass, ShoreTypeArtifact, SightingReport, SpillCase,
+  HistoricalIncident, IndexArtifact, OilQuantityBasis, OpticalCoverage, RiskTier, SarMeasurement, SarSpot, SatellitePass, ShoreTypeArtifact, SightingReport, SpillCase,
   SystemUser, Vessel, VesselTrack,
 } from './types';
 
@@ -18,6 +18,8 @@ export interface World {
   forcing: Map<string, ForcingArtifact>;
   coast: Map<string, CoastArtifact>;
   shoreTypes: Map<string, ShoreTypeArtifact>;
+  /** Optical coverage per case: what Sentinel-2 flew over the incident, and how cloudy it was. */
+  optical: Map<string, OpticalCoverage>;
   /** How many protected areas carry a real mapped boundary rather than a hand-drawn one. */
   protectedBoundaries: number;
   cases: SpillCase[];
@@ -62,6 +64,14 @@ export async function loadWorld(): Promise<World> {
   );
   // Shore type is an extra pass over the coastline and may not have been run; without it the
   // pages simply do not mention what the shore is made of.
+  // What optical coverage exists over each incident; absent until `oceanspill eo-search` has run.
+  let optical: Record<string, OpticalCoverage> = {};
+  try {
+    optical = await getJson<Record<string, OpticalCoverage>>('eo-coverage.json');
+  } catch {
+    // No search yet; the pages simply do not mention optical.
+  }
+
   // Real boundaries for the protected areas, where OpenStreetMap has them.
   let boundaries: Record<string, { ring: [number, number][] }> = {};
   try {
@@ -80,7 +90,7 @@ export async function loadWorld(): Promise<World> {
       }
     })
   );
-  return buildWorld(index, artifacts, new Map(forcingEntries), new Map(coastEntries.flat()), new Map(shoreEntries.flat()), boundaries);
+  return buildWorld(index, artifacts, new Map(forcingEntries), new Map(coastEntries.flat()), new Map(shoreEntries.flat()), boundaries, new Map(Object.entries(optical)));
 }
 
 const ms = (iso: string) => new Date(iso).getTime();
@@ -128,7 +138,8 @@ const SEVERITY: Record<string, SightingReport['severity']> = {
 export function buildWorld(
   index: IndexArtifact, artifacts: CaseArtifact[], forcing: Map<string, ForcingArtifact>,
   coast: Map<string, CoastArtifact> = new Map(), shoreTypes: Map<string, ShoreTypeArtifact> = new Map(),
-  protectedBoundaries: Record<string, { ring: [number, number][] }> = {}
+  protectedBoundaries: Record<string, { ring: [number, number][] }> = {},
+  optical: Map<string, OpticalCoverage> = new Map()
 ): World {
   const vessels: Vessel[] = [];
   const tracks = new Map<string, VesselTrack>();
@@ -365,6 +376,7 @@ export function buildWorld(
     forcing,
     coast,
     shoreTypes,
+    optical,
     protectedBoundaries: applyProtectedBoundaries(protectedBoundaries),
     cases: cases.sort((x, y) => y.incidentTime - x.incidentTime),
     vessels,

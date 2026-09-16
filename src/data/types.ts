@@ -231,6 +231,21 @@ export interface CoastArtifact {
   rings: [number, number][][];
 }
 
+/** What optical coverage exists over an incident, and whether cloud leaves any of it usable. */
+export interface OpticalCoverage {
+  scenes: number;
+  usable: number;
+  cloudThreshold: number;
+  clearest: {
+    name: string;
+    start: string;
+    cloudPercent: number;
+    hoursFromIncident: number;
+    sizeBytes: number | null;
+  } | null;
+  note: string;
+}
+
 /** What the shore is made of along a case's coastline, from OpenStreetMap. */
 export interface ShoreTypeArtifact {
   caseId: string;

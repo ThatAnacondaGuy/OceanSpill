@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Satellite, Target, ChevronUp, ChevronDown, Pin, PinOff, CheckCircle2, Plus, Layers, Database, ExternalLink, FileDown,
+  Satellite, Target, ChevronUp, ChevronDown, Pin, PinOff, CheckCircle2, Plus, Layers, Database, ExternalLink, FileDown, Sun,
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
 import { MapView, BasemapSwitch, type BasemapStyle, type MapMarker, type MapPolygon } from './components/MapView';
@@ -119,6 +119,18 @@ export default function SatelliteTasking() {
     }
     return { polygons, markers };
   }, [passes, aois, world.cases, world.historical, layers, selectedPass, selectedAoi]);
+
+  // Optical is a different instrument with a different failure: cloud. Reporting how much of it is
+  // usable keeps the radar-only coverage honest.
+  const optical = useMemo(() => {
+    const entries = [...world.optical.values()];
+    return {
+      cases: entries.length,
+      scenes: entries.reduce((sum, e) => sum + e.scenes, 0),
+      usable: entries.reduce((sum, e) => sum + e.usable, 0),
+      casesWithUsable: entries.filter((e) => e.usable > 0).length,
+    };
+  }, [world.optical]);
 
   const stats = useMemo(() => ({
     scenes: world.passes.length,
@@ -306,6 +318,12 @@ export default function SatelliteTasking() {
           <StatCard icon={<CheckCircle2 className="w-4 h-4" />} title="Cover the incident" value={stats.covering} trend="footprint contains the position" accent="green" />
           <StatCard icon={<Satellite className="w-4 h-4" />} title="Indian scenes" value={stats.sovereign} trend="EOS-04 via Bhoonidhi" accent="green" />
           <StatCard icon={<Target className="w-4 h-4" />} title="Cases without cover" value={stats.casesWithout} trend="no footprint over the incident" accent={stats.casesWithout ? 'red' : 'green'} />
+          {optical.cases > 0 && (
+            <StatCard icon={<Sun className="w-4 h-4" />} title="Optical scenes"
+              value={`${optical.usable}/${optical.scenes}`}
+              trend={`below ${world.optical.values().next().value?.cloudThreshold ?? 40}% cloud · ${optical.casesWithUsable} of ${optical.cases} cases`}
+              accent={optical.casesWithUsable > optical.cases / 2 ? 'green' : 'amber'} />
+          )}
         </div>
 
         <div className="flex-1 min-h-0 relative">
