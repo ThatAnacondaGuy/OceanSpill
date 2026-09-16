@@ -224,10 +224,13 @@ export function buildWorld(
         sarProviders: a.sar.providers,
         sarMeasurements: measurements,
         sarSpot,
-        classProbabilities: null,
+        // A trained detector reports how sure it was over the patch it found. Without one these
+        // stay null and the model-dependent checks say plainly that they have nothing to judge.
+        classProbabilities: sarSpot?.modelOilProbability == null ? null
+          : { oil: sarSpot.modelOilProbability, notOil: 1 - sarSpot.modelOilProbability },
         meanBackscatterDb: sarSpot?.meanDb ?? null,
         backgroundBackscatterDb: sarSpot?.backgroundDb ?? null,
-        modelVersion: null,
+        modelVersion: measurements.find((m) => m.model)?.model?.name ?? null,
       },
       // Replay mode: every real case starts at the beginning of this system's workflow. The
       // real-world outcome is shown alongside from the case facts.

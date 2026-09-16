@@ -145,7 +145,7 @@ export default function CaseArchive() {
     L.push(`  Segmentation     : ${MODEL_STATUS.trained ? `${MODEL_STATUS.version} (${modelScoreLine(MODEL_STATUS.models.sarSegmentation)})` : 'not run (no trained model yet)'}`);
     if (c.detection.classProbabilities) {
       const cp = c.detection.classProbabilities;
-      L.push(`  Raw class scores : oil ${cp.oil.toFixed(3)}, look-alike ${cp.lookalike.toFixed(3)}, sea ${cp.sea.toFixed(3)}`);
+      L.push(`  Model score      : oil ${cp.oil.toFixed(3)}, not oil ${cp.notOil.toFixed(3)} (${c.detection.modelVersion ?? 'model'})`);
     }
     if (a) {
       L.push(`  Detection basis  : ${a.assessment.confidenceBasis} (${a.assessment.verdict})`, '');

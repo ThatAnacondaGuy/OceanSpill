@@ -146,12 +146,15 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
   if (!det.classProbabilities) {
     checks.push({ name: 'Segmentation class margin', status: 'pending', weight: 0.16, detail: 'No segmentation model output yet' });
   } else {
-    const margin = det.classProbabilities.oil - det.classProbabilities.lookalike;
+    // How far the model sits from a coin toss over this patch.
+    const margin = det.classProbabilities.oil - det.classProbabilities.notOil;
     checks.push({
       name: 'Segmentation class margin',
       status: margin > 0.25 ? 'passed' : 'failed',
       weight: 0.16,
-      detail: `Model separates oil from look-alike by ${(margin * 100).toFixed(0)} points (${det.modelVersion ?? 'model'})`,
+      detail: margin > 0
+        ? `Model calls this oil by ${(margin * 100).toFixed(0)} points over not-oil (${det.modelVersion ?? 'model'})`
+        : `Model leans against oil by ${(-margin * 100).toFixed(0)} points (${det.modelVersion ?? 'model'})`,
     });
   }
 
@@ -160,18 +163,22 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
   let verdict: DetectionAssessment['verdict'];
   let raw: number | null = null;
 
-  if (sarProcessed && det.classProbabilities) {
-    raw = det.classProbabilities.oil;
-    const scored = checks.filter((c) => c.status !== 'pending');
-    const supporting = scored.filter((c) => c.status === 'passed').reduce((s, c) => s + c.weight, 0);
-    const contradicting = scored.filter((c) => c.status === 'failed').reduce((s, c) => s + c.weight, 0);
-    confidence = Math.max(0.03, Math.min(0.985, raw + (supporting - contradicting) * 0.42));
-    confidenceBasis = 'sar-model';
-    verdict = confidence >= 0.85 ? 'Confirmed oil' : confidence >= 0.62 ? 'Probable oil' : confidence >= 0.4 ? 'Ambiguous' : 'Probable look-alike';
-  } else if (officiallyConfirmed) {
+  // The model's own score, kept for display whether or not it decides the verdict.
+  if (det.classProbabilities) raw = det.classProbabilities.oil;
+
+  if (officiallyConfirmed) {
+    // An authority that went and looked outranks a model. The checks still run and are shown; they
+    // inform the reader rather than overturning the finding.
     confidence = 1;
     confidenceBasis = 'official-report';
     verdict = 'Officially confirmed';
+  } else if (sarProcessed && det.classProbabilities) {
+    const scored = checks.filter((c) => c.status !== 'pending');
+    const supporting = scored.filter((c) => c.status === 'passed').reduce((s, c) => s + c.weight, 0);
+    const contradicting = scored.filter((c) => c.status === 'failed').reduce((s, c) => s + c.weight, 0);
+    confidence = Math.max(0.03, Math.min(0.985, (raw ?? 0.5) + (supporting - contradicting) * 0.42));
+    confidenceBasis = 'sar-model';
+    verdict = confidence >= 0.85 ? 'Confirmed oil' : confidence >= 0.62 ? 'Probable oil' : confidence >= 0.4 ? 'Ambiguous' : 'Probable look-alike';
   } else {
     confidence = 0.5;
     confidenceBasis = 'unconfirmed-report';
@@ -179,7 +186,7 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
   }
 
   let lookalikeHypothesis: string | null = null;
-  if (confidenceBasis === 'sar-model' && confidence < 0.62) {
+  if (confidenceBasis !== 'official-report' && confidence < 0.62) {
     if (wind != null && wind < 3.2) lookalikeHypothesis = 'Low-wind cell / wind shadow';
     else if (contrastDb != null && contrastDb > -6 && shape.compactness > 0.5) lookalikeHypothesis = 'Biogenic surfactant film (algal bloom)';
     else lookalikeHypothesis = 'Rain cell, current shear or upwelling front';

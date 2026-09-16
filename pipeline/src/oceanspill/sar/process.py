@@ -162,9 +162,11 @@ def analyse_linear(
     # A trained model, when one is configured, replaces only the pixel decision; everything the
     # record reports about each spot is measured the same way either way.
     model_mask = None
+    model_probability = None
     if segmenter is not None:
         from ..ml.infer import mask_to_spots
-        model_mask = mask_to_spots(segmenter.mask(db, sea), segmenter.info.threshold)
+        model_probability = segmenter.mask(db, sea)
+        model_mask = mask_to_spots(model_probability, segmenter.info.threshold)
     spots, labels = detect_dark_spots(
         db, sea, pixel_km, window=int(params["detectorWindow"]), k_sigma=float(params["kSigma"]),
         min_contrast_db=float(params["minContrastDb"]), min_area_km2=float(params["minAreaKm2"]),
@@ -183,12 +185,19 @@ def analyse_linear(
             rc = rc[np.linspace(0, len(rc) - 1, 4000).astype(int)]
         elong, bearing = geo_shape(lat[rc[:, 0], rc[:, 1]], lon[rc[:, 0], rc[:, 1]])
         outline = [{"lat": round(float(lat[int(pr), int(pc)]), 5), "lon": round(float(lon[int(pr), int(pc)]), 5)} for pr, pc in s.hull_rc]
-        out_spots.append({
+        spot = {
             "areaKm2": round(s.area_km2, 3), "meanDb": round(s.mean_db, 2), "backgroundDb": round(s.background_db, 2),
             "contrastDb": round(s.contrast_db, 2), "centroid": {"lat": round(clat, 5), "lon": round(clon, 5)},
             "distanceKm": round(haversine_km(clat, clon, *incident), 2), "elongation": round(elong, 2),
             "orientationDeg": round(bearing, 1), "outline": outline,
-        })
+        }
+        if model_probability is not None:
+            # How sure the model is over this patch, so the interface can show a margin between oil
+            # and look-alike instead of leaving the check permanently unanswered.
+            inside = model_probability[labels == s.label]
+            spot["modelOilProbability"] = round(float(inside.mean()), 4)
+            spot["modelPeakProbability"] = round(float(inside.max()), 4)
+        out_spots.append(spot)
     out_spots.sort(key=lambda s: (s["distanceKm"], -s["areaKm2"]))
     sea_db = db[sea]
     return {
@@ -241,6 +250,14 @@ def process_scene(
         "processedAt": iso(datetime.now(timezone.utc)),
         "polarisation": scene.polarisation,
         "method": detector.description if detector else METHOD,
+        "model": None if detector is None else {
+            "name": detector.name,
+            "threshold": detector.info.threshold,
+            "trainedOn": detector.info.trained_on,
+            "channelsExpected": detector.info.channels,
+            "channelsSupplied": 1,
+            "duplicatedChannels": bool(getattr(detector, "duplicated_channels", False)),
+        },
         "landMask": land_source.source,
         "parameters": {**params, "multilookFactor": factor, "pixelSpacingM": round(scene.pixel_m, 1),
                        "equivalentLooks": scene.looks, "radiusKm": radius_km},

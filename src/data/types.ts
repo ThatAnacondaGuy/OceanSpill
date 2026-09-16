@@ -156,6 +156,9 @@ export interface SarSpot {
   elongation: number;
   orientationDeg: number;
   outline: LatLon[];
+  /** Mean model confidence over this patch, when a trained detector produced it. */
+  modelOilProbability?: number;
+  modelPeakProbability?: number;
 }
 
 /** Output of `oceanspill process`: calibrated scene analysed with the classical dark-spot detector. */
@@ -170,6 +173,15 @@ export interface SarMeasurement {
   method: string;
   parameters: Record<string, number>;
   crop: { corners: LatLon[]; shape: [number, number] };
+  /** The trained detector that produced this record, when one was used. */
+  model?: {
+    name: string;
+    threshold: number;
+    trainedOn: string;
+    channelsExpected: number;
+    channelsSupplied: number;
+    duplicatedChannels: boolean;
+  } | null;
   incidenceDeg: number;
   sea: { meanDb: number | null; stdDb: number | null; pixels: number };
   quicklook: string;
@@ -400,7 +412,12 @@ export interface Detection {
   /** The processed dark spot used for the contrast check, if one lies near the incident. */
   sarSpot: (SarSpot & { scene: string }) | null;
   // SAR-derived measurements. Null until segmentation has run on a downloaded scene.
-  classProbabilities: { oil: number; lookalike: number; sea: number } | null;
+  /**
+   * What the trained detector made of the patch. The model answers one question — oil or not — so
+   * that is what is recorded; splitting the remainder between look-alike and clean sea would be
+   * inventing two numbers from one.
+   */
+  classProbabilities: { oil: number; notOil: number } | null;
   meanBackscatterDb: number | null;
   backgroundBackscatterDb: number | null;
   modelVersion: string | null;
