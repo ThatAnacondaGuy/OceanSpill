@@ -1,0 +1,93 @@
+{
+ "IND-2017-01-ENNORE-COLLISION": {
+  "scenes": 4,
+  "usable": 4,
+  "cloudThreshold": 40.0,
+  "clearest": {
+   "name": "S2A_MSIL2A_20170131T050031_N0500_R119_T44PMA_20230923T081339.SAFE",
+   "start": "2017-01-31T05:00:31.026000+00:00",
+   "cloudPercent": 4.564673,
+   "hoursFromIncident": 78.5,
+   "sizeBytes": 808048563
+  },
+  "note": "Optical sees colour rather than surface roughness, so it fails on cloud where radar does not. Monsoon-season incidents in Indian waters usually have no usable scene."
+ },
+ "IND-2017-05-GOA-TARBALLS": {
+  "scenes": 4,
+  "usable": 4,
+  "cloudThreshold": 40.0,
+  "clearest": {
+   "name": "S2A_MSIL2A_20170520T052651_N0500_R105_T43PCT_20230907T064309.SAFE",
+   "start": "2017-05-20T05:26:51.026000+00:00",
+   "cloudPercent": 6.220384,
+   "hoursFromIncident": 125.4,
+   "sizeBytes": 1109580252
+  },
+  "note": "Optical sees colour rather than surface roughness, so it fails on cloud where radar does not. Monsoon-season incidents in Indian waters usually have no usable scene."
+ },
+ "IND-2018-06-SSL-KOLKATA": {
+  "scenes": 8,
+  "usable": 4,
+  "cloudThreshold": 40.0,
+  "clearest": {
+   "name": "S2A_MSIL2A_20180619T043701_N0500_R033_T45QWE_20230812T212449.SAFE",
+   "start": "2018-06-19T04:37:01.024000+00:00",
+   "cloudPercent": 5.561411,
+   "hoursFromIncident": 131.3,
+   "sizeBytes": 1214653926
+  },
+  "note": "Optical sees colour rather than surface roughness, so it fails on cloud where radar does not. Monsoon-season incidents in Indian waters usually have no usable scene."
+ },
+ "IND-2023-03-NAGAPATTINAM": {
+  "scenes": 8,
+  "usable": 8,
+  "cloudThreshold": 40.0,
+  "clearest": {
+   "name": "S2B_MSIL2A_20230306T045659_N0510_R119_T44PMT_20240820T005853.SAFE",
+   "start": "2023-03-06T04:56:59.025000+00:00",
+   "cloudPercent": 1.450513,
+   "hoursFromIncident": 124.9,
+   "sizeBytes": 915352416
+  },
+  "note": "Optical sees colour rather than surface roughness, so it fails on cloud where radar does not. Monsoon-season incidents in Indian waters usually have no usable scene."
+ },
+ "IND-2023-12-ENNORE-CREEK": {
+  "scenes": 8,
+  "usable": 1,
+  "cloudThreshold": 40.0,
+  "clearest": {
+   "name": "S2B_MSIL2A_20231211T050209_N0510_R119_T44PMA_20241107T233113.SAFE",
+   "start": "2023-12-11T05:02:09.024000+00:00",
+   "cloudPercent": 35.834473,
+   "hoursFromIncident": 161.0,
+   "sizeBytes": 1036628041
+  },
+  "note": "Optical sees colour rather than surface roughness, so it fails on cloud where radar does not. Monsoon-season incidents in Indian waters usually have no usable scene."
+ },
+ "IND-2025-05-MSC-ELSA3": {
+  "scenes": 15,
+  "usable": 0,
+  "cloudThreshold": 40.0,
+  "clearest": {
+   "name": "S2A_MSIL2A_20250527T052241_N0511_R062_T43PEL_20250527T102412.SAFE",
+   "start": "2025-05-27T05:22:41.024000+00:00",
+   "cloudPercent": 99.164444,
+   "hoursFromIncident": 51.0,
+   "sizeBytes": 766522734
+  },
+  "note": "Optical sees colour rather than surface roughness, so it fails on cloud where radar does not. Monsoon-season incidents in Indian waters usually have no usable scene."
+ },
+ "IND-2025-06-WANHAI503": {
+  "scenes": 6,
+  "usable": 1,
+  "cloudThreshold": 40.0,
+  "clearest": {
+   "name": "S2C_MSIL2A_20250607T052711_N0511_R105_T43PDP_20250607T092114.SAFE",
+   "start": "2025-06-07T05:27:11.024000+00:00",
+   "cloudPercent": 34.194994,
+   "hoursFromIncident": -46.9,
+   "sizeBytes": 279510487
+  },
+  "note": "Optical sees colour rather than surface roughness, so it fails on cloud where radar does not. Monsoon-season incidents in Indian waters usually have no usable scene."
+ }
+}

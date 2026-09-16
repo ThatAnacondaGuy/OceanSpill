@@ -36,6 +36,42 @@ def cmd_build(settings: Settings, args: argparse.Namespace) -> int:
     return 1 if result["failures"] else 0
 
 
+def cmd_eo(settings: Settings, args: argparse.Namespace) -> int:
+    """What optical coverage exists over each incident, and whether cloud leaves it usable."""
+    import json as _json
+    from datetime import datetime, timedelta
+
+    from .providers.base import BBox
+    from .providers.eo_sentinel2 import Sentinel2Cdse, summarise
+
+    http = CachedHttp(settings.cache_dir, offline=args.offline)
+    provider = Sentinel2Cdse(settings, http)
+    out = {}
+    for case in load_cases(args.case):
+        incident = datetime.fromisoformat(case["incident"]["time"].replace("Z", "+00:00"))
+        position = case["incident"]["position"]
+        pad = args.pad_deg
+        bbox = BBox(west=position["lon"] - pad, south=position["lat"] - pad,
+                    east=position["lon"] + pad, north=position["lat"] + pad)
+        try:
+            scenes = provider.search(bbox, incident - timedelta(days=args.before), incident + timedelta(days=args.after))
+        except Exception as exc:
+            print(f"{case['id']:<32} search failed: {type(exc).__name__}: {exc}")
+            continue
+        report = summarise(scenes, incident)
+        out[case["id"]] = report
+        clearest = report["clearest"]
+        detail = "" if not clearest else (f" · clearest {clearest['cloudPercent']:.0f}% cloud "
+                                          f"{clearest['hoursFromIncident']:+.0f} h from the incident")
+        print(f"{case['id']:<32} {report['scenes']:2d} scenes · {report['usable']:2d} under "
+              f"{report['cloudThreshold']:.0f}% cloud{detail}")
+
+    if args.out:
+        Path(args.out).write_text(_json.dumps(out, indent=1))
+        print(f"wrote {args.out}")
+    return 0
+
+
 def cmd_protected(settings: Settings, args: argparse.Namespace) -> int:
     """Find the mapped boundary of each protected area the risk pages rank."""
     import json as _json
@@ -160,6 +196,14 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--case", action="append", help="case id (repeatable); default all")
     c.add_argument("--offline", action="store_true", help="use cached coastline responses only")
 
+    eo = sub.add_parser("eo-search", help="what Sentinel-2 optical coverage exists over each incident")
+    eo.add_argument("--case", action="append", help="case id (repeatable); default all")
+    eo.add_argument("--before", type=int, default=2, help="days before the incident to search")
+    eo.add_argument("--after", type=int, default=7, help="days after the incident to search")
+    eo.add_argument("--pad-deg", type=float, default=0.35, help="half-width of the search box in degrees")
+    eo.add_argument("--out", help="write the result as JSON")
+    eo.add_argument("--offline", action="store_true", help="use cached responses only")
+
     pa = sub.add_parser("protected-areas", help="fetch mapped boundaries for the protected areas on the ecological page")
     pa.add_argument("--offline", action="store_true", help="use cached responses only")
 
@@ -183,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     settings = Settings.load(Path(args.env) if args.env else None)
     try:
-        handler = {"providers": cmd_providers, "build": cmd_build, "coast": cmd_coast, "shoretype": cmd_shoretype, "protected-areas": cmd_protected,
+        handler = {"providers": cmd_providers, "build": cmd_build, "coast": cmd_coast, "shoretype": cmd_shoretype, "protected-areas": cmd_protected, "eo-search": cmd_eo,
                    "download": cmd_download, "process": cmd_process}[args.command]
         return handler(settings, args)
     except ProviderConfigError as exc:

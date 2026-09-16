@@ -1,0 +1,62 @@
+{
+ "schemaVersion": 1,
+ "caseId": "IND-2017-05-GOA-TARBALLS",
+ "scene": "S1A_IW_GRDH_1SDV_20170426T005530_20170426T005555_016308_01AFBA_5130",
+ "product": "Sentinel-1 GRD",
+ "radiometry": "Sigma0 (thermal noise removed)",
+ "processedAt": "2026-09-16T10:10:20Z",
+ "polarisation": "VV",
+ "method": "Adaptive-threshold dark-spot detection on Lee-filtered calibrated backscatter (classical method, not a trained model)",
+ "landMask": "Natural Earth 1:10m coastline (data/reference/coastline_ne10m.json)",
+ "parameters": {
+  "leeWindow": 7,
+  "detectorWindow": 51,
+  "kSigma": 1.5,
+  "minContrastDb": 3.0,
+  "minAreaKm2": 0.5,
+  "coastBufferKm": 2.0,
+  "maxElongation": 50.0,
+  "multilookFactor": 8,
+  "pixelSpacingM": 80.0,
+  "equivalentLooks": 281.6,
+  "radiusKm": 40.0
+ },
+ "crop": {
+  "corners": [
+   {
+    "lat": 15.73469,
+    "lon": 74.21303
+   },
+   {
+    "lat": 15.87213,
+    "lon": 73.48004
+   },
+   {
+    "lat": 15.16582,
+    "lon": 73.34491
+   },
+   {
+    "lat": 15.0278,
+    "lon": 74.07535
+   }
+  ],
+  "shape": [
+   981,
+   1001
+  ]
+ },
+ "incidenceDeg": 39.6,
+ "sea": {
+  "meanDb": -20.88,
+  "stdDb": 1.01,
+  "pixels": 480980
+ },
+ "quicklook": "sar/IND-2017-05-GOA-TARBALLS/S1A_IW_GRDH_1SDV_20170426T005530_20170426T005555_016308_01AFBA_5130.png",
+ "spots": [],
+ "limitations": [
+  "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
+  "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",
+  "Multilooking trades resolution for speckle reduction; slicks narrower than two output pixels can be missed",
+  "The quicklook is in radar geometry (not north-up); use the outlines on the map for location"
+ ]
+}

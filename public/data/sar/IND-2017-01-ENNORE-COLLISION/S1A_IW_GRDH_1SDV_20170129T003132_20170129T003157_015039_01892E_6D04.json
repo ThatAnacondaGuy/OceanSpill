@@ -1,0 +1,562 @@
+{
+ "schemaVersion": 1,
+ "caseId": "IND-2017-01-ENNORE-COLLISION",
+ "scene": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_6D04",
+ "product": "Sentinel-1 GRD",
+ "radiometry": "Sigma0 (thermal noise removed)",
+ "processedAt": "2026-09-16T10:10:15Z",
+ "polarisation": "VV",
+ "method": "Adaptive-threshold dark-spot detection on Lee-filtered calibrated backscatter (classical method, not a trained model)",
+ "landMask": "Natural Earth 1:10m coastline (data/reference/coastline_ne10m.json)",
+ "parameters": {
+  "leeWindow": 7,
+  "detectorWindow": 51,
+  "kSigma": 1.5,
+  "minContrastDb": 3.0,
+  "minAreaKm2": 0.5,
+  "coastBufferKm": 2.0,
+  "maxElongation": 50.0,
+  "multilookFactor": 8,
+  "pixelSpacingM": 80.0,
+  "equivalentLooks": 281.6,
+  "radiusKm": 40.0
+ },
+ "crop": {
+  "corners": [
+   {
+    "lat": 13.40479,
+    "lon": 80.78627
+   },
+   {
+    "lat": 13.5464,
+    "lon": 80.06171
+   },
+   {
+    "lat": 12.9781,
+    "lon": 79.9464
+   },
+   {
+    "lat": 12.83614,
+    "lon": 80.66921
+   }
+  ],
+  "shape": [
+   790,
+   1001
+  ]
+ },
+ "incidenceDeg": 33.76,
+ "sea": {
+  "meanDb": -19.61,
+  "stdDb": 2.63,
+  "pixels": 432475
+ },
+ "quicklook": "sar/IND-2017-01-ENNORE-COLLISION/S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_6D04.png",
+ "spots": [
+  {
+   "areaKm2": 0.8,
+   "meanDb": -28.24,
+   "backgroundDb": -21.37,
+   "contrastDb": -6.88,
+   "centroid": {
+    "lat": 13.25312,
+    "lon": 80.44049
+   },
+   "distanceKm": 6.59,
+   "elongation": 3.34,
+   "orientationDeg": 16.7,
+   "outline": [
+    {
+     "lat": 13.26164,
+     "lon": 80.44274
+    },
+    {
+     "lat": 13.26078,
+     "lon": 80.44332
+    },
+    {
+     "lat": 13.25919,
+     "lon": 80.44375
+    },
+    {
+     "lat": 13.25026,
+     "lon": 80.44344
+    },
+    {
+     "lat": 13.24564,
+     "lon": 80.44024
+    },
+    {
+     "lat": 13.2452,
+     "lon": 80.43864
+    },
+    {
+     "lat": 13.24535,
+     "lon": 80.43792
+    },
+    {
+     "lat": 13.24635,
+     "lon": 80.43662
+    },
+    {
+     "lat": 13.25226,
+     "lon": 80.43707
+    },
+    {
+     "lat": 13.25846,
+     "lon": 80.43984
+    },
+    {
+     "lat": 13.26048,
+     "lon": 80.441
+    },
+    {
+     "lat": 13.26178,
+     "lon": 80.44202
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.736,
+   "meanDb": -27.02,
+   "backgroundDb": -22.01,
+   "contrastDb": -5.01,
+   "centroid": {
+    "lat": 13.27298,
+    "lon": 80.45005
+   },
+   "distanceKm": 7.72,
+   "elongation": 4.4,
+   "orientationDeg": 27.4,
+   "outline": [
+    {
+     "lat": 13.28011,
+     "lon": 80.45554
+    },
+    {
+     "lat": 13.27853,
+     "lon": 80.45597
+    },
+    {
+     "lat": 13.27305,
+     "lon": 80.45335
+    },
+    {
+     "lat": 13.26511,
+     "lon": 80.44797
+    },
+    {
+     "lat": 13.26381,
+     "lon": 80.44695
+    },
+    {
+     "lat": 13.26193,
+     "lon": 80.44506
+    },
+    {
+     "lat": 13.26208,
+     "lon": 80.44434
+    },
+    {
+     "lat": 13.26568,
+     "lon": 80.44507
+    },
+    {
+     "lat": 13.27923,
+     "lon": 80.44858
+    },
+    {
+     "lat": 13.28068,
+     "lon": 80.45264
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.806,
+   "meanDb": -25.86,
+   "backgroundDb": -21.27,
+   "contrastDb": -4.58,
+   "centroid": {
+    "lat": 13.13915,
+    "lon": 80.37284
+   },
+   "distanceKm": 13.46,
+   "elongation": 4.19,
+   "orientationDeg": 24.8,
+   "outline": [
+    {
+     "lat": 13.14995,
+     "lon": 80.37786
+    },
+    {
+     "lat": 13.14679,
+     "lon": 80.37872
+    },
+    {
+     "lat": 13.14448,
+     "lon": 80.379
+    },
+    {
+     "lat": 13.14376,
+     "lon": 80.37885
+    },
+    {
+     "lat": 13.13222,
+     "lon": 80.37274
+    },
+    {
+     "lat": 13.1302,
+     "lon": 80.37158
+    },
+    {
+     "lat": 13.1299,
+     "lon": 80.36926
+    },
+    {
+     "lat": 13.13004,
+     "lon": 80.36854
+    },
+    {
+     "lat": 13.13249,
+     "lon": 80.36753
+    },
+    {
+     "lat": 13.13321,
+     "lon": 80.36768
+    },
+    {
+     "lat": 13.14316,
+     "lon": 80.37045
+    },
+    {
+     "lat": 13.15009,
+     "lon": 80.37713
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.723,
+   "meanDb": -27.26,
+   "backgroundDb": -20.95,
+   "contrastDb": -6.31,
+   "centroid": {
+    "lat": 13.39454,
+    "lon": 80.41295
+   },
+   "distanceKm": 15.38,
+   "elongation": 5.52,
+   "orientationDeg": 121.1,
+   "outline": [
+    {
+     "lat": 13.40034,
+     "lon": 80.40411
+    },
+    {
+     "lat": 13.39849,
+     "lon": 80.40976
+    },
+    {
+     "lat": 13.39348,
+     "lon": 80.42003
+    },
+    {
+     "lat": 13.38945,
+     "lon": 80.42147
+    },
+    {
+     "lat": 13.38715,
+     "lon": 80.42175
+    },
+    {
+     "lat": 13.38643,
+     "lon": 80.4216
+    },
+    {
+     "lat": 13.3966,
+     "lon": 80.4041
+    },
+    {
+     "lat": 13.40005,
+     "lon": 80.40179
+    },
+    {
+     "lat": 13.40077,
+     "lon": 80.40194
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.538,
+   "meanDb": -26.29,
+   "backgroundDb": -21.08,
+   "contrastDb": -5.2,
+   "centroid": {
+    "lat": 13.40322,
+    "lon": 80.39356
+   },
+   "distanceKm": 15.99,
+   "elongation": 3.31,
+   "orientationDeg": 148.8,
+   "outline": [
+    {
+     "lat": 13.41196,
+     "lon": 80.39067
+    },
+    {
+     "lat": 13.40033,
+     "lon": 80.40034
+    },
+    {
+     "lat": 13.39643,
+     "lon": 80.39728
+    },
+    {
+     "lat": 13.39786,
+     "lon": 80.39381
+    },
+    {
+     "lat": 13.40375,
+     "lon": 80.3905
+    },
+    {
+     "lat": 13.40692,
+     "lon": 80.38964
+    },
+    {
+     "lat": 13.40994,
+     "lon": 80.3895
+    },
+    {
+     "lat": 13.4121,
+     "lon": 80.38995
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.672,
+   "meanDb": -26.66,
+   "backgroundDb": -21.79,
+   "contrastDb": -4.87,
+   "centroid": {
+    "lat": 13.27142,
+    "lon": 80.56471
+   },
+   "distanceKm": 20.03,
+   "elongation": 1.5,
+   "orientationDeg": 15.8,
+   "outline": [
+    {
+     "lat": 13.27653,
+     "lon": 80.56926
+    },
+    {
+     "lat": 13.27553,
+     "lon": 80.57056
+    },
+    {
+     "lat": 13.26659,
+     "lon": 80.56647
+    },
+    {
+     "lat": 13.26601,
+     "lon": 80.5656
+    },
+    {
+     "lat": 13.26557,
+     "lon": 80.564
+    },
+    {
+     "lat": 13.26701,
+     "lon": 80.56053
+    },
+    {
+     "lat": 13.27233,
+     "lon": 80.56012
+    },
+    {
+     "lat": 13.27306,
+     "lon": 80.56027
+    },
+    {
+     "lat": 13.27435,
+     "lon": 80.56129
+    },
+    {
+     "lat": 13.27623,
+     "lon": 80.56318
+    },
+    {
+     "lat": 13.27739,
+     "lon": 80.56492
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.499,
+   "meanDb": -27.27,
+   "backgroundDb": -22.94,
+   "contrastDb": -4.33,
+   "centroid": {
+    "lat": 13.07652,
+    "lon": 80.44554
+   },
+   "distanceKm": 21.6,
+   "elongation": 2.19,
+   "orientationDeg": 164.0,
+   "outline": [
+    {
+     "lat": 13.08359,
+     "lon": 80.44482
+    },
+    {
+     "lat": 13.07841,
+     "lon": 80.44828
+    },
+    {
+     "lat": 13.07381,
+     "lon": 80.44884
+    },
+    {
+     "lat": 13.07309,
+     "lon": 80.44869
+    },
+    {
+     "lat": 13.07107,
+     "lon": 80.44752
+    },
+    {
+     "lat": 13.07135,
+     "lon": 80.44608
+    },
+    {
+     "lat": 13.07509,
+     "lon": 80.44233
+    },
+    {
+     "lat": 13.07667,
+     "lon": 80.4419
+    },
+    {
+     "lat": 13.08315,
+     "lon": 80.44323
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.518,
+   "meanDb": -23.56,
+   "backgroundDb": -20.25,
+   "contrastDb": -3.31,
+   "centroid": {
+    "lat": 13.25045,
+    "lon": 80.65573
+   },
+   "distanceKm": 29.86,
+   "elongation": 2.2,
+   "orientationDeg": 5.7,
+   "outline": [
+    {
+     "lat": 13.25514,
+     "lon": 80.659
+    },
+    {
+     "lat": 13.2514,
+     "lon": 80.65898
+    },
+    {
+     "lat": 13.24779,
+     "lon": 80.65824
+    },
+    {
+     "lat": 13.24577,
+     "lon": 80.65707
+    },
+    {
+     "lat": 13.2439,
+     "lon": 80.65517
+    },
+    {
+     "lat": 13.24404,
+     "lon": 80.65445
+    },
+    {
+     "lat": 13.24735,
+     "lon": 80.65287
+    },
+    {
+     "lat": 13.25253,
+     "lon": 80.65319
+    },
+    {
+     "lat": 13.2547,
+     "lon": 80.65363
+    },
+    {
+     "lat": 13.25571,
+     "lon": 80.6561
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.525,
+   "meanDb": -23.89,
+   "backgroundDb": -19.94,
+   "contrastDb": -3.95,
+   "centroid": {
+    "lat": 13.2613,
+    "lon": 80.6635
+   },
+   "distanceKm": 30.68,
+   "elongation": 1.39,
+   "orientationDeg": 146.9,
+   "outline": [
+    {
+     "lat": 13.26538,
+     "lon": 80.66412
+    },
+    {
+     "lat": 13.26251,
+     "lon": 80.66729
+    },
+    {
+     "lat": 13.26164,
+     "lon": 80.66787
+    },
+    {
+     "lat": 13.25616,
+     "lon": 80.66523
+    },
+    {
+     "lat": 13.2563,
+     "lon": 80.66451
+    },
+    {
+     "lat": 13.25731,
+     "lon": 80.66321
+    },
+    {
+     "lat": 13.26091,
+     "lon": 80.66018
+    },
+    {
+     "lat": 13.26263,
+     "lon": 80.65903
+    },
+    {
+     "lat": 13.26335,
+     "lon": 80.65918
+    },
+    {
+     "lat": 13.26509,
+     "lon": 80.6618
+    }
+   ]
+  }
+ ],
+ "limitations": [
+  "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
+  "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",
+  "Multilooking trades resolution for speckle reduction; slicks narrower than two output pixels can be missed",
+  "The quicklook is in radar geometry (not north-up); use the outlines on the map for location"
+ ]
+}

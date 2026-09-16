@@ -14,9 +14,12 @@ from .metocean_forecast import OpenMeteoForecast
 from .metocean_openmeteo import OpenMeteo
 from .sanctions_unsc import UnscSanctions
 from .sar_eos04 import Eos04Bhoonidhi
+from .eo_sentinel2 import Sentinel2Cdse
 from .sar_sentinel1 import Sentinel1Cdse
 
 SAR = {"eos04": Eos04Bhoonidhi, "sentinel1": Sentinel1Cdse}
+# Optical, which sees colour where radar sees roughness, and is stopped by cloud where radar is not.
+EO = {"sentinel2": Sentinel2Cdse}
 METOCEAN = {"openmeteo": OpenMeteo, "openmeteo-forecast": OpenMeteoForecast, "cmems": CmemsCurrents}
 AIS = {"synthetic": SyntheticAis, "gfw": GfwAis}
 SANCTIONS = {"unsc": UnscSanctions}
