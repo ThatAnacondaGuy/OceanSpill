@@ -184,7 +184,7 @@ export default function Investigation() {
           const isDarkNow = track.gaps.some((g) => playback.value >= g.start && playback.value <= g.end);
           if (at) {
             markers.push({
-              id: `v-${score.mmsi}`, position: at, kind: 'vessel', color, size: focused ? 8 : isTop ? 7 : 5.5,
+              id: `v-${score.mmsi}`, position: at, kind: 'vessel', vesselType: vessel?.type, color, size: focused ? 8 : isTop ? 7 : 5.5,
               headingDeg: at.cog, label: vessel.name, sublabel: `Rank ${score.rank} · score ${(score.total * 100).toFixed(0)}`,
               selected: focused, dimmed: dim, z: isTop ? 9 : 7,
               meta: {
@@ -196,7 +196,7 @@ export default function Investigation() {
             const last = track.pings.filter((p) => p.t < playback.value).pop();
             if (last) {
               markers.push({
-                id: `v-dark-${score.mmsi}`, position: last, kind: 'vessel', color: '#dc2626',
+                id: `v-dark-${score.mmsi}`, position: last, kind: 'vessel', vesselType: vessel?.type, color: '#dc2626',
                 size: 6, headingDeg: last.cog, label: `${vessel.name} (dark)`,
                 sublabel: 'Transponder silent — last known position', dimmed: dim, pulse: true, z: 8,
                 meta: { ID: fmt.vesselId(vessel), 'Dark for': `${score.darkMinutes} min` },

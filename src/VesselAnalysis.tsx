@@ -150,7 +150,7 @@ export default function VesselAnalysis() {
         const pos = at ?? (darkNow ? track.pings.filter((p) => p.t < playback.value).pop() : undefined);
         if (pos) {
           markers.push({
-            id: v.mmsi, position: pos, kind: 'vessel', color: darkNow ? '#ef4444' : color,
+            id: v.mmsi, position: pos, kind: 'vessel', vesselType: v.type, color: darkNow ? '#ef4444' : color,
             size: isSel ? 8 : v.provenance === 'real' ? 6.5 : 5, headingDeg: pos.cog, selected: isSel, pulse: darkNow,
             label: v.name, sublabel: `${v.type} · ${TRACK_LABEL[track.provenance]}${darkNow ? ' · AIS dark' : ''}`,
             z: isSel ? 9 : 6,

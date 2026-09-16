@@ -3,7 +3,7 @@ import maplibregl, { type GeoJSONSource, type Map as MlMap, type MapLayerMouseEv
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { LatLon } from '../lib/geo';
 import { ANDAMAN_EEZ, INDIA_EEZ } from '../data/geography';
-import { arrowHead, bearing, circleRing, cssColor, markerIcon, selectionRing, SlickRenderer, vectorArrow } from './mapAssets';
+import { arrowHead, bearing, circleRing, cssColor, markerIcon, selectionRing, SlickRenderer, vectorArrow, vesselShape } from './mapAssets';
 
 /**
  * Interactive map on real basemap tiles (MapLibre GL).
@@ -20,6 +20,8 @@ export interface MapMarker {
   id: string;
   position: LatLon;
   kind: 'case' | 'vessel' | 'port' | 'origin' | 'sighting' | 'asset' | 'platform';
+  /** The vessel's type from the registry, which decides which silhouette is drawn. */
+  vesselType?: string | null;
   color?: string;
   label?: string;
   sublabel?: string;
@@ -613,8 +615,10 @@ export function MapView({
     for (const m of markers) {
       const color = cssColor(m.color ?? '#ef4444');
       const r = m.size ?? 6;
-      const icon = `mk|${m.kind}|${color}|${r}`;
-      ensureImage(map, icon, () => markerIcon(m.kind, color, r));
+      // The silhouette is part of the sprite key, so each kind of ship gets its own image.
+      const shape = m.kind === 'vessel' ? vesselShape(m.vesselType) : 'plain';
+      const icon = `mk|${m.kind}|${shape}|${color}|${r}`;
+      ensureImage(map, icon, () => markerIcon(m.kind, color, r, shape));
       let ring = '';
       if (m.selected) {
         ring = `ring|${color}|${r}`;
