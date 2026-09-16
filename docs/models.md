@@ -122,6 +122,47 @@ Two of three found sit in the top three. The two failures are honest and both co
 cause: hourly AIS positions are too coarse to place a vessel at an anchorage, and a wreck that has
 stopped transmitting cannot be ranked at all. `npm test` re-runs this check.
 
+## Optical coverage
+
+Radar works through cloud; optical does not, and in Indian waters that decides whether the second
+instrument is available at all. The catalogue was asked what Sentinel-2 flew over each incident:
+
+| Case | Scenes | Below 40% cloud | Clearest |
+| --- | --- | --- | --- |
+| Ennore collision 2017 | 4 | 4 | 5% |
+| Goa tar balls 2017 | 4 | 4 | 6% |
+| SSL Kolkata 2018 | 8 | 4 | 6% |
+| Nagapattinam 2023 | 8 | 8 | 1% |
+| Ennore Creek 2023 | 8 | 1 | 36% |
+| Wan Hai 503 2025 | 6 | 1 | 34% |
+| MSC ELSA 3 2025 | 15 | 0 | 99% |
+
+Four cases have genuinely clear optical coverage within days of the incident. MSC ELSA 3 has none:
+fifteen scenes, not one below 99% cloud, because it happened in the monsoon. A tool that claims
+optical detection everywhere would be lying about half of India's spill season, so the interface
+reports the usable count rather than the total.
+
+Run it with `oceanspill eo-search`; nothing is downloaded, this is the catalogue talking.
+
+## Radar processed for the cases
+
+Nine scenes across six cases have been through the detector.
+
+| Case | Scenes | Dark patches found |
+| --- | --- | --- |
+| Ennore collision 2017 | 1 | 9, nearest 6.6 km from the collision, 0.80 km², -6.9 dB |
+| SSL Kolkata 2018 | 2 | 5, nearest 14.4 km |
+| Ennore Creek 2023 | 1 | 4, nearest 25.9 km |
+| MSC ELSA 3 2025 | 2 | 1 |
+| Goa tar balls 2017 | 2 | none |
+| Nagapattinam 2023 | 1 | none |
+| Wan Hai 503 2025 | 0 | EOS-04 coverage only; Bhoonidhi downloads still refuse the session |
+
+The two empty results are the answer, not a failure: tar balls wash ashore rather than floating as a
+slick a satellite can see, and the Nagapattinam scene flew days after a subsea leak that had
+stopped. A dark patch is not oil — these are measurements with a position, an area and a contrast,
+for an analyst to weigh against the drift and the traffic.
+
 ## What is still not possible
 
 - **Oil type and thickness from imagery.** It needs polarimetric radar or hyperspectral optical data
