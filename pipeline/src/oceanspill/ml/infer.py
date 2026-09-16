@@ -41,11 +41,13 @@ class ModelInfo:
     threshold: float
     trained_on: str
     validation: dict[str, Any]
+    #: The decibel range each channel was scaled over during training, in channel order.
+    channel_ranges: list[tuple[float, float]]
 
 
-def normalise(db: np.ndarray) -> np.ndarray:
-    """dB to [0, 1] the same way the training data was prepared."""
-    return np.clip((db - DB_MIN) / (DB_MAX - DB_MIN), 0.0, 1.0).astype(np.float32)
+def normalise(db: np.ndarray, low: float = DB_MIN, high: float = DB_MAX) -> np.ndarray:
+    """Decibels to [0, 1] over the range the model was trained on."""
+    return np.clip((db - low) / (high - low), 0.0, 1.0).astype(np.float32)
 
 
 def _sigmoid(x: np.ndarray) -> np.ndarray:
@@ -64,25 +66,39 @@ class OnnxSegmenter:
         self.session = onnxruntime.InferenceSession(str(info.path), providers=["CPUExecutionProvider"])
         self.input_name = self.session.get_inputs()[0].name
         self.name = f"unet-onnx:{info.path.stem}"
+        # True when the scene has one polarisation and the model wants more.
+        self.duplicated_channels = info.channels > 1
         self.description = (f"U-Net segmentation ({info.path.name}), trained on {info.trained_on}, "
-                            f"threshold {info.threshold:g}")
+                            f"threshold {info.threshold:g}"
+                            + (f"; the scene supplies one polarisation and the model expects "
+                               f"{info.channels}, so the same band is used for each"
+                               if self.duplicated_channels else ""))
 
     def mask(self, db: np.ndarray, sea: np.ndarray) -> np.ndarray:
         h, w = db.shape
-        x = normalise(db)
+        # One scaled copy per channel, each over the range that channel was trained on. Getting this
+        # wrong shifts every pixel the model sees and quietly ruins the result.
+        planes = [normalise(db, low, high) for low, high in self.info.channel_ranges[: self.info.channels]]
+        while len(planes) < self.info.channels:
+            planes.append(planes[-1])
         # The model never sees land or invalid pixels; they go in at the sea median.
-        fill = float(np.median(x[sea])) if sea.any() else 0.5
-        x = np.where(sea, x, fill)
+        fills = [float(np.median(p[sea])) if sea.any() else 0.5 for p in planes]
+        planes = [np.where(sea, p, f) for p, f in zip(planes, fills)]
+        x = planes[0]
         total = np.zeros((h, w), dtype=np.float32)
         weight = np.zeros((h, w), dtype=np.float32)
         step = TILE - OVERLAP
         for r0 in range(0, max(1, h - OVERLAP), step):
             for c0 in range(0, max(1, w - OVERLAP), step):
                 r1, c1 = min(r0 + TILE, h), min(c0 + TILE, w)
-                tile = x[r0:r1, c0:c1]
-                padded = np.zeros((TILE, TILE), dtype=np.float32) + fill
-                padded[: r1 - r0, : c1 - c0] = tile
-                batch = np.repeat(padded[None, None], self.info.channels, axis=1)
+                # A single-polarisation scene cannot fill a two-channel model honestly: each
+                # channel gets the same band, scaled over its own training range, and the
+                # description says so rather than passing the result off as what the model expects.
+                stack = np.empty((1, self.info.channels, TILE, TILE), dtype=np.float32)
+                for c, (plane, fill) in enumerate(zip(planes, fills)):
+                    stack[0, c] = fill
+                    stack[0, c, : r1 - r0, : c1 - c0] = plane[r0:r1, c0:c1]
+                batch = stack
                 logits = self.session.run(None, {self.input_name: batch})[0]
                 probability = _sigmoid(np.asarray(logits, dtype=np.float32))[0, 0]
                 total[r0:r1, c0:c1] += probability[: r1 - r0, : c1 - c0]
@@ -98,12 +114,16 @@ def load_model(path: Path) -> ModelInfo:
         raise FileNotFoundError(f"no model at {path}")
     meta_path = path.with_suffix(".json")
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    ranges = meta.get("channelRange") or {}
+    names = meta.get("channelNames") or list(ranges)
+    ordered = [tuple(ranges[name]) for name in names if name in ranges] or [(DB_MIN, DB_MAX)]
     return ModelInfo(
         path=path,
         channels=int(meta.get("channels", 2)),
         threshold=float(meta.get("threshold", 0.5)),
         trained_on=str(meta.get("trainedOn", "an unrecorded dataset")),
         validation=meta.get("val", {}),
+        channel_ranges=ordered,
     )
 
 

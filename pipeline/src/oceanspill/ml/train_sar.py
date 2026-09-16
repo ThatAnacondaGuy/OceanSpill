@@ -55,7 +55,8 @@ def split_by_scene(index: dict, val_fraction: float, seed: int) -> Split:
 class Tiles:
     """Reads tiles from the memory-mapped cache, cropping and flipping on the way out."""
 
-    def __init__(self, root: Path, rows: list[int], crop: int, augment: bool, seed: int = 0, standardise: bool = False):
+    def __init__(self, root: Path, rows: list[int], crop: int, augment: bool, seed: int = 0,
+                 standardise: bool = False, channels: list[int] | None = None):
         self.images = np.load(root / "images.npy", mmap_mode="r")
         self.masks = np.load(root / "masks.npy", mmap_mode="r")
         self.rows = rows
@@ -64,6 +65,9 @@ class Tiles:
         # Optical reflectance over water occupies a sliver of the byte range, so each tile is put on
         # its own scale; radar in decibels already spans it and is left alone.
         self.standardise = standardise
+        # EOS-04 flies single polarisation, so a model meant for those scenes is trained on that one
+        # channel rather than being handed the same data twice at inference.
+        self.channels = channels
         self.rng = np.random.default_rng(seed)
 
     def __len__(self) -> int:
@@ -74,6 +78,8 @@ class Tiles:
 
         row = self.rows[i]
         image = np.asarray(self.images[row])
+        if self.channels is not None:
+            image = image[..., self.channels]
         mask = np.asarray(self.masks[row])
         size = image.shape[0]
         if self.crop < size:
@@ -199,6 +205,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--limit", type=int, help="use only this many training tiles, for a quick check")
     parser.add_argument("--oversample", type=float, default=4.0, help="how much more often tiles containing the target are drawn")
     parser.add_argument("--standardise", action="store_true", help="put each tile on its own scale (for optical reflectance)")
+    parser.add_argument("--use-channels", help="comma-separated channel indices to train on, e.g. 0 for co-polarised only")
     args = parser.parse_args(argv)
 
     cache = Path(args.cache)
@@ -235,14 +242,15 @@ def main(argv: list[str] | None = None) -> int:
     train_fractions = [t["oilFraction"] for t in index["tiles"]]
     sample_weights = [args.oversample if train_fractions[i] > 0 else 1.0 for i in split.train]
     sampler = torch.utils.data.WeightedRandomSampler(sample_weights, num_samples=len(split.train), replacement=True)
-    train_loader = DataLoader(Tiles(cache, split.train, args.crop, augment=True, seed=args.seed, standardise=args.standardise),
+    train_loader = DataLoader(Tiles(cache, split.train, args.crop, augment=True, seed=args.seed, standardise=args.standardise, channels=selected),
                               batch_size=args.batch, sampler=sampler, num_workers=args.workers, drop_last=True)
-    val_loader = DataLoader(Tiles(val_cache, split.val, args.crop, augment=False, standardise=args.standardise),
+    val_loader = DataLoader(Tiles(val_cache, split.val, args.crop, augment=False, standardise=args.standardise, channels=selected),
                             batch_size=args.batch, num_workers=args.workers)
-    clean_loader = DataLoader(Tiles(val_cache, clean_val, args.crop, augment=False, standardise=args.standardise),
+    clean_loader = DataLoader(Tiles(val_cache, clean_val, args.crop, augment=False, standardise=args.standardise, channels=selected),
                               batch_size=args.batch, num_workers=args.workers)
 
-    channels = int(np.load(cache / "images.npy", mmap_mode="r").shape[-1])
+    selected = [int(c) for c in args.use_channels.split(",")] if args.use_channels else None
+    channels = len(selected) if selected else int(np.load(cache / "images.npy", mmap_mode="r").shape[-1])
     print(f"{channels} input channels: {', '.join(index.get('channels', []) or ['unnamed'])}")
     model = UNet(in_channels=channels, base=args.base, depth=args.depth).to(device)
     loss_fn = DiceFocalLoss()
@@ -307,7 +315,8 @@ def main(argv: list[str] | None = None) -> int:
     meta = {
         "channels": channels,
         "standardise": bool(args.standardise),
-        "channelNames": index.get("channels"),
+        "channelNames": [index.get("channels", [])[c] for c in selected] if selected and index.get("channels") else index.get("channels"),
+        "useChannels": selected,
         "threshold": chosen.threshold,
         "trainedOn": index.get("source", str(cache)),
         "tiles": {"train": len(split.train), "val": len(split.val)},

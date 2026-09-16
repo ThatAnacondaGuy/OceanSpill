@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from oceanspill.ml.infer import normalise
 from oceanspill.sar.darkspot import detect_dark_spots
@@ -51,3 +52,39 @@ def test_backscatter_is_scaled_the_way_the_model_was_trained():
     assert 0.6 < normalise(np.array([-10.0]))[0] < 0.7
     # Values outside the training range are clipped rather than extrapolated.
     assert normalise(np.array([-60.0, 20.0])).tolist() == [0.0, 1.0]
+
+
+class TestModelInput:
+    """A model is trained on pixels scaled a particular way; inference has to match it exactly."""
+
+    def test_each_channel_is_scaled_over_its_own_training_range(self):
+        from oceanspill.ml.infer import normalise
+
+        # Co-polarised runs -40 to +5 dB, cross-polarised -45 to 0: the same -20 dB pixel is not
+        # the same number to the two channels, and treating it as one would shift every input.
+        assert float(normalise(np.array([-20.0]), -40.0, 5.0)[0]) == pytest.approx(0.444, abs=0.01)
+        assert float(normalise(np.array([-20.0]), -45.0, 0.0)[0]) == pytest.approx(0.556, abs=0.01)
+
+    def test_the_model_metadata_decides_the_scaling(self, tmp_path):
+        import json
+
+        from oceanspill.ml.infer import load_model
+
+        model = tmp_path / "unet_best.onnx"
+        model.write_bytes(b"not a real model, only the metadata is read here")
+        (tmp_path / "unet_best.json").write_text(json.dumps({
+            "channels": 2, "threshold": 0.4, "trainedOn": "test",
+            "channelNames": ["vv", "vh"], "channelRange": {"vv": [-40, 5], "vh": [-45, 0]},
+        }))
+        info = load_model(model)
+        assert info.channels == 2
+        assert info.threshold == 0.4
+        assert info.channel_ranges == [(-40, 5), (-45, 0)]
+
+    def test_falls_back_to_the_default_range_when_nothing_was_recorded(self, tmp_path):
+        from oceanspill.ml.data import DB_MAX, DB_MIN
+        from oceanspill.ml.infer import load_model
+
+        model = tmp_path / "m.onnx"
+        model.write_bytes(b"x")
+        assert load_model(model).channel_ranges == [(DB_MIN, DB_MAX)]
