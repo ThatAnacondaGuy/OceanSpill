@@ -5,6 +5,7 @@ import {
 import { useStore, fmt } from './store/store';
 import { legalSummary } from './data/world';
 import { chainOfCustodyPdf } from './data/server';
+import AnalyticsReporting from './AnalyticsReporting';
 import {
   Badge, Button, Tier, StatusBadge, KeyValue, Tabs, DataTable, SearchInput, Select,
   InfoBanner, EmptyState, ExportButton, downloadCsv, triggerDownload, StatCard, ProvenanceBadge, type Column,
@@ -250,7 +251,13 @@ export default function CaseArchive() {
         { id: 'archive', label: 'Case archive', count: archived.length },
         { id: 'historical', label: 'Historical register', count: world.historical.length },
         { id: 'audit', label: 'Audit trail', count: audit.length },
+        // The register-wide analytics used to be a tab of its own. It is a records view — statistics
+        // over every incident and how well the models score — so it belongs with the records, not at
+        // the end of one case's pipeline where it answered a question nobody had asked.
+        { id: 'analytics', label: 'Register analytics & model quality' },
       ]} />
+
+      {tab === 'analytics' && <AnalyticsReporting />}
 
       {tab === 'archive' && (
         <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-4 p-4">

@@ -13,6 +13,7 @@ import { MyAccount } from './components/AccountSecurity';
 import { Button, Modal } from './components/ui';
 import Dashboard from './Dashboard';
 import { PipelineFrame } from './flow/PipelineFrame';
+import { EvidencePack } from './flow/EvidencePack';
 import { isStageTab } from './flow/pipeline';
 import SpillIncidents from './SpillIncidents';
 import Investigation from './Investigation';
@@ -24,7 +25,6 @@ import SachetSamudra from './SachetSamudra';
 import Workflow from './Workflow';
 import OffenderRegistry from './OffenderRegistry';
 import ImacIntegration from './ImacIntegration';
-import AnalyticsReporting from './AnalyticsReporting';
 import CaseArchive from './CaseArchive';
 import SystemAdministration from './SystemAdministration';
 
@@ -484,7 +484,7 @@ function Shell() {
             {activeTab === 'Satellite Tasking' && <SatelliteTasking />}
             {activeTab === 'NCSCM Ecological' && <NcscmEcological />}
             {activeTab === 'SACHET / SAMUDRA' && <SachetSamudra />}
-            {activeTab === 'Reports' && <AnalyticsReporting />}
+            {activeTab === 'Reports' && <EvidencePack />}
           </PipelineFrame>
         )}
       </div>
