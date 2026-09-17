@@ -6,11 +6,12 @@ import {
   Panel, DataTable, SearchInput, Select, Tier, StatusBadge, Badge, Button, InfoBanner, ExportButton, downloadCsv, ProvenanceBadge, type Column,
 } from './components/ui';
 import { MapView, type MapMarker, type MapPolygon } from './components/MapView';
+import { LiveMonitoring } from './components/LiveMonitoring';
 import { analysePolygon, pointInPolygon } from './lib/geo';
 import type { SpillCase } from './data/types';
 
 export default function SpillIncidents() {
-  const { world, navigate, getAnalysis, revision } = useStore();
+  const { world, startFlow, getAnalysis, revision, serverMode } = useStore();
   const [query, setQuery] = useState('');
   const [region, setRegion] = useState('all');
   const [status, setStatus] = useState('all');
@@ -118,7 +119,7 @@ export default function SpillIncidents() {
     {
       key: 'go', header: '', width: '36px', sortable: false,
       render: (c) => (
-        <button onClick={(e) => { e.stopPropagation(); navigate({ tab: 'Investigation', caseId: c.id }); }} className="text-blue-600 hover:text-blue-800 p-1" title="Open investigation">
+        <button onClick={(e) => { e.stopPropagation(); startFlow(c.id); }} className="text-blue-600 hover:text-blue-800 p-1" title="Run the pipeline on this case">
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       ),
@@ -175,9 +176,11 @@ export default function SpillIncidents() {
             <button onClick={() => setView('map')} className={`px-2.5 py-1.5 text-[0.75rem] font-semibold flex items-center gap-1.5 border-l border-gray-300 ${view === 'map' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}><MapIcon className="w-3.5 h-3.5" /> Map</button>
           </div>
           <Button size="sm" onClick={() => setFiltersOpen((o) => !o)} icon={<Filter className="w-3 h-3" />}>Filters{activeFilters.length > 0 && ` (${activeFilters.length})`}</Button>
-          <ExportButton onExport={() => downloadCsv('oceanspill-cases.csv', columns.filter((c) => c.value), filtered)} />
+          <ExportButton onExport={() => downloadCsv('oceanwatch-cases.csv', columns.filter((c) => c.value), filtered)} />
         </div>
       </div>
+
+      {serverMode && <LiveMonitoring />}
 
       {filtersOpen && (
         <div className="bg-gray-50 border-b border-gray-200 px-4 py-2.5 flex-shrink-0">
@@ -203,12 +206,12 @@ export default function SpillIncidents() {
         <div className="flex-none h-[78vh] 2xl:h-auto 2xl:flex-1 min-w-0 flex flex-col gap-3">
           <Panel className="flex-1" bodyClass="min-h-0">
             {view === 'table' ? (
-              <DataTable columns={columns} rows={filtered} rowKey={(c) => c.id} dense onRowClick={(c) => navigate({ tab: 'Investigation', caseId: c.id })}
+              <DataTable columns={columns} rows={filtered} rowKey={(c) => c.id} dense onRowClick={(c) => startFlow(c.id)}
                 initialSort={{ key: 'date', dir: 'desc' }} minWidth={1560}
                 empty={<div className="space-y-3"><p>No cases match the current filters.</p>{activeFilters.length > 0 && <Button size="sm" onClick={clearAll}>Clear all filters</Button>}</div>} />
             ) : (
               <MapView initialCentre={{ lat: 15, lon: 80 }} initialZoom={3.9} markers={markers} polygons={polygons}
-                onMarkerClick={(m) => navigate({ tab: 'Investigation', caseId: m.id })}
+                onMarkerClick={(m) => startFlow(m.id)}
                 fitTo={markers.length ? markers.map((m) => m.position) : undefined} fitKey={`${filtered.length}-${region}-${status}-${tier}-${year}`} />
             )}
           </Panel>
@@ -227,7 +230,7 @@ export default function SpillIncidents() {
                 </div>
                 <p className="text-[0.71875rem] text-gray-600 leading-normal mb-2">{suggestion.aoi.rationale}</p>
                 <p className="text-[0.6875rem] text-gray-500 mb-2">Latest catalogued scene: {suggestion.lastScene ? fmt.date(suggestion.lastScene) : 'none in current case windows'}</p>
-                <Button size="sm" variant="primary" className="w-full justify-center" onClick={() => navigate({ tab: 'Satellite Tasking', section: suggestion.aoi.id })} icon={<Satellite className="w-3 h-3" />}>Open tasking queue</Button>
+                <Button size="sm" variant="primary" className="w-full justify-center" onClick={() => startFlow(world.cases[0].id, 'Satellite Tasking')} icon={<Satellite className="w-3 h-3" />}>Open tasking queue</Button>
               </div>
             )}
           </Panel>

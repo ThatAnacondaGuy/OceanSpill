@@ -43,8 +43,95 @@ function toImage(el: HTMLCanvasElement): SpriteImage {
   return { data: el.getContext('2d')!.getImageData(0, 0, el.width, el.height), pixelRatio: PIXEL_RATIO };
 }
 
+
+/**
+ * What a vessel looks like from above, by what it is. One arrowhead for every ship made a trawler
+ * and a supertanker identical on the map, and gave vessels the same shape language as the wind and
+ * current arrows, which is the confusion worth removing.
+ *
+ * The free-text type comes from the AIS registry, so matching is by keyword rather than an exact
+ * list; anything unrecognised gets a plain hull rather than a guess.
+ */
+export type VesselShape = 'tanker' | 'cargo' | 'bulk' | 'fishing' | 'passenger' | 'tug' | 'patrol' | 'platform' | 'plain';
+
+export function vesselShape(type: string | null | undefined): VesselShape {
+  const t = (type ?? '').toLowerCase();
+  if (!t) return 'plain';
+  if (/tanker|crude|lng|lpg|chemical|product/.test(t)) return 'tanker';
+  if (/container|cargo|feeder|ro-?ro|vehicle/.test(t)) return 'cargo';
+  // Word boundaries matter here: "offshore supply" contains "ore" and is not a bulk carrier.
+  if (/\bbulk\b|\bore\b|\bcarrier\b/.test(t)) return 'bulk';
+  if (/fishing|trawler|seiner|longlin|jigger/.test(t)) return 'fishing';
+  if (/passenger|cruise|ferry/.test(t)) return 'passenger';
+  if (/tug|supply|offshore|support|dredg|barge/.test(t)) return 'tug';
+  if (/patrol|coast ?guard|navy|naval|icgs|military|law/.test(t)) return 'patrol';
+  if (/platform|rig|installation|terminal/.test(t)) return 'platform';
+  return 'plain';
+}
+
+/** Hull outline pointing north, drawn around the icon centre. */
+function drawHull(ctx: CanvasRenderingContext2D, cx: number, cy: number, half: number, beam: number, bow = 1): void {
+  const stern = cy + half;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - half);                                   // bow
+  ctx.quadraticCurveTo(cx + beam, cy - half * 0.35 * bow, cx + beam, cy + half * 0.35);
+  ctx.lineTo(cx + beam * 0.82, stern);
+  ctx.lineTo(cx - beam * 0.82, stern);
+  ctx.lineTo(cx - beam, cy + half * 0.35);
+  ctx.quadraticCurveTo(cx - beam, cy - half * 0.35 * bow, cx, cy - half);
+  ctx.closePath();
+}
+
+/** The marks that tell one kind of ship from another at a glance. */
+function drawVesselDetail(ctx: CanvasRenderingContext2D, shape: VesselShape, cx: number, cy: number, half: number, beam: number): void {
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#ffffff';
+  ctx.fillStyle = '#ffffff';
+  ctx.lineWidth = Math.max(0.9, beam * 0.22);
+  if (shape === 'tanker') {
+    // Pipework running the length of the deck.
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - half * 0.35);
+    ctx.lineTo(cx, cy + half * 0.45);
+    ctx.stroke();
+  } else if (shape === 'cargo') {
+    // Stacked containers.
+    for (const offset of [-0.3, 0.05, 0.4]) {
+      ctx.fillRect(cx - beam * 0.55, cy + half * offset, beam * 1.1, half * 0.16);
+    }
+  } else if (shape === 'bulk') {
+    // Hatch covers.
+    for (const offset of [-0.3, 0.1, 0.5]) {
+      ctx.strokeRect(cx - beam * 0.5, cy + half * offset, beam, half * 0.14);
+    }
+  } else if (shape === 'fishing') {
+    // Boom over the stern.
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx, cy + half * 0.9);
+    ctx.stroke();
+  } else if (shape === 'passenger') {
+    // A tall superstructure over most of the hull.
+    ctx.fillRect(cx - beam * 0.6, cy - half * 0.25, beam * 1.2, half * 0.9);
+  } else if (shape === 'tug') {
+    // A short deckhouse forward.
+    ctx.fillRect(cx - beam * 0.5, cy - half * 0.1, beam, half * 0.4);
+  } else if (shape === 'patrol') {
+    // A mast amidships.
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - half * 0.15);
+    ctx.lineTo(cx, cy + half * 0.55);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy - half * 0.2, beam * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /** Marker glyph drawn around the icon centre; vessels point north and are rotated by the map. */
-export function markerIcon(kind: string, color: string, r: number): SpriteImage {
+export function markerIcon(kind: string, color: string, r: number, shape: VesselShape = 'plain'): SpriteImage {
   const size = Math.ceil((r + 7) * 2);
   const [el, ctx] = canvas(size, size);
   const cx = size / 2;
@@ -56,15 +143,28 @@ export function markerIcon(kind: string, color: string, r: number): SpriteImage 
   ctx.shadowColor = 'rgba(0,0,0,0.35)';
   ctx.shadowBlur = 2;
   if (kind === 'vessel') {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - r - 2);
-    ctx.lineTo(cx + r * 0.72, cy + r);
-    ctx.lineTo(cx, cy + r * 0.45);
-    ctx.lineTo(cx - r * 0.72, cy + r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.stroke();
+    // A hull seen from above, with the marks that say what kind of ship it is. A platform does not
+    // move, so it keeps a fixed square rather than a hull.
+    if (shape === 'platform') {
+      ctx.fillRect(cx - r * 0.8, cy - r * 0.8, r * 1.6, r * 1.6);
+      ctx.shadowBlur = 0;
+      ctx.strokeRect(cx - r * 0.8, cy - r * 0.8, r * 1.6, r * 1.6);
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.5, cy - r * 0.5);
+      ctx.lineTo(cx + r * 0.5, cy + r * 0.5);
+      ctx.moveTo(cx + r * 0.5, cy - r * 0.5);
+      ctx.lineTo(cx - r * 0.5, cy + r * 0.5);
+      ctx.stroke();
+    } else {
+      const long = shape === 'tanker' || shape === 'bulk' || shape === 'cargo';
+      const half = r * (long ? 1.45 : shape === 'fishing' || shape === 'tug' ? 1.05 : 1.25);
+      const beam = r * (shape === 'tanker' || shape === 'bulk' ? 0.62 : shape === 'fishing' ? 0.5 : 0.56);
+      drawHull(ctx, cx, cy, half, beam, shape === 'patrol' ? 1.35 : 1);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.stroke();
+      drawVesselDetail(ctx, shape, cx, cy, half, beam);
+    }
   } else if (kind === 'port') {
     ctx.fillRect(cx - r * 0.75, cy - r * 0.75, r * 1.5, r * 1.5);
     ctx.shadowBlur = 0;
@@ -102,6 +202,18 @@ export function markerIcon(kind: string, color: string, r: number): SpriteImage 
     ctx.closePath();
     ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.stroke();
+  } else if (kind === 'detection') {
+    // A hollow diamond, deliberately unlike the filled circle a confirmed case gets. Nobody has
+    // decided anything about this yet, and the marker should not look like they have.
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r - 1);
+    ctx.lineTo(cx + r + 1, cy);
+    ctx.lineTo(cx, cy + r + 1);
+    ctx.lineTo(cx - r - 1, cy);
+    ctx.closePath();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 2;
     ctx.stroke();
   } else {
     ctx.beginPath();

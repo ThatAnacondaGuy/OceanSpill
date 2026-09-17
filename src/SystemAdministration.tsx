@@ -8,9 +8,10 @@ import {
   Badge, Button, KeyValue, DataTable, SearchInput, Select, InfoBanner, Modal, Field,
   TextInput, StatCard, Toggle, ExportButton, downloadCsv, ProvenanceBadge, type Column,
 } from './components/ui';
-import { MODEL_STATUS } from './engine/detection';
+import { MODEL_STATUS, modelScoreLine } from './engine/detection';
 import type { SystemUser } from './data/types';
 import { MODULES, ROLE_MATRIX } from './data/access';
+import { SetPasswordModal, resetUserMfa } from './components/AccountSecurity';
 
 const SECTIONS = [
   { id: 'users', label: 'User management', icon: Users },
@@ -24,7 +25,8 @@ const SECTIONS = [
 
 // The matrix shown here is the one that controls navigation and editing across the app.
 export default function SystemAdministration() {
-  const { world, now, currentUser, addUser, updateUser, notify, revision, weights, getAnalysis } = useStore();
+  const { world, now, currentUser, addUser, updateUser, notify, revision, weights, getAnalysis, serverMode } = useStore();
+  const [passwordFor, setPasswordFor] = useState<SystemUser | null>(null);
   const [section, setSection] = useState('users');
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -73,17 +75,31 @@ export default function SystemAdministration() {
       render: (u) => u.lastLogin ? <div><div className="font-mono text-gray-700">{fmt.utcShort(u.lastLogin)}</div><div className="text-[0.65625rem] text-gray-400">{fmt.ago(u.lastLogin, now)}</div></div> : <span className="text-gray-300">Never</span>,
     },
     {
-      key: 'actions', header: '', width: '150px', sortable: false,
+      key: 'actions', header: '', width: serverMode ? '210px' : '150px', sortable: false,
       render: (u) => (
         <div className="flex gap-1">
           <Button size="sm" disabled={restricted} onClick={() => {
             updateUser(u.id, { status: u.status === 'Active' ? 'Suspended' : 'Active' });
             notify({ kind: 'info', title: `${u.name} ${u.status === 'Active' ? 'suspended' : 'reactivated'}` });
           }}>{u.status === 'Active' ? 'Suspend' : 'Activate'}</Button>
-          <Button size="sm" disabled={restricted || u.mfa} onClick={() => {
-            updateUser(u.id, { mfa: true });
-            notify({ kind: 'success', title: 'MFA enforced', body: `${u.name} must enrol at next sign-in.` });
-          }}>Force MFA</Button>
+          {serverMode ? (
+            <>
+              <Button size="sm" disabled={restricted} onClick={() => setPasswordFor(u)}>Set password</Button>
+              <Button size="sm" disabled={restricted || !u.mfa} onClick={() => {
+                resetUserMfa(u.id)
+                  .then(() => {
+                    updateUser(u.id, { mfa: false });
+                    notify({ kind: 'success', title: 'Two-factor reset', body: `${u.name} must enrol an authenticator app again.` });
+                  })
+                  .catch((e: Error) => notify({ kind: 'error', title: 'Not reset', body: e.message }));
+              }}>Reset 2FA</Button>
+            </>
+          ) : (
+            <Button size="sm" disabled={restricted || u.mfa} onClick={() => {
+              updateUser(u.id, { mfa: true });
+              notify({ kind: 'success', title: 'MFA enforced', body: `${u.name} must enrol at next sign-in.` });
+            }}>Force MFA</Button>
+          )}
         </div>
       ),
     },
@@ -151,7 +167,7 @@ export default function SystemAdministration() {
               <SearchInput value={query} onChange={setQuery} placeholder="Name, email, role or agency…" className="flex-1" />
               <Select value={roleFilter} onChange={setRoleFilter}
                 options={[{ value: 'all', label: 'All roles' }, ...Array.from(new Set(world.users.map((u) => u.role))).map((r) => ({ value: r, label: r }))]} />
-              <ExportButton onExport={() => downloadCsv('oceanspill-users.csv', userColumns.filter((c) => c.value), users)} />
+              <ExportButton onExport={() => downloadCsv('oceanwatch-users.csv', userColumns.filter((c) => c.value), users)} />
               <Button size="sm" variant="primary" disabled={restricted} onClick={() => setAddOpen(true)} icon={<Plus className="w-3 h-3" />}>Add user</Button>
             </div>
 
@@ -282,13 +298,14 @@ export default function SystemAdministration() {
                   <h4 className="text-[0.75rem] font-bold text-gray-900">Segmentation model</h4>
                   <p className="text-[0.6875rem] text-gray-500">{MODEL_STATUS.version ?? 'No version'}</p>
                 </div>
-                <Badge tone="gray">Not trained</Badge>
+                <Badge tone={MODEL_STATUS.trained ? 'green' : 'gray'}>{MODEL_STATUS.trained ? 'Trained' : 'Not trained'}</Badge>
               </div>
               <KeyValue cols={1} items={[
-                ['Planned architecture', MODEL_STATUS.plannedArchitecture],
-                ['Planned training', MODEL_STATUS.plannedTraining],
-                ['Loss', MODEL_STATUS.plannedLoss],
-                ['Evaluation', MODEL_STATUS.evaluation.join('; ')],
+                ['Accuracy', modelScoreLine(MODEL_STATUS.models.sarSegmentation)],
+                ['Architecture', MODEL_STATUS.architecture],
+                ['Trained on', MODEL_STATUS.training],
+                ['Loss', MODEL_STATUS.loss],
+                ['Scoring', MODEL_STATUS.evaluation.join('; ')],
               ]} />
               <p className="text-[0.6875rem] text-gray-500 mt-1.5">{MODEL_STATUS.note}</p>
             </div>
@@ -370,7 +387,7 @@ export default function SystemAdministration() {
                 value={`${world.dataSources.filter((d) => d.status === 'Online' || d.status === 'Interim fallback').length}/${world.dataSources.length}`} trend="online or interim fallback" accent="green" />
               <StatCard icon={<Database className="w-5 h-5" />} title="Cases loaded" value={world.cases.length} trend={`${world.index.failures.length} build failures`} accent={world.index.failures.length ? 'amber' : 'green'} />
               <StatCard icon={<Cpu className="w-5 h-5" />} title="Engine runtime" value={`${meanRuntime.toFixed(0)} ms`} trend="mean per case, measured here" />
-              <StatCard icon={<Key className="w-5 h-5" />} title="Pending access" value={world.dataSources.filter((d) => d.status === 'Pending access' || d.status === 'Not configured').length} trend="integrations waiting on credentials" accent="amber" />
+              <StatCard icon={<Key className="w-5 h-5" />} title="Authorisation required" value={world.dataSources.filter((d) => d.status === 'Authorisation required' || d.status === 'Not configured').length} trend="integrations waiting on credentials" accent="amber" />
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h4 className="text-[0.75rem] font-bold text-gray-700 uppercase mb-2">Analysis engine, measured in this browser</h4>
@@ -409,6 +426,7 @@ export default function SystemAdministration() {
       </section>
 
       <AddUserModal open={addOpen} onClose={() => setAddOpen(false)} onAdd={addUser} />
+      <SetPasswordModal userId={passwordFor?.id ?? null} userName={passwordFor?.name ?? ''} onClose={() => setPasswordFor(null)} />
     </main>
   );
 }

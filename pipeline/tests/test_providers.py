@@ -156,3 +156,48 @@ def test_live_cdse_catalogue_finds_msc_elsa3_scene(settings: Settings):
         BBox(75.8, 9.0, 76.4, 9.6), datetime(2025, 5, 24, tzinfo=timezone.utc), datetime(2025, 5, 31, tzinfo=timezone.utc)
     )
     assert any(haversine_km(9.31, 76.14, s.footprint[0][1], s.footprint[0][0]) < 400 for s in scenes)
+
+
+class TestOpticalCoverage:
+    """Optical is stopped by cloud where radar is not, so the catalogue has to say which scenes
+    are actually usable rather than only how many exist."""
+
+    def _scene(self, cloud, hours=0):
+        from datetime import datetime, timedelta, timezone
+
+        from oceanspill.providers.eo_sentinel2 import OpticalScene
+
+        return OpticalScene(
+            id="x", name=f"S2A_MSIL2A_{cloud}", platform="SENTINEL-2A", product_type="S2MSI2A",
+            start=datetime(2023, 3, 6, tzinfo=timezone.utc) + timedelta(hours=hours),
+            footprint=[], cloud_percent=cloud, size_bytes=1_000_000_000,
+        )
+
+    def test_a_clear_scene_is_usable_and_a_clouded_one_is_not(self):
+        assert self._scene(5).usable
+        assert not self._scene(85).usable
+
+    def test_a_scene_with_no_cloud_figure_is_not_assumed_clear(self):
+        scene = self._scene(5)
+        scene.cloud_percent = None
+        assert not scene.usable
+
+    def test_the_summary_names_the_clearest_scene_and_when_it_flew(self):
+        from datetime import datetime, timezone
+
+        from oceanspill.providers.eo_sentinel2 import summarise
+
+        incident = datetime(2023, 3, 5, tzinfo=timezone.utc)
+        report = summarise([self._scene(60, 0), self._scene(3, 24), self._scene(90, 48)], incident)
+        assert report["scenes"] == 3
+        assert report["usable"] == 1
+        assert report["clearest"]["cloudPercent"] == 3
+        assert report["clearest"]["hoursFromIncident"] == 48.0
+
+    def test_nothing_in_the_catalogue_is_reported_as_nothing(self):
+        from datetime import datetime, timezone
+
+        from oceanspill.providers.eo_sentinel2 import summarise
+
+        report = summarise([], datetime(2023, 3, 5, tzinfo=timezone.utc))
+        assert report["scenes"] == 0 and report["usable"] == 0 and report["clearest"] is None

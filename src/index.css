@@ -8,37 +8,6 @@
   }
 }
 
-/* Map pulse rings (HTML markers above the WebGL canvas). */
-.os-pulse {
-  width: var(--pulse-size, 16px);
-  height: var(--pulse-size, 16px);
-  border-radius: 9999px;
-  pointer-events: none;
-  position: relative;
-}
-.os-pulse::before,
-.os-pulse::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  border: 2px solid var(--pulse-color, #ef4444);
-  opacity: 0;
-  animation: os-pulse 2.4s ease-out infinite;
-}
-.os-pulse::after {
-  animation-delay: 1.2s;
-}
-.os-pulse-origin::before,
-.os-pulse-origin::after {
-  border-width: 2.5px;
-  animation-duration: 2s;
-}
-@keyframes os-pulse {
-  0% { transform: scale(0.8); opacity: 0.75; }
-  100% { transform: scale(3.2); opacity: 0; }
-}
-
 .maplibregl-canvas:focus { outline: none; }
 
 /* Horizontal scrollers without a visible scrollbar (arrows indicate overflow instead). */

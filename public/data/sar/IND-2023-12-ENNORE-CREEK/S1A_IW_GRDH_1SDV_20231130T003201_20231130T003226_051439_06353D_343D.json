@@ -1,0 +1,283 @@
+{
+ "schemaVersion": 1,
+ "caseId": "IND-2023-12-ENNORE-CREEK",
+ "scene": "S1A_IW_GRDH_1SDV_20231130T003201_20231130T003226_051439_06353D_343D",
+ "product": "Sentinel-1 GRD",
+ "radiometry": "Sigma0 (thermal noise removed)",
+ "processedAt": "2026-09-16T10:10:45Z",
+ "polarisation": "VV",
+ "method": "Adaptive-threshold dark-spot detection on Lee-filtered calibrated backscatter (classical method, not a trained model)",
+ "landMask": "Natural Earth 1:10m coastline (data/reference/coastline_ne10m.json)",
+ "parameters": {
+  "leeWindow": 7,
+  "detectorWindow": 51,
+  "kSigma": 1.5,
+  "minContrastDb": 3.0,
+  "minAreaKm2": 0.5,
+  "coastBufferKm": 2.0,
+  "maxElongation": 50.0,
+  "multilookFactor": 8,
+  "pixelSpacingM": 80.0,
+  "equivalentLooks": 281.6,
+  "radiusKm": 40.0
+ },
+ "crop": {
+  "corners": [
+   {
+    "lat": 13.49659,
+    "lon": 80.75941
+   },
+   {
+    "lat": 13.63811,
+    "lon": 80.03408
+   },
+   {
+    "lat": 12.98216,
+    "lon": 79.90133
+   },
+   {
+    "lat": 12.84023,
+    "lon": 80.62463
+   }
+  ],
+  "shape": [
+   910,
+   1000
+  ]
+ },
+ "incidenceDeg": 34.09,
+ "sea": {
+  "meanDb": -16.35,
+  "stdDb": 2.38,
+  "pixels": 477550
+ },
+ "quicklook": "sar/IND-2023-12-ENNORE-CREEK/S1A_IW_GRDH_1SDV_20231130T003201_20231130T003226_051439_06353D_343D.png",
+ "spots": [
+  {
+   "areaKm2": 0.864,
+   "meanDb": -28.11,
+   "backgroundDb": -23.09,
+   "contrastDb": -5.02,
+   "centroid": {
+    "lat": 13.43168,
+    "lon": 80.41308
+   },
+   "distanceKm": 25.91,
+   "elongation": 1.52,
+   "orientationDeg": 68.2,
+   "outline": [
+    {
+     "lat": 13.43794,
+     "lon": 80.41128
+    },
+    {
+     "lat": 13.43594,
+     "lon": 80.41766
+    },
+    {
+     "lat": 13.43207,
+     "lon": 80.42214
+    },
+    {
+     "lat": 13.4312,
+     "lon": 80.42272
+    },
+    {
+     "lat": 13.43062,
+     "lon": 80.42184
+    },
+    {
+     "lat": 13.42582,
+     "lon": 80.41182
+    },
+    {
+     "lat": 13.42567,
+     "lon": 80.40878
+    },
+    {
+     "lat": 13.4284,
+     "lon": 80.40632
+    },
+    {
+     "lat": 13.42912,
+     "lon": 80.40647
+    },
+    {
+     "lat": 13.43606,
+     "lon": 80.40939
+    },
+    {
+     "lat": 13.43736,
+     "lon": 80.41041
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.64,
+   "meanDb": -23.99,
+   "backgroundDb": -18.92,
+   "contrastDb": -5.08,
+   "centroid": {
+    "lat": 13.47938,
+    "lon": 80.33878
+   },
+   "distanceKm": 29.44,
+   "elongation": 1.68,
+   "orientationDeg": 76.3,
+   "outline": [
+    {
+     "lat": 13.48242,
+     "lon": 80.34501
+    },
+    {
+     "lat": 13.48155,
+     "lon": 80.34558
+    },
+    {
+     "lat": 13.47562,
+     "lon": 80.34136
+    },
+    {
+     "lat": 13.47518,
+     "lon": 80.33976
+    },
+    {
+     "lat": 13.47617,
+     "lon": 80.33468
+    },
+    {
+     "lat": 13.47718,
+     "lon": 80.33338
+    },
+    {
+     "lat": 13.47948,
+     "lon": 80.3331
+    },
+    {
+     "lat": 13.48093,
+     "lon": 80.33339
+    },
+    {
+     "lat": 13.48151,
+     "lon": 80.33426
+    },
+    {
+     "lat": 13.48268,
+     "lon": 80.33978
+    },
+    {
+     "lat": 13.48284,
+     "lon": 80.34283
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.64,
+   "meanDb": -22.22,
+   "backgroundDb": -15.72,
+   "contrastDb": -6.49,
+   "centroid": {
+    "lat": 13.47778,
+    "lon": 80.37883
+   },
+   "distanceKm": 29.79,
+   "elongation": 1.89,
+   "orientationDeg": 38.8,
+   "outline": [
+    {
+     "lat": 13.48342,
+     "lon": 80.38213
+    },
+    {
+     "lat": 13.48169,
+     "lon": 80.38329
+    },
+    {
+     "lat": 13.47881,
+     "lon": 80.3827
+    },
+    {
+     "lat": 13.47534,
+     "lon": 80.38124
+    },
+    {
+     "lat": 13.47244,
+     "lon": 80.37688
+    },
+    {
+     "lat": 13.47603,
+     "lon": 80.37385
+    },
+    {
+     "lat": 13.47878,
+     "lon": 80.37516
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.672,
+   "meanDb": -22.24,
+   "backgroundDb": -19.08,
+   "contrastDb": -3.16,
+   "centroid": {
+    "lat": 13.45847,
+    "lon": 80.58845
+   },
+   "distanceKm": 39.31,
+   "elongation": 1.26,
+   "orientationDeg": 14.6,
+   "outline": [
+    {
+     "lat": 13.46379,
+     "lon": 80.58988
+    },
+    {
+     "lat": 13.4612,
+     "lon": 80.59161
+    },
+    {
+     "lat": 13.45789,
+     "lon": 80.59319
+    },
+    {
+     "lat": 13.45456,
+     "lon": 80.591
+    },
+    {
+     "lat": 13.45326,
+     "lon": 80.58998
+    },
+    {
+     "lat": 13.45296,
+     "lon": 80.58766
+    },
+    {
+     "lat": 13.4544,
+     "lon": 80.58419
+    },
+    {
+     "lat": 13.45526,
+     "lon": 80.58361
+    },
+    {
+     "lat": 13.46104,
+     "lon": 80.58479
+    },
+    {
+     "lat": 13.46234,
+     "lon": 80.58581
+    },
+    {
+     "lat": 13.46394,
+     "lon": 80.58916
+    }
+   ]
+  }
+ ],
+ "limitations": [
+  "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
+  "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",
+  "Multilooking trades resolution for speckle reduction; slicks narrower than two output pixels can be missed",
+  "The quicklook is in radar geometry (not north-up); use the outlines on the map for location"
+ ]
+}

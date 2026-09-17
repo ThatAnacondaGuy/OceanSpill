@@ -4,13 +4,15 @@ import {
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
 import { legalSummary } from './data/world';
+import { chainOfCustodyPdf } from './data/server';
+import AnalyticsReporting from './AnalyticsReporting';
 import {
   Badge, Button, Tier, StatusBadge, KeyValue, Tabs, DataTable, SearchInput, Select,
   InfoBanner, EmptyState, ExportButton, downloadCsv, triggerDownload, StatCard, ProvenanceBadge, type Column,
 } from './components/ui';
 import { MapView, type MapMarker } from './components/MapView';
 import { analysePolygon } from './lib/geo';
-import { MODEL_STATUS } from './engine/detection';
+import { MODEL_STATUS, modelScoreLine } from './engine/detection';
 import type { AuditEntry, HistoricalIncident, SpillCase } from './data/types';
 
 /**
@@ -21,7 +23,7 @@ import type { AuditEntry, HistoricalIncident, SpillCase } from './data/types';
  * attribution may have to be defended months after the analyst has moved on.
  */
 export default function CaseArchive() {
-  const { world, now, getAnalysis, navigate, consumeSection, revision, weights } = useStore();
+  const { world, now, getAnalysis, startFlow, consumeSection, revision, weights, notify, serverMode } = useStore();
   const [tab, setTab] = useState('archive');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -97,7 +99,7 @@ export default function CaseArchive() {
     {
       key: 'target', header: 'Target', width: '150px', value: (e) => e.target,
       render: (e) => world.cases.some((c) => c.id === e.target)
-        ? <button onClick={() => navigate({ tab: 'Investigation', caseId: e.target })} className="font-mono text-blue-600 hover:underline">{e.target}</button>
+        ? <button onClick={() => startFlow(e.target)} className="font-mono text-blue-600 hover:underline">{e.target}</button>
         : <span className="font-mono text-gray-600 text-[0.6875rem]">{e.target}</span>,
     },
     { key: 'detail', header: 'Detail', value: (e) => e.detail, render: (e) => e.detail ? <span className="text-gray-600">{e.detail}</span> : <span className="text-gray-400">Case timeline entry</span> },
@@ -111,6 +113,14 @@ export default function CaseArchive() {
   ];
 
   const exportChainOfCustody = (c: SpillCase) => {
+    if (serverMode) {
+      // The server builds this one from its own artifacts and audit trail and signs it, so the
+      // document can be checked later rather than taken on trust.
+      chainOfCustodyPdf(c.id)
+        .then((filename) => notify({ kind: 'success', title: 'Signed record exported', body: filename }))
+        .catch((e: Error) => notify({ kind: 'error', title: 'Record not exported', body: e.message }));
+      return;
+    }
     const a = getAnalysis(c.id);
     const shape = analysePolygon(c.detection.polygon.ring);
     const events = world.audit.filter((e) => e.target === c.id).sort((x, y) => x.t - y.t);
@@ -133,10 +143,10 @@ export default function CaseArchive() {
     for (const g of c.detection.geometryAssumptions) L.push(`    assumption: ${g}`);
     L.push(`  SAR catalogue    : ${c.detection.scenes.length} scene(s)`);
     for (const sc of c.detection.scenes) L.push(`    ${sc.name} (${sc.provider}, ${fmt.utc(sc.start)}${sc.coversIncident ? ', covers incident' : ''})`);
-    L.push(`  Segmentation     : ${MODEL_STATUS.trained ? MODEL_STATUS.version : 'not run (no trained model yet)'}`);
+    L.push(`  Segmentation     : ${MODEL_STATUS.trained ? `${MODEL_STATUS.version} (${modelScoreLine(MODEL_STATUS.models.sarSegmentation)})` : 'not run (no trained model yet)'}`);
     if (c.detection.classProbabilities) {
       const cp = c.detection.classProbabilities;
-      L.push(`  Raw class scores : oil ${cp.oil.toFixed(3)}, look-alike ${cp.lookalike.toFixed(3)}, sea ${cp.sea.toFixed(3)}`);
+      L.push(`  Model score      : oil ${cp.oil.toFixed(3)}, not oil ${cp.notOil.toFixed(3)} (${c.detection.modelVersion ?? 'model'})`);
     }
     if (a) {
       L.push(`  Detection basis  : ${a.assessment.confidenceBasis} (${a.assessment.verdict})`, '');
@@ -241,7 +251,13 @@ export default function CaseArchive() {
         { id: 'archive', label: 'Case archive', count: archived.length },
         { id: 'historical', label: 'Historical register', count: world.historical.length },
         { id: 'audit', label: 'Audit trail', count: audit.length },
+        // The register-wide analytics used to be a tab of its own. It is a records view — statistics
+        // over every incident and how well the models score — so it belongs with the records, not at
+        // the end of one case's pipeline where it answered a question nobody had asked.
+        { id: 'analytics', label: 'Register analytics & model quality' },
       ]} />
+
+      {tab === 'analytics' && <AnalyticsReporting />}
 
       {tab === 'archive' && (
         <div className="flex-none lg:flex-1 lg:min-h-0 flex flex-col lg:flex-row gap-4 p-4">
@@ -252,7 +268,7 @@ export default function CaseArchive() {
                 options={[{ value: 'all', label: 'All outcomes' }, ...Array.from(new Set(world.cases.map((c) => c.status))).map((s) => ({ value: s, label: s }))]} />
               <Select value={yearFilter} onChange={setYearFilter}
                 options={[{ value: 'all', label: 'All years' }, ...Array.from(new Set(world.cases.map((c) => new Date(c.incidentTime).getUTCFullYear()))).sort((a, b) => b - a).map((y) => ({ value: String(y), label: String(y) }))]} />
-              <ExportButton onExport={() => downloadCsv('oceanspill-case-archive.csv', caseColumns.filter((c) => c.value), archived)} />
+              <ExportButton onExport={() => downloadCsv('oceanwatch-case-archive.csv', caseColumns.filter((c) => c.value), archived)} />
             </div>
             <div className="flex-1 min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
               <DataTable columns={caseColumns} rows={archived} rowKey={(c) => c.id} dense
@@ -356,7 +372,7 @@ export default function CaseArchive() {
                   </div>
                 </div>
                 <div className="p-3 border-t border-gray-200 flex gap-2">
-                  <Button size="sm" className="flex-1 justify-center" onClick={() => navigate({ tab: 'Investigation', caseId: active.id })}>
+                  <Button size="sm" className="flex-1 justify-center" onClick={() => startFlow(active.id)}>
                     Reopen in workspace
                   </Button>
                   <Button size="sm" variant="primary" className="flex-1 justify-center" onClick={() => exportChainOfCustody(active)} icon={<Download className="w-3 h-3" />}>
@@ -379,7 +395,7 @@ export default function CaseArchive() {
               options={[{ value: 'all', label: 'All categories' }, ...Array.from(new Set(world.audit.map((e) => e.category))).map((c) => ({ value: c, label: c }))]} />
             <Select value={auditActor} onChange={setAuditActor}
               options={[{ value: 'all', label: 'All actors' }, ...actors.map((a) => ({ value: a, label: a }))]} />
-            <ExportButton onExport={() => downloadCsv('oceanspill-audit-trail.csv', auditColumns.filter((c) => c.value), audit)} label="Export audit" />
+            <ExportButton onExport={() => downloadCsv('oceanwatch-audit-trail.csv', auditColumns.filter((c) => c.value), audit)} label="Export audit" />
           </div>
           <div className="flex-1 min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
             <DataTable columns={auditColumns} rows={audit} rowKey={(e) => e.id} dense
@@ -396,7 +412,7 @@ export default function CaseArchive() {
 }
 
 function HistoricalRegister() {
-  const { world, navigate } = useStore();
+  const { world, startFlow } = useStore();
   const [query, setQuery] = useState('');
   const [decade, setDecade] = useState('all');
   const [selected, setSelected] = useState<string | null>(null);
@@ -446,7 +462,7 @@ function HistoricalRegister() {
         <div className="flex gap-2">
           <SearchInput value={query} onChange={setQuery} placeholder="Vessel, location, oil, cause…" className="flex-1" />
           <Select value={decade} onChange={setDecade} options={[{ value: 'all', label: 'All decades' }, ...decades.map((d) => ({ value: d, label: d }))]} />
-          <ExportButton onExport={() => downloadCsv('oceanspill-historical-register.csv', columns.filter((c) => c.value), rows)} />
+          <ExportButton onExport={() => downloadCsv('oceanwatch-historical-register.csv', columns.filter((c) => c.value), rows)} />
         </div>
         <div className="flex-1 min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
           <DataTable columns={columns} rows={rows} rowKey={(h) => h.id} dense selectedId={selected}
@@ -492,7 +508,7 @@ function HistoricalRegister() {
                   <ExternalLink className="w-3 h-3" /> Source
                 </a>
                 {active.activeCaseId && (
-                  <Button size="sm" variant="primary" onClick={() => navigate({ tab: 'Investigation', caseId: active.activeCaseId })}>Open analysed case</Button>
+                  <Button size="sm" variant="primary" onClick={() => active.activeCaseId && startFlow(active.activeCaseId)}>Open analysed case</Button>
                 )}
               </div>
             </div>

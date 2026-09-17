@@ -12,18 +12,22 @@ import {
 import { analysePolygon, formatBearing, type LatLon, type PolygonShape } from './lib/geo';
 import { interpolateTrack } from './engine/attribution';
 import { OIL_TYPES, type OilProperties } from './engine/drift';
-import { MODEL_STATUS } from './engine/detection';
+import { MODEL_STATUS, driftCalibrationNote, modelScoreLine } from './engine/detection';
 import type { CaseAnalysis } from './store/store';
 import type { CaseStatus, SpillCase, WorkflowStage } from './data/types';
 import { CASE_STATUSES, WORKFLOW_ORDER, canMoveStage, canSetStatus } from './data/workflow';
 import { READ_ONLY_HINT } from './data/access';
-import { dataUrl } from './data/world';
+import { ArtifactImage } from './components/ArtifactImage';
 import { ECOLOGICAL_AREAS } from './data/geography';
 import { DEFAULT_WEIGHTS } from './engine/attribution';
 
 export default function Investigation() {
   const store = useStore();
-  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, navigate, weights, setWeights, resetWeights, revision } = store;
+  const { world, now, selectedCaseId, setSelectedCaseId, getAnalysis, navigate, weights, setWeights, resetWeights, revision, flowCaseId } = store;
+  // While a case is running through the pipeline the page belongs to that case alone. Offering
+  // the others would let someone wander off mid-run and read one case's map beside another's
+  // vessel list, which is exactly the confusion the pipeline exists to remove.
+  const locked = flowCaseId != null;
   const editable = store.canEdit('Investigation');
 
   const [query, setQuery] = useState('');
@@ -184,7 +188,7 @@ export default function Investigation() {
           const isDarkNow = track.gaps.some((g) => playback.value >= g.start && playback.value <= g.end);
           if (at) {
             markers.push({
-              id: `v-${score.mmsi}`, position: at, kind: 'vessel', color, size: focused ? 8 : isTop ? 7 : 5.5,
+              id: `v-${score.mmsi}`, position: at, kind: 'vessel', vesselType: vessel?.type, color, size: focused ? 8 : isTop ? 7 : 5.5,
               headingDeg: at.cog, label: vessel.name, sublabel: `Rank ${score.rank} · score ${(score.total * 100).toFixed(0)}`,
               selected: focused, dimmed: dim, z: isTop ? 9 : 7,
               meta: {
@@ -196,7 +200,7 @@ export default function Investigation() {
             const last = track.pings.filter((p) => p.t < playback.value).pop();
             if (last) {
               markers.push({
-                id: `v-dark-${score.mmsi}`, position: last, kind: 'vessel', color: '#dc2626',
+                id: `v-dark-${score.mmsi}`, position: last, kind: 'vessel', vesselType: vessel?.type, color: '#dc2626',
                 size: 6, headingDeg: last.cog, label: `${vessel.name} (dark)`,
                 sublabel: 'Transponder silent — last known position', dimmed: dim, pulse: true, z: 8,
                 meta: { ID: fmt.vesselId(vessel), 'Dark for': `${score.darkMinutes} min` },
@@ -244,7 +248,8 @@ export default function Investigation() {
 
   return (
     <main className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
-      {/* Case rail */}
+      {/* Case rail — hidden while the pipeline is running this case. */}
+      {!locked && (
       <aside className="w-full lg:w-[230px] xl:w-[260px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="p-2 border-b border-gray-200">
           <SearchInput value={query} onChange={setQuery} placeholder="Filter cases…" />
@@ -273,6 +278,7 @@ export default function Investigation() {
           })}
         </div>
       </aside>
+      )}
 
       {/* Map */}
       <section className="flex-1 min-w-0 min-h-[72vh] lg:min-h-0 flex flex-col flex-shrink-0 lg:flex-shrink">
@@ -419,6 +425,16 @@ export default function Investigation() {
               </div>
             </div>
           )}
+          {/*
+            A number out of 100 next to a ship's name reads as "77% sure it was them". It is not
+            that. It orders the vessels that were transmitting against each other on proximity and
+            timing, and a vessel that was not transmitting cannot appear at all — so saying what the
+            number is matters more than the number.
+          */}
+          <p className="text-[0.65625rem] text-gray-500 leading-normal mt-1.5">
+            The score orders vessels against each other on how well their track fits the release window.
+            It is not a probability of guilt, and it can only rank ships that were transmitting.
+          </p>
         </div>
       </aside>
 
@@ -601,7 +617,7 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
                 <ProvenanceBadge p="observed" />
               </div>
               {identitiesVisible
-                ? <img src={dataUrl(m.quicklook)} alt={`Calibrated ${m.polarisation} sigma0 quicklook with detected dark spots outlined`}
+                ? <ArtifactImage path={m.quicklook} alt={`Calibrated ${m.polarisation} sigma0 quicklook with detected dark spots outlined`}
                     className="w-full rounded border border-gray-200 bg-gray-900" />
                 : <div className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-3 py-6 text-center text-[0.75rem] text-gray-600">SAR imagery is withheld at your clearance level.</div>}
               <p className="text-[0.6875rem] text-gray-500 mt-1 leading-normal">{m.method}</p>
@@ -632,11 +648,15 @@ function DetectionTab({ active, analysis, shape, oil }: { active: SpillCase; ana
       )}
 
       <Section title="Segmentation model" icon={<Layers className="w-3.5 h-3.5" />}>
-        <div className="flex items-center gap-1.5 mb-1.5"><ProvenanceBadge p="pending" /><span className="text-[0.6875rem] text-gray-600">Not trained</span></div>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <ProvenanceBadge p={MODEL_STATUS.trained ? 'real' : 'pending'} />
+          <span className="text-[0.6875rem] text-gray-600">{MODEL_STATUS.trained ? MODEL_STATUS.version : 'Not trained'}</span>
+        </div>
         <KeyValue cols={1} items={[
-          ['Architecture', MODEL_STATUS.plannedArchitecture],
-          ['Training plan', MODEL_STATUS.plannedTraining],
-          ['Loss', MODEL_STATUS.plannedLoss],
+          ['Accuracy', modelScoreLine(MODEL_STATUS.models.sarSegmentation)],
+          ['Architecture', MODEL_STATUS.architecture],
+          ['Trained on', MODEL_STATUS.training],
+          ['Loss', MODEL_STATUS.loss],
         ]} />
         <p className="text-[0.6875rem] text-gray-500 mt-1.5 leading-normal">{MODEL_STATUS.note}</p>
       </Section>
@@ -764,6 +784,7 @@ function RecordTab({ active }: { active: SpillCase }) {
 function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnalysis }) {
   const hc = analysis.hindcast;
   const fc = analysis.forecast;
+  const driftCalibration = driftCalibrationNote();
   return (
     <div className="p-4 space-y-4">
       <Section title="Hindcast — where it came from" icon={<Clock className="w-3.5 h-3.5" />}>
@@ -787,6 +808,11 @@ function DriftTab({ active, analysis }: { active: SpillCase; analysis: CaseAnaly
               <p className="text-[0.75rem] font-bold text-amber-900">± {hc.timeWindowHours.toFixed(1)} h</p>
             </div>
           </div>
+          {driftCalibration && (
+            <p className={`text-[0.6875rem] mt-2 pt-2 border-t border-amber-200 ${driftCalibration.optimistic ? 'text-amber-900' : 'text-amber-700'}`}>
+              {driftCalibration.line}
+            </p>
+          )}
         </div>
         <KeyValue cols={2} items={[
           ['Integration', `${((active.detection.acquiredAt - hc.estimatedTime) / 3600_000).toFixed(1)} h backward${
@@ -861,7 +887,8 @@ function distance(path: LatLon[]): number {
   return d;
 }
 
-function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, onSeek }: any) {
+function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, onSeek }: any) {
+  const { goToStage, setSelectedMmsi } = useStore();
   const [showExcluded, setShowExcluded] = useState(false);
   // Where authorities named the source, the case doubles as a check on the method.
   const reportedSources = world.vessels.filter((v: any) => v.caseId === analysis.caseId && v.role === 'source' && !v.isFacility);
@@ -1019,7 +1046,7 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
 
                 <div className="flex gap-1.5">
                   <Button size="sm" onClick={() => onSeek(s.cpaTime)} icon={<Clock className="w-3 h-3" />}>Seek to CPA</Button>
-                  <Button size="sm" onClick={() => navigate({ tab: 'Vessel Analysis', mmsi: s.mmsi })} icon={<Ship className="w-3 h-3" />}>Vessel record</Button>
+                  <Button size="sm" onClick={() => { setSelectedMmsi(s.mmsi); goToStage('Vessel Analysis'); }} icon={<Ship className="w-3 h-3" />}>Vessel record</Button>
                 </div>
               </div>
             )}
@@ -1063,7 +1090,8 @@ function AttributionTab({ analysis, world, focusMmsi, setFocusMmsi, navigate, on
   );
 }
 
-function ImpactTab({ active, analysis, navigate }: any) {
+function ImpactTab({ active, analysis }: any) {
+  const { goToStage } = useStore();
   const threatened = analysis.threatenedAreas.filter((t: any) => t.distanceKm < 250);
   return (
     <div className="p-4 space-y-4">
@@ -1093,7 +1121,7 @@ function ImpactTab({ active, analysis, navigate }: any) {
             ))}
           </div>
         )}
-        <Button size="sm" className="mt-2 w-full justify-center" onClick={() => navigate({ tab: 'NCSCM Ecological', caseId: active.id })}>
+        <Button size="sm" className="mt-2 w-full justify-center" onClick={() => goToStage('NCSCM Ecological')}>
           Open response planning
         </Button>
       </Section>
@@ -1159,7 +1187,7 @@ function WeightsModal({ open, onClose, weights, setWeights, reset }: any) {
 }
 
 function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () => void; caseId: string }) {
-  const { world, setWorkflowStage, setCaseStatus, pushToImac, addEnforcement, navigate } = useStore();
+  const { world, setWorkflowStage, setCaseStatus, pushToImac, addEnforcement, goToStage } = useStore();
   const c = world.cases.find((x) => x.id === caseId)!;
   const [stage, setStage] = useState(c.workflowStage);
   const [status, setStatus] = useState(c.status);
@@ -1208,7 +1236,7 @@ function ActionsModal({ open, onClose, caseId }: { open: boolean; onClose: () =>
             <Button icon={<Radio className="w-3 h-3" />} disabled={c.imacPushed} onClick={() => { pushToImac(caseId); onClose(); }}>
               {c.imacPushed ? 'IMAC payload generated' : 'Generate IMAC payload'}
             </Button>
-            <Button icon={<AlertTriangle className="w-3 h-3" />} onClick={() => { navigate({ tab: 'SACHET / SAMUDRA', caseId }); onClose(); }}>
+            <Button icon={<AlertTriangle className="w-3 h-3" />} onClick={() => { goToStage('SACHET / SAMUDRA'); onClose(); }}>
               Compose community alert
             </Button>
             <Button variant="danger" icon={<Scale className="w-3 h-3" />}

@@ -1,15 +1,20 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  Bell, HelpCircle, LogOut, Search, Satellite, Home, AlertTriangle, FileText, Anchor,
-  Database, Activity, ChevronDown, Map as MapIcon, Megaphone, CheckSquare, Shield, Archive,
+  Bell, HelpCircle, LogOut, Search, Home, AlertTriangle, Megaphone,
+  Database, ChevronDown, CheckSquare, Shield, Archive,
   Settings, Clock, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship,
-  ChevronLeft, ChevronRight, Contrast, Leaf, History, Radar,
+  ChevronLeft, ChevronRight, Contrast, Leaf, History, Radar, KeyRound,
 } from 'lucide-react';
 import { allowedTabs } from './data/access';
 import { ECOLOGICAL_AREAS } from './data/geography';
 import { StoreProvider, useStore, fmt } from './store/store';
 import { Seal } from './components/Seal';
+import { MyAccount } from './components/AccountSecurity';
+import { Button, Modal } from './components/ui';
 import Dashboard from './Dashboard';
+import { PipelineFrame } from './flow/PipelineFrame';
+import { EvidencePack } from './flow/EvidencePack';
+import { isStageTab } from './flow/pipeline';
 import SpillIncidents from './SpillIncidents';
 import Investigation from './Investigation';
 import SatelliteTasking from './SatelliteTasking';
@@ -20,37 +25,35 @@ import SachetSamudra from './SachetSamudra';
 import Workflow from './Workflow';
 import OffenderRegistry from './OffenderRegistry';
 import ImacIntegration from './ImacIntegration';
-import AnalyticsReporting from './AnalyticsReporting';
 import CaseArchive from './CaseArchive';
 import SystemAdministration from './SystemAdministration';
 
-/** `label` is the page id used for navigation; `display` is shown when it differs. */
+/**
+ * `label` is the page id used for navigation; `display` is shown when it differs.
+ *
+ * Investigation, Vessel Analysis, Environmental Data, Satellite Tasking, NCSCM Ecological,
+ * SACHET / SAMUDRA and Reports are deliberately absent. They are not destinations — they are the
+ * stages a case passes through, reached by opening a case from the dashboard or the incident list
+ * and carried from one to the next by the pipeline itself. See src/flow/pipeline.ts.
+ */
 const NAV: { label: string; display?: string; icon: ReactNode }[] = [
   { label: 'Dashboard', icon: <Home className="w-4 h-4" /> },
   { label: 'Spill Incidents', icon: <AlertTriangle className="w-4 h-4" /> },
-  { label: 'Investigation', icon: <Search className="w-4 h-4" /> },
-  { label: 'Vessel Analysis', icon: <Anchor className="w-4 h-4" /> },
-  { label: 'Environmental Data', icon: <Activity className="w-4 h-4" /> },
-  { label: 'Satellite Tasking', icon: <Satellite className="w-4 h-4" /> },
-  { label: 'NCSCM Ecological', icon: <MapIcon className="w-4 h-4" /> },
-  { label: 'SACHET / SAMUDRA', icon: <Megaphone className="w-4 h-4" /> },
   { label: 'Workflow', icon: <CheckSquare className="w-4 h-4" /> },
   { label: 'Offender Registry', display: 'Liability Register', icon: <Shield className="w-4 h-4" /> },
-  { label: 'Reports', icon: <FileText className="w-4 h-4" /> },
   { label: 'Data Management', icon: <Database className="w-4 h-4" /> },
   { label: 'Case Archive', icon: <Archive className="w-4 h-4" /> },
   { label: 'System Admin', icon: <Settings className="w-4 h-4" /> },
 ];
 
-/** Navigation sections in workflow order, separated by dividers in the tab bar. */
+/** Navigation sections, separated by dividers in the tab bar. */
 const NAV_GROUPS: { title: string; items: string[] }[] = [
-  { title: 'Operations', items: ['Dashboard', 'Spill Incidents', 'Investigation', 'Vessel Analysis'] },
-  { title: 'Environment', items: ['Environmental Data', 'Satellite Tasking', 'NCSCM Ecological'] },
-  { title: 'Response', items: ['SACHET / SAMUDRA', 'Workflow', 'Offender Registry'] },
-  { title: 'Records', items: ['Reports', 'Data Management', 'Case Archive', 'System Admin'] },
+  { title: 'Operations', items: ['Dashboard', 'Spill Incidents'] },
+  { title: 'Response', items: ['Workflow', 'Offender Registry'] },
+  { title: 'Records', items: ['Data Management', 'Case Archive', 'System Admin'] },
 ];
 
-const A11Y_KEY = 'oceanspill.a11y.v1';
+const A11Y_KEY = 'oceanwatch.a11y.v1';
 const TEXT_SCALES = ['100%', '112.5%', '125%'];
 
 function loadA11y(): { scale: number; contrast: boolean } {
@@ -79,6 +82,7 @@ function Shell() {
   const [userMenu, setUserMenu] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState(false);
@@ -123,48 +127,137 @@ function Shell() {
     return () => window.removeEventListener('mousedown', h);
   }, []);
 
-  // Global search across cases, vessels, protected areas, the historical register and SAR scenes.
-  const results = useMemo(() => {
+  /**
+   * Global search.
+   *
+   * It used to look in five places and hand back the first ten things it found in the order it
+   * happened to walk them, so typing a vessel's name could return ten cases and none of the vessel.
+   * It now searches everything a person might be looking for — including the enforcement actions,
+   * advisories, field reports, planning areas and accounts it never covered — scores each hit by how
+   * well it matches, and keeps the best of each kind so one crowded category cannot bury the rest.
+   */
+  const { results, totalMatches } = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (q.length < 2) return [];
-    const out: { kind: string; label: string; sub: string; go: () => void }[] = [];
+    if (q.length < 2) return { results: [], totalMatches: 0 };
     const can = (tab: string) => allowed.includes(tab);
+
+    type Hit = { kind: string; label: string; sub: string; score: number; go: () => void };
+    const out: Hit[] = [];
+
+    /** An identifier that starts with the query beats one that merely contains it somewhere. */
+    const score = (primary: string, secondary = ''): number => {
+      const a = primary.toLowerCase();
+      if (a === q) return 100;
+      if (a.startsWith(q)) return 80;
+      if (a.includes(q)) return 60;
+      const b = secondary.toLowerCase();
+      if (b.startsWith(q)) return 40;
+      if (b.includes(q)) return 20;
+      return 0;
+    };
+    const add = (hit: Omit<Hit, 'score'>, primary: string, secondary = '') => {
+      const sc = score(primary, secondary);
+      if (sc > 0) out.push({ ...hit, score: sc });
+    };
+
     for (const c of world.cases) {
-      if (`${c.id} ${c.title} ${c.region} ${c.subRegion}`.toLowerCase().includes(q)) {
-        out.push({ kind: 'Case', label: c.title, sub: `${c.id} · ${c.subRegion}`, go: () => navigate({ tab: can('Investigation') ? 'Investigation' : 'Spill Incidents', caseId: c.id }) });
-      }
+      add({
+        kind: 'Case', label: c.title, sub: `${c.id} · ${c.subRegion} · ${c.status}`,
+        go: () => (can('Investigation') ? store.startFlow(c.id) : navigate({ tab: 'Spill Incidents', caseId: c.id })),
+      }, c.title, `${c.id} ${c.region} ${c.subRegion} ${c.status} ${c.oilType} ${c.assignedTo} ${c.workflowStage}`);
     }
+
     if (can('Vessel Analysis')) {
       for (const v of world.vessels) {
-        if (v.name.toLowerCase().includes(q) || (store.identitiesVisible && ((v.mmsiNumber ?? '').includes(q) || (v.imo ?? '').includes(q)))) {
-          out.push({ kind: 'Vessel', label: v.name, sub: `${fmt.vesselId(v)} · ${v.type}${v.provenance === 'synthetic' ? ' · synthetic' : ''}`, go: () => navigate({ tab: 'Vessel Analysis', mmsi: v.mmsi }) });
-        }
+        const ids = store.identitiesVisible ? `${v.mmsiNumber ?? ''} ${v.imo ?? ''}` : '';
+        add({
+          kind: 'Vessel', label: v.name, sub: `${fmt.vesselId(v)} · ${v.type}${v.provenance === 'synthetic' ? ' · synthetic' : ''}`,
+          go: () => navigate({ tab: 'Vessel Analysis', mmsi: v.mmsi }),
+        }, v.name, `${ids} ${v.flag ?? ''} ${v.type} ${v.operator ?? ''}`);
       }
     }
+
     if (can('NCSCM Ecological')) {
       for (const a of ECOLOGICAL_AREAS) {
-        if (`${a.name} ${a.category} ${a.state}`.toLowerCase().includes(q)) {
-          out.push({ kind: 'Area', label: a.name, sub: `${a.category} · ${a.state}`, go: () => navigate({ tab: 'NCSCM Ecological', section: a.id }) });
-        }
+        add({
+          kind: 'Area', label: a.name, sub: `${a.category} · ${a.state}`,
+          go: () => navigate({ tab: 'NCSCM Ecological', section: a.id }),
+        }, a.name, `${a.category} ${a.state}`);
       }
     }
+
     if (can('Case Archive')) {
       for (const h of world.historical) {
         if (h.activeCaseId) continue;
-        if (`${h.name} ${h.location} ${h.date}`.toLowerCase().includes(q)) {
-          out.push({ kind: 'Historical', label: `${h.name} (${h.date.slice(0, 4)})`, sub: h.location, go: () => navigate({ tab: 'Case Archive', section: 'historical' }) });
-        }
+        add({
+          kind: 'Historical', label: `${h.name} (${h.date.slice(0, 4)})`, sub: h.location,
+          go: () => navigate({ tab: 'Case Archive', section: 'historical' }),
+        }, h.name, `${h.location} ${h.date} ${h.oil ?? ''} ${h.cause ?? ''}`);
       }
     }
+
     if (can('Satellite Tasking')) {
       for (const p of world.passes) {
-        if (p.name.toLowerCase().includes(q)) {
-          out.push({ kind: 'Scene', label: p.name, sub: `${p.sensor} · ${fmt.utc(p.start)}`, go: () => navigate({ tab: 'Satellite Tasking', caseId: p.caseIds[0] }) });
-        }
+        add({
+          kind: 'Scene', label: p.name, sub: `${p.sensor} · ${fmt.utc(p.start)}`,
+          go: () => store.startFlow(p.caseIds[0] ?? world.cases[0]?.id ?? '', 'Satellite Tasking'),
+        }, p.name, p.sensor);
+      }
+      for (const a of world.aois) {
+        add({
+          kind: 'Area', label: a.name, sub: `Planning area · priority ${a.priority}`,
+          go: () => store.startFlow(world.cases[0]?.id ?? '', 'Satellite Tasking'),
+        }, a.name, a.rationale);
       }
     }
-    return out.slice(0, 10);
-  }, [search, world, navigate, allowed, store.identitiesVisible]);
+
+    if (can('Offender Registry')) {
+      for (const e of world.enforcement) {
+        const v = world.vesselsByMmsi.get(e.mmsi);
+        add({
+          kind: 'Action', label: `${e.type} — ${e.party}`, sub: `${e.authority}${e.reference ? ` · ${e.reference}` : ''}`,
+          go: () => navigate({ tab: 'Offender Registry' }),
+        }, e.party, `${e.type} ${e.authority} ${e.reference ?? ''} ${v?.name ?? ''}`);
+      }
+    }
+
+    if (can('SACHET / SAMUDRA')) {
+      for (const a of world.alerts) {
+        add({
+          kind: 'Advisory', label: a.headline, sub: `${a.districts.join(', ')} · ${fmt.utcShort(a.issuedAt)}`,
+          go: () => store.startFlow(a.caseId, 'SACHET / SAMUDRA'),
+        }, a.headline, `${a.body} ${a.districts.join(' ')}`);
+      }
+      for (const r of world.sightings) {
+        add({
+          kind: 'Report', label: r.description, sub: `${r.district} · ${r.reporter}`,
+          go: () => navigate({ tab: 'SACHET / SAMUDRA' }),
+        }, r.description, `${r.district} ${r.reporter}`);
+      }
+    }
+
+    if (can('System Admin')) {
+      for (const u of world.users) {
+        add({
+          kind: 'Account', label: u.name, sub: `${u.role} · ${u.agency}`,
+          go: () => navigate({ tab: 'System Admin' }),
+        }, u.name, `${u.role} ${u.agency} ${u.email ?? ''}`);
+      }
+    }
+
+    out.sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+    // A per-kind cap so a hundred matching scenes cannot push the one matching case off the list.
+    const perKind = new Map<string, number>();
+    const kept: Hit[] = [];
+    for (const hit of out) {
+      const n = perKind.get(hit.kind) ?? 0;
+      if (n >= 6) continue;
+      perKind.set(hit.kind, n + 1);
+      kept.push(hit);
+      if (kept.length >= 30) break;
+    }
+    return { results: kept, totalMatches: out.length };
+  }, [search, world, navigate, allowed, store]);
 
   const unread = useMemo(() => world.audit.filter((a) => a.t > now - 6 * 3600_000).slice(0, 8), [world.audit, now, store.revision]);
 
@@ -233,7 +326,7 @@ function Shell() {
           <div className="hidden sm:block w-px self-stretch my-1 bg-gray-300" aria-hidden />
           <div className="min-w-0 leading-tight">
             <p lang="hi" className="font-hindi text-[0.75rem] sm:text-[0.8125rem] text-gray-700 truncate">समुद्री तेल रिसाव जाँच एवं पोत अभिनिर्धारण प्रणाली</p>
-            <h1 className="text-[1.0625rem] sm:text-[1.1875rem] font-bold text-[#0b2a55] tracking-wide uppercase">OceanSpill</h1>
+            <h1 className="text-[1.0625rem] sm:text-[1.1875rem] font-bold text-[#0b2a55] tracking-wide uppercase">OceanWatch</h1>
             <p className="hidden md:block text-[0.75rem] text-gray-600 truncate">Oil Spill Detection &amp; Vessel Attribution System</p>
           </div>
         </div>
@@ -264,6 +357,10 @@ function Shell() {
                     : r.kind === 'Vessel' ? <Ship className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                     : r.kind === 'Area' ? <Leaf className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
                     : r.kind === 'Historical' ? <History className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                    : r.kind === 'Action' ? <Shield className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                    : r.kind === 'Advisory' ? <Megaphone className="w-3.5 h-3.5 text-teal-600 flex-shrink-0" />
+                    : r.kind === 'Report' ? <CheckSquare className="w-3.5 h-3.5 text-cyan-600 flex-shrink-0" />
+                    : r.kind === 'Account' ? <UserIcon className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                     : <Radar className="w-3.5 h-3.5 text-violet-500 flex-shrink-0" />}
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-gray-900 truncate">{r.label}</div>
@@ -271,6 +368,11 @@ function Shell() {
                   </div>
                 </button>
               ))}
+              {totalMatches > results.length && (
+                <p className="px-3 py-1.5 text-[0.6875rem] text-gray-500 bg-gray-50">
+                  Showing {results.length} of {totalMatches} matches — keep typing to narrow it.
+                </p>
+              )}
             </div>
           )}
           {searchOpen && search.trim().length >= 2 && results.length === 0 && (
@@ -347,6 +449,37 @@ function Shell() {
                     {currentUser.agency} · clearance <span className="font-semibold">{currentUser.clearance}</span>
                   </div>
                 </div>
+                {/* Display controls, which the utility strip hides on small screens. */}
+                <div className="px-3 py-2 border-b border-gray-200 md:hidden">
+                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Display</p>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-[0.75rem] text-gray-700">Times shown in</span>
+                    <div className="flex rounded border border-gray-300 overflow-hidden" role="group" aria-label="Time zone">
+                      {(['UTC', 'IST'] as const).map((tz) => (
+                        <button key={tz} onClick={() => setTimeZone(tz)} aria-pressed={timeZone === tz}
+                          className={`px-2 py-0.5 text-[0.75rem] ${timeZone === tz ? 'bg-[#0b2a55] text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}>
+                          {tz}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[0.75rem] text-gray-700">Text size</span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setA11y((a) => ({ ...a, scale: Math.max(0, a.scale - 1) }))} disabled={a11y.scale === 0}
+                        aria-label="Smaller text" className="px-2 py-0.5 rounded border border-gray-300 text-[0.75rem] disabled:opacity-40">A-</button>
+                      <button onClick={() => setA11y((a) => ({ ...a, scale: 0 }))} aria-label="Normal text size"
+                        className={`px-2 py-0.5 rounded border border-gray-300 text-[0.75rem] ${a11y.scale === 0 ? 'bg-gray-100 font-semibold' : ''}`}>A</button>
+                      <button onClick={() => setA11y((a) => ({ ...a, scale: Math.min(TEXT_SCALES.length - 1, a.scale + 1) }))} disabled={a11y.scale === TEXT_SCALES.length - 1}
+                        aria-label="Larger text" className="px-2 py-0.5 rounded border border-gray-300 text-[0.75rem] disabled:opacity-40">A+</button>
+                      <button onClick={() => setA11y((a) => ({ ...a, contrast: !a.contrast }))} aria-pressed={a11y.contrast} aria-label="High contrast"
+                        className={`p-1 rounded border border-gray-300 ${a11y.contrast ? 'bg-gray-200' : ''}`}>
+                        <Contrast className="w-3.5 h-3.5 text-gray-700" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {store.canSwitchAccount && (
                 <div className="px-3 py-2 border-b border-gray-200">
                   <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1.5">Switch account</p>
                   <p className="text-[0.6875rem] text-gray-500 mb-2 leading-normal">
@@ -367,6 +500,13 @@ function Shell() {
                     ))}
                   </div>
                 </div>
+                )}
+                {store.serverMode && (
+                  <button onClick={() => { setUserMenu(false); setAccountOpen(true); }}
+                    className="w-full px-3 py-2 text-[0.75rem] font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-200">
+                    <KeyRound className="w-3.5 h-3.5" /> Password and two-factor sign-in
+                  </button>
+                )}
                 <button onClick={() => { setUserMenu(false); store.signOut(); }}
                   className="w-full px-3 py-2 text-[0.75rem] font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 rounded-b-lg">
                   <LogOut className="w-3.5 h-3.5" /> Sign out
@@ -427,22 +567,34 @@ function Shell() {
       <div key={timeZone} id="main-content" tabIndex={-1} className="flex-1 min-w-0 min-h-0 flex flex-col outline-none">
         {activeTab === 'Dashboard' && <Dashboard />}
         {activeTab === 'Spill Incidents' && <SpillIncidents />}
-        {activeTab === 'Investigation' && <Investigation />}
-        {activeTab === 'Vessel Analysis' && <VesselAnalysis />}
-        {activeTab === 'Environmental Data' && <EnvironmentalData />}
-        {activeTab === 'Satellite Tasking' && <SatelliteTasking />}
-        {activeTab === 'NCSCM Ecological' && <NcscmEcological />}
-        {activeTab === 'SACHET / SAMUDRA' && <SachetSamudra />}
         {activeTab === 'Workflow' && <Workflow />}
         {activeTab === 'Offender Registry' && <OffenderRegistry />}
-        {activeTab === 'Reports' && <AnalyticsReporting />}
         {activeTab === 'Data Management' && <ImacIntegration />}
         {activeTab === 'Case Archive' && <CaseArchive />}
         {activeTab === 'System Admin' && <SystemAdministration />}
+
+        {/* The pipeline stages. Each is wrapped so it carries the progress strip and the hand-off. */}
+        {isStageTab(activeTab) && (
+          <PipelineFrame tab={activeTab}>
+            {activeTab === 'Investigation' && <Investigation />}
+            {activeTab === 'Vessel Analysis' && <VesselAnalysis />}
+            {activeTab === 'Environmental Data' && <EnvironmentalData />}
+            {activeTab === 'Satellite Tasking' && <SatelliteTasking />}
+            {activeTab === 'NCSCM Ecological' && <NcscmEcological />}
+            {activeTab === 'SACHET / SAMUDRA' && <SachetSamudra />}
+            {activeTab === 'Reports' && <EvidencePack />}
+          </PipelineFrame>
+        )}
       </div>
 
       <ToastHost />
       {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
+
+      <Modal open={accountOpen} onClose={() => setAccountOpen(false)} title="Your account"
+        subtitle={`${currentUser.name} · ${currentUser.role}, ${currentUser.agency}`}
+        footer={<Button onClick={() => setAccountOpen(false)}>Close</Button>}>
+        <MyAccount />
+      </Modal>
     </div>
   );
 }
@@ -491,7 +643,7 @@ function SignedOut() {
             <Seal size={48} />
             <div>
               <p lang="hi" className="font-hindi text-[0.8125rem] text-gray-700">समुद्री तेल रिसाव जाँच एवं पोत अभिनिर्धारण प्रणाली</p>
-              <h1 className="text-lg font-bold text-[#0b2a55] tracking-wide uppercase">OceanSpill</h1>
+              <h1 className="text-lg font-bold text-[#0b2a55] tracking-wide uppercase">OceanWatch</h1>
             </div>
           </div>
           <div className="px-6 py-5">

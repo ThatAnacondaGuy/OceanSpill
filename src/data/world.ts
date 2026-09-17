@@ -1,8 +1,11 @@
 import { analysePolygon } from '../lib/geo';
+import { ECOLOGICAL_AREAS } from './geography';
 import { observedSampler } from '../engine/forcing';
+import BUILT_IN_AOIS from '../../shared/aois.json';
+import { api, serverMode } from './api';
 import type {
   AreaOfInterest, AuditEntry, CaseArtifact, CoastArtifact, CommunityAlert, DataSource, EnforcementAction, ForcingArtifact,
-  HistoricalIncident, IndexArtifact, OilQuantityBasis, RiskTier, SarMeasurement, SarSpot, SatellitePass, SightingReport, SpillCase,
+  HistoricalIncident, IndexArtifact, OilQuantityBasis, OpticalCoverage, RiskTier, SarMeasurement, SarSpot, SatellitePass, ShoreTypeArtifact, SightingReport, SpillCase,
   SystemUser, Vessel, VesselTrack,
 } from './types';
 
@@ -14,6 +17,11 @@ export interface World {
   artifacts: Map<string, CaseArtifact>;
   forcing: Map<string, ForcingArtifact>;
   coast: Map<string, CoastArtifact>;
+  shoreTypes: Map<string, ShoreTypeArtifact>;
+  /** Optical coverage per case: what Sentinel-2 flew over the incident, and how cloudy it was. */
+  optical: Map<string, OpticalCoverage>;
+  /** How many protected areas carry a real mapped boundary rather than a hand-drawn one. */
+  protectedBoundaries: number;
   cases: SpillCase[];
   vessels: Vessel[];
   vesselsByMmsi: Map<string, Vessel>;
@@ -30,6 +38,9 @@ export interface World {
 }
 
 async function getJson<T>(path: string): Promise<T> {
+  // With a server configured the same files come from it, so clearance rules apply to the data
+  // itself rather than only to what the pages choose to show.
+  if (serverMode) return api.data<T>(path);
   const res = await fetch(`${DATA_BASE}/${path}`);
   if (!res.ok) throw new Error(`Failed to load ${path}: HTTP ${res.status}`);
   return res.json() as Promise<T>;
@@ -51,7 +62,35 @@ export async function loadWorld(): Promise<World> {
       }
     })
   );
-  return buildWorld(index, artifacts, new Map(forcingEntries), new Map(coastEntries.flat()));
+  // Shore type is an extra pass over the coastline and may not have been run; without it the
+  // pages simply do not mention what the shore is made of.
+  // What optical coverage exists over each incident; absent until `oceanwatch eo-search` has run.
+  let optical: Record<string, OpticalCoverage> = {};
+  try {
+    optical = await getJson<Record<string, OpticalCoverage>>('eo-coverage.json');
+  } catch {
+    // No search yet; the pages simply do not mention optical.
+  }
+
+  // Real boundaries for the protected areas, where OpenStreetMap has them.
+  let boundaries: Record<string, { ring: [number, number][] }> = {};
+  try {
+    boundaries = ((await getJson<{ areas: Record<string, { ring: [number, number][] }> }>('protected-areas.json')).areas) ?? {};
+  } catch {
+    // Not fetched yet; the hand-drawn outlines stand.
+  }
+
+  const shoreEntries = await Promise.all(
+    artifacts.filter((a) => a.coast).map(async (a) => {
+      try {
+        const file = a.coast!.file.replace(/\.json$/, '-shoretype.json');
+        return [[a.case.id, await getJson<ShoreTypeArtifact>(file)] as const];
+      } catch {
+        return [];
+      }
+    })
+  );
+  return buildWorld(index, artifacts, new Map(forcingEntries), new Map(coastEntries.flat()), new Map(shoreEntries.flat()), boundaries, new Map(Object.entries(optical)));
 }
 
 const ms = (iso: string) => new Date(iso).getTime();
@@ -97,7 +136,10 @@ const SEVERITY: Record<string, SightingReport['severity']> = {
 };
 
 export function buildWorld(
-  index: IndexArtifact, artifacts: CaseArtifact[], forcing: Map<string, ForcingArtifact>, coast: Map<string, CoastArtifact> = new Map()
+  index: IndexArtifact, artifacts: CaseArtifact[], forcing: Map<string, ForcingArtifact>,
+  coast: Map<string, CoastArtifact> = new Map(), shoreTypes: Map<string, ShoreTypeArtifact> = new Map(),
+  protectedBoundaries: Record<string, { ring: [number, number][] }> = {},
+  optical: Map<string, OpticalCoverage> = new Map()
 ): World {
   const vessels: Vessel[] = [];
   const tracks = new Map<string, VesselTrack>();
@@ -182,10 +224,13 @@ export function buildWorld(
         sarProviders: a.sar.providers,
         sarMeasurements: measurements,
         sarSpot,
-        classProbabilities: null,
+        // A trained detector reports how sure it was over the patch it found. Without one these
+        // stay null and the model-dependent checks say plainly that they have nothing to judge.
+        classProbabilities: sarSpot?.modelOilProbability == null ? null
+          : { oil: sarSpot.modelOilProbability, notOil: 1 - sarSpot.modelOilProbability },
         meanBackscatterDb: sarSpot?.meanDb ?? null,
         backgroundBackscatterDb: sarSpot?.backgroundDb ?? null,
-        modelVersion: null,
+        modelVersion: measurements.find((m) => m.model)?.model?.name ?? null,
       },
       // Replay mode: every real case starts at the beginning of this system's workflow. The
       // real-world outcome is shown alongside from the case facts.
@@ -333,6 +378,9 @@ export function buildWorld(
     artifacts: new Map(artifacts.map((a) => [a.case.id, a])),
     forcing,
     coast,
+    shoreTypes,
+    optical,
+    protectedBoundaries: applyProtectedBoundaries(protectedBoundaries),
     cases: cases.sort((x, y) => y.incidentTime - x.incidentTime),
     vessels,
     vesselsByMmsi: new Map(vessels.map((v) => [v.mmsi, v])),
@@ -350,17 +398,7 @@ export function buildWorld(
 }
 
 function buildAois(): AreaOfInterest[] {
-  const aoi = (id: string, name: string, priority: number, bounds: AreaOfInterest['bounds'], rationale: string, pinned: boolean, requestedBy: string): AreaOfInterest =>
-    ({ id, name, priority, bounds, rationale, pinned, requestedBy, provenance: 'modelled' });
-  return [
-    aoi('AOI-KERALA', 'Kerala Coast Shipping Lane', 1, { north: 12.5, south: 8.0, east: 77.2, west: 73.8 }, 'Two major 2025 casualties (MSC ELSA 3, WAN HAI 503) on the Colombo–west coast container route.', true, 'Analyst'),
-    aoi('AOI-MUMBAI', 'Mumbai Port Approaches and Bombay High', 2, { north: 20.2, south: 18.4, east: 73.1, west: 70.8 }, 'MSC Chitra (2010), MV Rak (2011), Uran pipeline (2013) and Mumbai High (2005) all fall inside this area.', true, 'NTRO Reviewer'),
-    aoi('AOI-CHENNAI', 'Chennai–Ennore Coast', 3, { north: 13.6, south: 12.9, east: 80.7, west: 80.1 }, 'Ennore 2017 collision and 2023 refinery spill; dense port and refinery activity.', true, 'Indian Coast Guard'),
-    aoi('AOI-GOA', 'Goa–Karnataka Tar Ball Coast', 4, { north: 16.0, south: 14.0, east: 74.5, west: 72.8 }, 'Recurring April–September tar ball deposition; Ocean Seraya 2006 off Karwar.', false, 'MoEFCC'),
-    aoi('AOI-SUNDARBANS', 'Hooghly Approach / Sundarbans', 5, { north: 22.3, south: 20.8, east: 89.2, west: 87.6 }, 'SSL Kolkata 2018 wreck; world heritage mangroves adjacent to the shipping channel.', false, 'MoEFCC'),
-    aoi('AOI-CAUVERY', 'Cauvery Delta / Karaikal', 6, { north: 11.2, south: 10.4, east: 80.2, west: 79.7 }, 'Nagapattinam 2023 undersea pipeline leak; crude transfers to ships.', false, 'Analyst'),
-    aoi('AOI-KUTCH', 'Gulf of Kachchh Oil Terminals', 7, { north: 23.2, south: 21.4, east: 70.6, west: 67.8 }, 'Largest crude import terminals (Sikka, Vadinar, Mundra); historic tanker spills off Kutch.', false, 'NTRO Reviewer'),
-  ];
+  return BUILT_IN_AOIS.areas.map((a) => ({ ...a, provenance: 'modelled' as const }));
 }
 
 function buildUsers(): SystemUser[] {
@@ -386,12 +424,12 @@ function buildDataSources(index: IndexArtifact): DataSource[] {
     const p = pipeline.get(id);
     return {
       id, kind, role, name: p?.agency ?? id, agency: p?.agency ?? id, sovereign: p?.sovereign ?? false,
-      status: !p ? 'Pending access' : !p.available ? 'Not configured' : role === 'fallback' ? 'Interim fallback' : 'Online',
+      status: !p ? 'Authorisation required' : !p.available ? 'Not configured' : role === 'fallback' ? 'Interim fallback' : 'Online',
       message: p?.message ?? 'Not configured in pipeline', lastSync: p?.available ? built : null,
     };
   };
   const pending = (id: string, kind: DataSource['kind'], name: string, agency: string, message: string): DataSource =>
-    ({ id, kind, role: 'primary', name, agency, sovereign: true, status: 'Pending access', message, lastSync: null });
+    ({ id, kind, role: 'primary', name, agency, sovereign: true, status: 'Authorisation required', message, lastSync: null });
 
   return [
     { ...fromPipeline('eos04', 'SAR', 'primary'), name: 'EOS-04 SAR', agency: 'ISRO / NRSC Bhoonidhi' },
@@ -410,7 +448,7 @@ function buildDataSources(index: IndexArtifact): DataSource[] {
       : { id: 'gfw', kind: 'AIS', role: 'fallback', name: 'Global Fishing Watch AIS', agency: 'Global Fishing Watch', sovereign: false, status: 'Not configured', message: 'Adapter ready: set AIS_PROVIDER=gfw and GFW_API_TOKEN (free, non-commercial)', lastSync: null },
     pipeline.has('synthetic')
       ? fromPipeline('synthetic', 'AIS', 'fallback')
-      : { id: 'synthetic', kind: 'AIS', role: 'fallback', name: 'Estimated tracks from reported positions', agency: 'OceanSpill (built in)', sovereign: true, status: 'Interim fallback', message: 'Used only where a vessel has no AIS in the window, between its officially reported positions', lastSync: built },
+      : { id: 'synthetic', kind: 'AIS', role: 'fallback', name: 'Estimated tracks from reported positions', agency: 'OceanWatch (built in)', sovereign: true, status: 'Interim fallback', message: 'Used only where a vessel has no AIS in the window, between its officially reported positions', lastSync: built },
     pending('dgs-registry', 'Registry', 'Vessel registry and PSC history', 'DG Shipping', 'Needs government access; Equasis account as interim'),
     pending('mea', 'Sanctions', 'Watchlists', 'MEA / DG Shipping', 'Needs government access'),
     { ...fromPipeline('unsc', 'Sanctions', 'fallback'), name: 'UN Security Council Consolidated List', agency: 'United Nations', message: 'Public sanctions list, checked by vessel name and IMO number' },
@@ -436,6 +474,14 @@ export function dataUrl(path: string): string {
 }
 
 /**
+ * A supporting file as something an <img> can show. Against a server the file needs the session
+ * token, which an image tag cannot send, so it is fetched and handed over as an object URL.
+ */
+export async function fileUrl(path: string): Promise<string> {
+  return serverMode ? api.objectUrl(path) : dataUrl(path);
+}
+
+/**
  * Legal actions on record from public sources, counted the same way on every page:
  * individual actions, and the distinct incidents they relate to.
  */
@@ -453,4 +499,20 @@ export function legalSummary(world: Pick<World, 'enforcement'>) {
 /** The party authorities named as the source of a case, if any (a vessel, facility or pipeline). */
 export function reportedSource(world: Pick<World, 'vessels'>, caseId: string) {
   return world.vessels.find((v) => v.caseId === caseId && v.role === 'source') ?? null;
+}
+
+/**
+ * Replaces the hand-drawn outline of a protected area with its real mapped boundary where the
+ * pipeline found one. The areas are a single shared list, so this is applied once as the data
+ * loads; areas with no match keep the outline they had.
+ */
+function applyProtectedBoundaries(boundaries: Record<string, { ring: [number, number][] }>): number {
+  let applied = 0;
+  for (const area of ECOLOGICAL_AREAS) {
+    const match = boundaries[area.id];
+    if (!match?.ring?.length) continue;
+    area.ring = match.ring.map(([lon, lat]) => ({ lat, lon }));
+    applied++;
+  }
+  return applied;
 }

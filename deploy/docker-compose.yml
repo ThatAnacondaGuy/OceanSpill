@@ -1,0 +1,110 @@
+# Full stack: database, API, background worker and the site behind nginx.
+# Run from the repository root:  docker compose -f deploy/docker-compose.yml up -d --build
+name: oceanspill
+
+services:
+  db:
+    image: postgis/postgis:18-3.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-oceanspill}
+      POSTGRES_USER: ${POSTGRES_USER:-oceanspill}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oceanspill} -d ${POSTGRES_DB:-oceanspill}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Not published: only the API and the backup job reach the database.
+    expose:
+      - "5432"
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: &api-env
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-oceanspill}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-oceanspill}
+      DATA_DIR: /app/public/data
+      STORAGE_DIR: /app/storage
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in deploy/.env}
+      SIGNING_SECRET: ${SIGNING_SECRET:?set SIGNING_SECRET in deploy/.env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-480}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      ALERT_EMAILS: ${ALERT_EMAILS:-}
+      WORKER_INTERVAL_S: ${WORKER_INTERVAL_S:-900}
+      BHOONIDHI_USERNAME: ${BHOONIDHI_USERNAME:-}
+      BHOONIDHI_PASSWORD: ${BHOONIDHI_PASSWORD:-}
+      CDSE_USERNAME: ${CDSE_USERNAME:-}
+      CDSE_PASSWORD: ${CDSE_PASSWORD:-}
+      GFW_API_TOKEN: ${GFW_API_TOKEN:-}
+    volumes:
+      # Case artifacts written by the pipeline, and the files the server stores.
+      - ../public/data:/app/public/data:ro
+      - storage:/app/storage
+      - secrets:/app/pipeline/.secrets
+    expose:
+      - "8000"
+    command: ["sh", "-c", "oceanspill-api migrate && oceanspill-api seed && oceanspill-api serve --host 0.0.0.0 --port 8000"]
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment: *api-env
+    volumes:
+      - ../public/data:/app/public/data
+      - storage:/app/storage
+      - secrets:/app/pipeline/.secrets
+      - cache:/app/pipeline/.cache
+    command: ["oceanspill-api", "worker"]
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+  # Nightly dump, kept for 14 days. Run once with `docker compose run --rm backup` to test it.
+  backup:
+    image: postgis/postgis:18-3.6
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-oceanspill}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-oceanspill}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backup.sh:/usr/local/bin/backup.sh:ro
+      - backups:/backups
+    entrypoint: ["/bin/bash", "/usr/local/bin/backup.sh", "--loop"]
+
+volumes:
+  db-data:
+  storage:
+  secrets:
+  cache:
+  backups:

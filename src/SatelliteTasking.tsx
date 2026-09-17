@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Satellite, Target, ChevronUp, ChevronDown, Pin, PinOff, CheckCircle2, Plus, Layers, Database, ExternalLink, FileDown,
+  Satellite, Target, ChevronUp, ChevronDown, Pin, PinOff, CheckCircle2, Plus, Layers, Database, ExternalLink, FileDown, Sun,
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
 import { MapView, BasemapSwitch, type BasemapStyle, type MapMarker, type MapPolygon } from './components/MapView';
@@ -33,7 +33,11 @@ function cdseQueryUrl(b: AreaOfInterest['bounds'], start: Date, end: Date): stri
 }
 
 export default function SatelliteTasking() {
-  const { world, now, navigate, toggleAoiPin, reorderAoi, consumeSection, revision, canEdit } = useStore();
+  const { world, now, startFlow, toggleAoiPin, reorderAoi, consumeSection, revision, canEdit, flowCaseId } = useStore();
+  // Running a case means this stage answers one question only: what has flown over THIS incident.
+  // Left global it showed every scene for every case, which is the whole register, not this case.
+  const locked = flowCaseId != null;
+  const flowCase = world.cases.find((c) => c.id === flowCaseId) ?? null;
   const editable = canEdit('Satellite Tasking');
   const [basemap, setBasemap] = useState<BasemapStyle>('map');
   const [selectedPass, setSelectedPass] = useState<string | null>(null);
@@ -53,10 +57,11 @@ export default function SatelliteTasking() {
   }, [consumeSection]);
 
   const passes = useMemo(() => world.passes
+    .filter((p) => !flowCaseId || p.caseIds.includes(flowCaseId))
     .filter((p) => platformFilter === 'all' || p.sensor === platformFilter)
     .filter((p) => caseFilter === 'all' || p.caseIds.includes(caseFilter))
     .filter((p) => coverFilter === 'all' || (coverFilter === 'covers' ? p.coversIncident : !p.coversIncident))
-    .sort((a, b) => b.start - a.start), [world.passes, platformFilter, caseFilter, coverFilter, revision]);
+    .sort((a, b) => b.start - a.start), [world.passes, platformFilter, caseFilter, coverFilter, flowCaseId, revision]);
 
   const platforms = useMemo(() => Array.from(new Set(world.passes.map((p) => p.sensor))).sort(), [world.passes]);
 
@@ -69,10 +74,11 @@ export default function SatelliteTasking() {
       const latestScene = scenes.reduce((m, p) => Math.max(m, p.start), 0);
       return { aoi: a, incidents, scenes, latestScene };
     })
+    .filter((x) => !flowCase || pointInPolygon(flowCase.facts.incident.position, boundsRing(x.aoi.bounds)))
     .sort((x, y) => {
       if (x.aoi.pinned !== y.aoi.pinned) return x.aoi.pinned ? -1 : 1;
       return x.aoi.priority - y.aoi.priority;
-    }), [world.aois, world.historical, world.passes, revision]);
+    }), [world.aois, world.historical, world.passes, flowCase, revision]);
 
   const active = world.passes.find((p) => p.id === selectedPass) ?? null;
   const activeAoi = aois.find((a) => a.aoi.id === selectedAoi) ?? null;
@@ -120,13 +126,30 @@ export default function SatelliteTasking() {
     return { polygons, markers };
   }, [passes, aois, world.cases, world.historical, layers, selectedPass, selectedAoi]);
 
-  const stats = useMemo(() => ({
-    scenes: world.passes.length,
-    covering: world.passes.filter((p) => p.coversIncident).length,
-    sovereign: world.passes.filter((p) => p.sovereign).length,
-    casesWithout: world.cases.filter((c) => !c.detection.scenes.some((s) => s.coversIncident)).length,
-    totalGb: world.cases.reduce((s, c) => s + c.detection.scenes.reduce((x, sc) => x + (sc.sizeBytes ?? 0), 0), 0) / 1e9,
-  }), [world.passes, world.cases]);
+  // Optical is a different instrument with a different failure: cloud. Reporting how much of it is
+  // usable keeps the radar-only coverage honest.
+  const optical = useMemo(() => {
+    const entries = [...world.optical.values()];
+    return {
+      cases: entries.length,
+      scenes: entries.reduce((sum, e) => sum + e.scenes, 0),
+      usable: entries.reduce((sum, e) => sum + e.usable, 0),
+      casesWithUsable: entries.filter((e) => e.usable > 0).length,
+    };
+  }, [world.optical]);
+
+  // Counted over what this page is actually showing, so the headline never contradicts the table.
+  const stats = useMemo(() => {
+    const scope = flowCaseId ? world.passes.filter((p) => p.caseIds.includes(flowCaseId)) : world.passes;
+    const cases = flowCase ? [flowCase] : world.cases;
+    return {
+      scenes: scope.length,
+      covering: scope.filter((p) => p.coversIncident).length,
+      sovereign: scope.filter((p) => p.sovereign).length,
+      casesWithout: cases.filter((c) => !c.detection.scenes.some((s) => s.coversIncident)).length,
+      totalGb: cases.reduce((s, c) => s + c.detection.scenes.reduce((x, sc) => x + (sc.sizeBytes ?? 0), 0), 0) / 1e9,
+    };
+  }, [world.passes, world.cases, flowCaseId, flowCase]);
 
   const processed = useMemo(() => new Set(world.cases.flatMap((c) => c.detection.sarMeasurements.map((m) => m.scene))), [world.cases]);
 
@@ -152,7 +175,7 @@ export default function SatelliteTasking() {
       render: (p) => (
         <div className="flex flex-col">
           {p.caseIds.map((id) => (
-            <button key={id} onClick={(e) => { e.stopPropagation(); navigate({ tab: 'Investigation', caseId: id }); }} className="text-left text-blue-600 hover:underline truncate">
+            <button key={id} onClick={(e) => { e.stopPropagation(); startFlow(id); }} className="text-left text-blue-600 hover:underline truncate">
               {world.cases.find((c) => c.id === id)?.title ?? id}
             </button>
           ))}
@@ -182,11 +205,14 @@ export default function SatelliteTasking() {
       <aside className="w-full lg:w-[290px] xl:w-[350px] bg-white border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col flex-shrink-0 max-h-[46vh] lg:max-h-none">
         <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
           <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2"><Satellite className="w-4 h-4 text-blue-600" /> SAR coverage &amp; tasking</h2>
-          <p className="text-[0.6875rem] text-gray-500 mt-0.5">{stats.scenes} real catalogue scenes for {world.cases.length} cases</p>
+          <p className="text-[0.6875rem] text-gray-500 mt-0.5">
+            {stats.scenes} real catalogue scene{stats.scenes === 1 ? '' : 's'}{' '}
+            {flowCase ? `covering this incident` : `for ${world.cases.length} cases`}
+          </p>
         </div>
 
         <Tabs fill active={tab} onChange={setTab} tabs={[
-          { id: 'queue', label: 'Planning areas', count: world.aois.length },
+          { id: 'queue', label: 'Planning areas', count: aois.length },
           { id: 'feeds', label: 'SAR providers', count: sarSources.length },
         ]} />
 
@@ -306,6 +332,12 @@ export default function SatelliteTasking() {
           <StatCard icon={<CheckCircle2 className="w-4 h-4" />} title="Cover the incident" value={stats.covering} trend="footprint contains the position" accent="green" />
           <StatCard icon={<Satellite className="w-4 h-4" />} title="Indian scenes" value={stats.sovereign} trend="EOS-04 via Bhoonidhi" accent="green" />
           <StatCard icon={<Target className="w-4 h-4" />} title="Cases without cover" value={stats.casesWithout} trend="no footprint over the incident" accent={stats.casesWithout ? 'red' : 'green'} />
+          {optical.cases > 0 && (
+            <StatCard icon={<Sun className="w-4 h-4" />} title="Optical scenes"
+              value={`${optical.usable}/${optical.scenes}`}
+              trend={`below ${world.optical.values().next().value?.cloudThreshold ?? 40}% cloud · ${optical.casesWithUsable} of ${optical.cases} cases`}
+              accent={optical.casesWithUsable > optical.cases / 2 ? 'green' : 'amber'} />
+          )}
         </div>
 
         <div className="flex-1 min-h-0 relative">
@@ -313,7 +345,7 @@ export default function SatelliteTasking() {
             basemap={basemap}
             polygons={mapData.polygons} markers={mapData.markers}
             initialCentre={{ lat: 14, lon: 80 }} initialZoom={3.6}
-            onMarkerClick={(m) => { if (!m.id.startsWith('h-')) navigate({ tab: 'Investigation', caseId: m.id }); }}
+            onMarkerClick={(m) => { if (!m.id.startsWith('h-')) startFlow(m.id); }}
             fitTo={activeAoi ? boundsRing(activeAoi.aoi.bounds) : active ? active.footprint : undefined}
             fitKey={selectedAoi ?? selectedPass ?? 'none'}
             overlay={
@@ -327,7 +359,7 @@ export default function SatelliteTasking() {
                   {layersOpen && (
                     <div className="absolute top-full mt-1 left-0 bg-white rounded shadow-xl border border-gray-300 p-3 w-56 z-30">
                       <Toggle checked={layers.footprints} onChange={(v) => setLayers({ ...layers, footprints: v })} label="Scene footprints" count={passes.length} />
-                      <Toggle checked={layers.aois} onChange={(v) => setLayers({ ...layers, aois: v })} label="Planning areas" count={world.aois.length} />
+                      <Toggle checked={layers.aois} onChange={(v) => setLayers({ ...layers, aois: v })} label="Planning areas" count={aois.length} />
                       <Toggle checked={layers.cases} onChange={(v) => setLayers({ ...layers, cases: v })} label="Analysed cases" count={world.cases.length} />
                       <Toggle checked={layers.incidents} onChange={(v) => setLayers({ ...layers, incidents: v })} label="Register incidents" />
                     </div>
@@ -356,7 +388,7 @@ export default function SatelliteTasking() {
               {active && (
                 <span className="text-[0.6875rem] text-gray-500 font-mono truncate max-w-[280px]" title={active.name}>{active.name}</span>
               )}
-              <Select value={caseFilter} onChange={setCaseFilter} options={[{ value: 'all', label: 'All cases' }, ...world.cases.map((c) => ({ value: c.id, label: c.title }))]} />
+              {!locked && <Select value={caseFilter} onChange={setCaseFilter} options={[{ value: 'all', label: 'All cases' }, ...world.cases.map((c) => ({ value: c.id, label: c.title }))]} />}
               <Select value={platformFilter} onChange={setPlatformFilter} options={[{ value: 'all', label: 'All platforms' }, ...platforms.map((s) => ({ value: s, label: s }))]} />
               <Select value={coverFilter} onChange={setCoverFilter} options={[{ value: 'all', label: 'Any coverage' }, { value: 'covers', label: 'Covers incident' }, { value: 'nearby', label: 'Nearby only' }]} />
             </div>
@@ -376,7 +408,7 @@ export default function SatelliteTasking() {
 }
 
 function RequestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { world, notify, log, currentUser } = useStore();
+  const { notify, addAoi } = useStore();
   const [name, setName] = useState('');
   const [north, setNorth] = useState('15');
   const [south, setSouth] = useState('12');
@@ -389,14 +421,11 @@ function RequestModal({ open, onClose }: { open: boolean; onClose: () => void })
   const valid = name.trim() && nums.every(Number.isFinite) && nums[0] > nums[1] && nums[2] > nums[3];
 
   const submit = () => {
-    const id = `AOI-SES-${String(world.aois.length + 1).padStart(2, '0')}`;
-    world.aois.push({
-      id, name: name.trim(), priority,
+    addAoi({
+      name: name.trim(), priority,
       bounds: { north: nums[0], south: nums[1], east: nums[2], west: nums[3] },
       rationale: rationale.trim() || 'Analyst-requested planning area.',
-      pinned: false, requestedBy: currentUser.role, provenance: 'session',
     });
-    log({ actor: currentUser.name, role: currentUser.role, action: 'Planning area created', target: id, detail: name, category: 'System' });
     notify({ kind: 'success', title: 'Planning area added', body: `${name} added at priority ${priority}.` });
     setName(''); setRationale('');
     onClose();

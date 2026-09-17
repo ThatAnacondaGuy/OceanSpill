@@ -4,12 +4,13 @@ import {
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
 import { legalSummary } from './data/world';
+import { reportPdf, serverMode, textToSections } from './data/server';
 import { MapView, BasemapSwitch, type BasemapStyle, type MapCircle, type MapMarker, type MapPath } from './components/MapView';
 import {
   Panel, Badge, Button, KeyValue, Tabs, StatCard, BarChart, InfoBanner, ProvenanceBadge,
   Select, Modal, Field, Toggle, triggerDownload,
 } from './components/ui';
-import { MODEL_STATUS } from './engine/detection';
+import { MODEL_STATUS, modelScoreLine } from './engine/detection';
 import { haversineKm, type LatLon } from './lib/geo';
 import { CORRIDORS } from './data/geography';
 import type { HistoricalIncident } from './data/types';
@@ -50,7 +51,7 @@ export interface DriftCheck {
 }
 
 export default function AnalyticsReporting() {
-  const { world, getAnalysis, navigate, revision } = useStore();
+  const { world, getAnalysis, navigate, startFlow, revision } = useStore();
   const [tab, setTab] = useState('overview');
   const [basemap, setBasemap] = useState<BasemapStyle>('dark');
   const [period, setPeriod] = useState('all');
@@ -149,6 +150,8 @@ export default function AnalyticsReporting() {
       events: events.length,
     };
   }), [world.cases]);
+
+  const realScene = MODEL_STATUS.measured?.vesselDetectionOnRealScene;
 
   /** Drift skill: forecast from one reported oil observation, compared with a later one. */
   const driftChecks = useMemo<DriftCheck[]>(() => {
@@ -273,7 +276,7 @@ export default function AnalyticsReporting() {
             <Panel title="Analysed cases: incident → first report" dense>
               <div className="p-4 space-y-2">
                 {timelines.map(({ c, toObservationH, spanDays, events }) => (
-                  <button key={c.id} onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}
+                  <button key={c.id} onClick={() => startFlow(c.id)}
                     className="w-full text-left flex items-center gap-2 text-[0.71875rem] hover:bg-gray-50 rounded px-1 py-0.5">
                     <span className="flex-1 truncate font-semibold text-gray-800" title={c.title}>{c.title}</span>
                     <span className="font-mono text-gray-700 w-16 text-right">{toObservationH != null && ['minute', 'hour'].includes(c.facts.incident.timePrecision) ? fmt.hoursOrDays(toObservationH) : 'Not known'}</span>
@@ -346,7 +349,7 @@ export default function AnalyticsReporting() {
               initialCentre={{ lat: 14, lon: 80 }} initialZoom={3.7}
               onMarkerClick={(m) => {
                 const h = world.historical.find((x) => x.id === m.id);
-                if (h?.activeCaseId) navigate({ tab: 'Investigation', caseId: h.activeCaseId });
+                if (h?.activeCaseId) startFlow(h.activeCaseId);
                 else navigate({ tab: 'Case Archive', section: 'historical' });
               }}
               overlay={<div className="absolute top-3 left-3 z-20"><BasemapSwitch value={basemap} onChange={setBasemap} /></div>}
@@ -366,22 +369,60 @@ export default function AnalyticsReporting() {
 
       {tab === 'performance' && (
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <InfoBanner tone="amber" icon={<Info className="w-3.5 h-3.5" />}>
-            <b>No accuracy figures are shown.</b> {MODEL_STATUS.note}
+          <InfoBanner tone={MODEL_STATUS.trained ? 'blue' : 'amber'} icon={<Info className="w-3.5 h-3.5" />}>
+            {MODEL_STATUS.trained
+              ? <><b>Measured on scenes the model never saw.</b> {MODEL_STATUS.note}</>
+              : <><b>No accuracy figures are shown.</b> {MODEL_STATUS.note}</>}
           </InfoBanner>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Panel title="Segmentation model" subtitle="Status and evaluation plan" dense>
+            <Panel title="Models" subtitle={MODEL_STATUS.trained ? 'Measured on held-out scenes' : 'Status and evaluation plan'} dense>
               <div className="p-4 space-y-4">
-                <div className="flex items-center gap-2"><ProvenanceBadge p="pending" /><span className="text-[0.75rem] font-semibold text-gray-700">Not trained</span></div>
-                <KeyValue cols={1} items={[
-                  ['Architecture', MODEL_STATUS.plannedArchitecture],
-                  ['Training', MODEL_STATUS.plannedTraining],
-                  ['Loss', MODEL_STATUS.plannedLoss],
-                  ['Public dataset', <a href={MODEL_STATUS.datasetUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{MODEL_STATUS.datasetUrl}</a>],
-                ]} />
+                {Object.entries(MODEL_STATUS.models).map(([id, model]) => (
+                  <div key={id} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ProvenanceBadge p={model.trained ? 'real' : 'pending'} />
+                      <span className="text-[0.75rem] font-semibold text-gray-800">{model.task}</span>
+                    </div>
+                    <p className="text-[0.71875rem] text-gray-700">{modelScoreLine(model)}</p>
+                    <p className="text-[0.6875rem] text-gray-500 mt-0.5">{model.architecture} · trained on {model.dataset}</p>
+                    {/* A model that was trained and then rejected says so here, rather than sitting in the list looking used. */}
+                    {model.trained && model.note && (
+                      <p className="text-[0.6875rem] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">{model.note}</p>
+                    )}
+                  </div>
+                ))}
+                {/*
+                  Training chips say how well a detector outlines a ship it has been handed. This
+                  says whether it finds one in eighty kilometres of the Bay of Bengal, which is the
+                  only version of the question an operator ever asks.
+                */}
+                {realScene && (
+                  <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                    <p className="text-[0.6875rem] font-bold text-blue-900 uppercase mb-1">Ship detector on a real scene</p>
+                    <p className="text-[0.75rem] text-blue-950">
+                      <b>{realScene.foundByRadar} of {realScene.aisVesselsInScene}</b> vessels that were transmitting
+                      when the satellite passed had a radar detection within {realScene.matchRadiusKm} km
+                      ({(realScene.recall * 100).toFixed(0)}%).
+                    </p>
+                    <p className="text-[0.6875rem] text-blue-800 mt-1">
+                      {realScene.radarTargets} targets in the scene at {realScene.pixelSpacingM} m pixels,
+                      of which {realScene.unmatchedTargets} had no AIS near them. Those are candidates for a
+                      human to look at, not dark ships: small craft here often never transmit, and the
+                      detector's false-alarm rate over open sea has not been measured.
+                    </p>
+                    {realScene.missed.length > 0 && (
+                      <p className="text-[0.6875rem] text-blue-800 mt-1">
+                        Of the {realScene.missed.length} not found,{' '}
+                        {realScene.missed.filter((m) => m.aisGapMinutes >= 60).length} had an AIS report at least an
+                        hour stale — at twelve knots that alone puts a ship over twenty kilometres from where the
+                        interpolated line says it was.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div>
-                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">Metrics to report once trained</p>
+                  <p className="text-[0.6875rem] font-bold text-gray-600 uppercase mb-1">How they are scored</p>
                   <ul className="space-y-0.5">
                     {MODEL_STATUS.evaluation.map((e) => <li key={e} className="text-[0.71875rem] text-gray-700 flex gap-1.5"><span className="text-gray-400">•</span>{e}</li>)}
                   </ul>
@@ -395,7 +436,7 @@ export default function AnalyticsReporting() {
                 {driftChecks.map((d) => (
                   <div key={`${d.caseId}-${d.to.time}`} className="border border-gray-200 rounded p-2">
                     <div className="flex items-center justify-between gap-2">
-                      <button onClick={() => navigate({ tab: 'Investigation', caseId: d.caseId })} className="text-[0.75rem] font-bold text-blue-700 hover:underline text-left">{d.title}</button>
+                      <button onClick={() => startFlow(d.caseId)} className="text-[0.75rem] font-bold text-blue-700 hover:underline text-left">{d.title}</button>
                       <Badge tone={d.errorKm <= Math.max(10, d.precisionKm) ? 'green' : 'amber'}><Crosshair className="w-2.5 h-2.5" /> {d.errorKm.toFixed(1)} km</Badge>
                     </div>
                     <KeyValue cols={2} items={[
@@ -419,7 +460,7 @@ export default function AnalyticsReporting() {
           <Panel title="Detection basis per analysed case" dense>
             <div className="p-4 space-y-2">
               {completeness.map(({ c, sar, sarCovers, current, realAis, precise }) => (
-                <button key={c.id} onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}
+                <button key={c.id} onClick={() => startFlow(c.id)}
                   className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded border border-gray-200 hover:border-blue-400 hover:bg-blue-50/40">
                   <span className="text-[0.71875rem] font-bold text-gray-900 w-[220px] flex-shrink-0 truncate" title={c.title}>{c.title}</span>
                   <Badge tone={c.confidenceBasis === 'official-report' ? 'blue' : 'violet'} className="w-[84px] justify-center flex-shrink-0">{fmt.confidence(c)}</Badge>
@@ -519,8 +560,8 @@ function ReportModal({ open, onClose, period, stats, byCoast, bySource, hotspots
     }
     if (sections.quality) {
       L.push('5. MODEL AND DATA QUALITY', '-'.repeat(72));
-      L.push(`  Segmentation model: ${MODEL_STATUS.trained ? MODEL_STATUS.version : 'not trained; no accuracy figures reported'}`);
-      L.push(`  Planned: ${MODEL_STATUS.plannedArchitecture}`);
+      L.push(`  Segmentation model: ${MODEL_STATUS.trained ? `${MODEL_STATUS.version} — ${modelScoreLine(MODEL_STATUS.models.sarSegmentation)}` : 'not trained; no accuracy figures reported'}`);
+      L.push(`  Architecture: ${MODEL_STATUS.architecture}`);
       L.push('  Drift checks against reported observations:');
       if (!driftChecks.length) L.push('    none available');
       for (const d of driftChecks) {
@@ -540,19 +581,32 @@ function ReportModal({ open, onClose, period, stats, byCoast, bySource, hotspots
       L.push('  e. Attribution scores prioritise inspection. They are not evidence of discharge.', '');
     }
     L.push('='.repeat(72));
-    L.push('OceanSpill — Oil Spill Detection & Vessel Attribution System');
+    L.push('OceanWatch — Oil Spill Detection & Vessel Attribution System');
     return L.join('\n');
   };
 
   return (
     <Modal open={open} onClose={onClose} title="Build report"
-      subtitle="Plain-text briefing computed from the loaded data."
+      subtitle={serverMode ? 'Signed PDF briefing computed from the loaded data.' : 'Plain-text briefing computed from the loaded data.'}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={() => {
-            triggerDownload(`oceanspill-report-${period}.txt`, build());
-            notify({ kind: 'success', title: 'Report generated', body: `${Object.values(sections).filter(Boolean).length} sections exported.` });
+            const count = Object.values(sections).filter(Boolean).length;
+            if (serverMode) {
+              // The server renders it, hashes what it says and signs the hash, so the file can be
+              // checked later against the issuing record.
+              reportPdf({
+                kind: 'briefing', title: `OceanWatch briefing — ${period}`,
+                subtitle: 'Computed from the recorded cases and the actions taken on them.',
+                sections: textToSections(build()),
+              })
+                .then((filename) => notify({ kind: 'success', title: 'Signed report generated', body: `${filename} · ${count} sections` }))
+                .catch((e: Error) => notify({ kind: 'error', title: 'Report not generated', body: e.message }));
+            } else {
+              triggerDownload(`oceanwatch-report-${period}.txt`, build());
+              notify({ kind: 'success', title: 'Report generated', body: `${count} sections exported.` });
+            }
             onClose();
           }} icon={<Download className="w-3 h-3" />}>Generate</Button>
         </>

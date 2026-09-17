@@ -1,0 +1,275 @@
+{
+ "schemaVersion": 1,
+ "caseId": "IND-2018-06-SSL-KOLKATA",
+ "scene": "S1B_IW_GRDH_1SDV_20180714T000354_20180714T000423_011799_015B5E_1060",
+ "product": "Sentinel-1 GRD",
+ "radiometry": "Sigma0 (thermal noise removed)",
+ "processedAt": "2026-09-16T10:10:36Z",
+ "polarisation": "VV",
+ "method": "Adaptive-threshold dark-spot detection on Lee-filtered calibrated backscatter (classical method, not a trained model)",
+ "landMask": "Natural Earth 1:10m coastline (data/reference/coastline_ne10m.json)",
+ "parameters": {
+  "leeWindow": 7,
+  "detectorWindow": 51,
+  "kSigma": 1.5,
+  "minContrastDb": 3.0,
+  "minAreaKm2": 0.5,
+  "coastBufferKm": 2.0,
+  "maxElongation": 50.0,
+  "multilookFactor": 8,
+  "pixelSpacingM": 80.0,
+  "equivalentLooks": 281.6,
+  "radiusKm": 40.0
+ },
+ "crop": {
+  "corners": [
+   {
+    "lat": 21.68391,
+    "lon": 88.60303
+   },
+   {
+    "lat": 21.82076,
+    "lon": 87.84284
+   },
+   {
+    "lat": 21.11534,
+    "lon": 87.6985
+   },
+   {
+    "lat": 20.97814,
+    "lon": 88.45497
+   }
+  ],
+  "shape": [
+   981,
+   1002
+  ]
+ },
+ "incidenceDeg": 34.22,
+ "sea": {
+  "meanDb": -17.38,
+  "stdDb": 1.83,
+  "pixels": 806581
+ },
+ "quicklook": "sar/IND-2018-06-SSL-KOLKATA/S1B_IW_GRDH_1SDV_20180714T000354_20180714T000423_011799_015B5E_1060.png",
+ "spots": [
+  {
+   "areaKm2": 0.525,
+   "meanDb": -23.41,
+   "backgroundDb": -16.74,
+   "contrastDb": -6.67,
+   "centroid": {
+    "lat": 21.51988,
+    "lon": 88.20297
+   },
+   "distanceKm": 14.41,
+   "elongation": 2.63,
+   "orientationDeg": 157.7,
+   "outline": [
+    {
+     "lat": 21.52598,
+     "lon": 88.20088
+    },
+    {
+     "lat": 21.52272,
+     "lon": 88.2065
+    },
+    {
+     "lat": 21.51525,
+     "lon": 88.20652
+    },
+    {
+     "lat": 21.51381,
+     "lon": 88.20622
+    },
+    {
+     "lat": 21.51408,
+     "lon": 88.20471
+    },
+    {
+     "lat": 21.51508,
+     "lon": 88.20334
+    },
+    {
+     "lat": 21.51679,
+     "lon": 88.20212
+    },
+    {
+     "lat": 21.52094,
+     "lon": 88.19984
+    },
+    {
+     "lat": 21.52481,
+     "lon": 88.19907
+    },
+    {
+     "lat": 21.52612,
+     "lon": 88.20012
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.582,
+   "meanDb": -23.72,
+   "backgroundDb": -18.05,
+   "contrastDb": -5.67,
+   "centroid": {
+    "lat": 21.51214,
+    "lon": 88.22848
+   },
+   "distanceKm": 14.88,
+   "elongation": 1.53,
+   "orientationDeg": 118.5,
+   "outline": [
+    {
+     "lat": 21.51405,
+     "lon": 88.2338
+    },
+    {
+     "lat": 21.51306,
+     "lon": 88.23517
+    },
+    {
+     "lat": 21.50887,
+     "lon": 88.23351
+    },
+    {
+     "lat": 21.50654,
+     "lon": 88.22988
+    },
+    {
+     "lat": 21.50736,
+     "lon": 88.22533
+    },
+    {
+     "lat": 21.51323,
+     "lon": 88.22183
+    },
+    {
+     "lat": 21.51395,
+     "lon": 88.22198
+    },
+    {
+     "lat": 21.51525,
+     "lon": 88.22304
+    },
+    {
+     "lat": 21.51583,
+     "lon": 88.22395
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.627,
+   "meanDb": -22.5,
+   "backgroundDb": -17.13,
+   "contrastDb": -5.37,
+   "centroid": {
+    "lat": 21.51334,
+    "lon": 88.24876
+   },
+   "distanceKm": 16.23,
+   "elongation": 1.55,
+   "orientationDeg": 39.3,
+   "outline": [
+    {
+     "lat": 21.51824,
+     "lon": 88.25198
+    },
+    {
+     "lat": 21.51697,
+     "lon": 88.25486
+    },
+    {
+     "lat": 21.51494,
+     "lon": 88.25365
+    },
+    {
+     "lat": 21.50713,
+     "lon": 88.24731
+    },
+    {
+     "lat": 21.50812,
+     "lon": 88.24594
+    },
+    {
+     "lat": 21.51155,
+     "lon": 88.24351
+    },
+    {
+     "lat": 21.51717,
+     "lon": 88.24546
+    },
+    {
+     "lat": 21.51837,
+     "lon": 88.25122
+    }
+   ]
+  },
+  {
+   "areaKm2": 0.646,
+   "meanDb": -24.39,
+   "backgroundDb": -17.64,
+   "contrastDb": -6.74,
+   "centroid": {
+    "lat": 21.08359,
+    "lon": 88.24825
+   },
+   "distanceKm": 36.63,
+   "elongation": 1.2,
+   "orientationDeg": 107.3,
+   "outline": [
+    {
+     "lat": 21.08692,
+     "lon": 88.24868
+    },
+    {
+     "lat": 21.08551,
+     "lon": 88.25231
+    },
+    {
+     "lat": 21.08451,
+     "lon": 88.25367
+    },
+    {
+     "lat": 21.08379,
+     "lon": 88.25352
+    },
+    {
+     "lat": 21.08249,
+     "lon": 88.25247
+    },
+    {
+     "lat": 21.07872,
+     "lon": 88.24854
+    },
+    {
+     "lat": 21.07886,
+     "lon": 88.24779
+    },
+    {
+     "lat": 21.08256,
+     "lon": 88.24385
+    },
+    {
+     "lat": 21.08486,
+     "lon": 88.24355
+    },
+    {
+     "lat": 21.0863,
+     "lon": 88.24385
+    },
+    {
+     "lat": 21.08719,
+     "lon": 88.24717
+    }
+   ]
+  }
+ ],
+ "limitations": [
+  "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
+  "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",
+  "Multilooking trades resolution for speckle reduction; slicks narrower than two output pixels can be missed",
+  "The quicklook is in radar geometry (not north-up); use the outlines on the map for location"
+ ]
+}

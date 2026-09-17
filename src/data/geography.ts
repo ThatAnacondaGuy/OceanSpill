@@ -1,4 +1,5 @@
 import type { LatLon } from '../lib/geo';
+import ECOLOGICAL_AREAS_FILE from '../../shared/ecological-areas.json';
 
 const ll = (lat: number, lon: number): LatLon => ({ lat, lon });
 
@@ -186,140 +187,11 @@ export interface EcologicalArea {
   peakSeason: string;
 }
 
-export const ECOLOGICAL_AREAS: EcologicalArea[] = [
-  {
-    id: 'ESA-GOK-01',
-    name: 'Gulf of Kachchh Marine National Park',
-    category: 'Marine National Park',
-    state: 'Gujarat',
-    sensitivity: 5,
-    areaKm2: 458,
-    ring: [ll(22.6, 69.2), ll(22.55, 70.1), ll(22.25, 70.2), ll(22.2, 69.3), ll(22.4, 69.05)],
-    notes: 'India\'s first marine national park. Coral reefs, 42 islands, extensive mangrove fringe adjoining the Sikka and Vadinar oil terminals.',
-    peakSeason: 'Nov – Feb (migratory birds)',
-  },
-  {
-    id: 'ESA-SUN-01',
-    name: 'Sundarbans Biosphere Reserve',
-    category: 'Mangrove',
-    state: 'West Bengal',
-    sensitivity: 5,
-    areaKm2: 4263,
-    ring: [ll(22.4, 88.3), ll(22.3, 89.1), ll(21.55, 89.0), ll(21.6, 88.25), ll(22.0, 88.15)],
-    notes: 'Largest contiguous mangrove forest on earth; UNESCO World Heritage site. Oil fouling of pneumatophores causes multi-year dieback.',
-    peakSeason: 'Year-round',
-  },
-  {
-    id: 'ESA-GOM-01',
-    name: 'Gulf of Mannar Biosphere Reserve',
-    category: 'Coral Reef',
-    state: 'Tamil Nadu',
-    sensitivity: 5,
-    areaKm2: 10500,
-    ring: [ll(9.28, 78.9), ll(9.3, 79.4), ll(8.85, 79.2), ll(8.6, 78.4), ll(8.95, 78.3)],
-    notes: '21 islands with fringing coral reefs, seagrass beds supporting the endangered dugong population.',
-    peakSeason: 'Apr – Jun (coral spawning)',
-  },
-  {
-    id: 'ESA-GAH-01',
-    name: 'Gahirmatha Marine Sanctuary',
-    category: 'Turtle Nesting',
-    state: 'Odisha',
-    sensitivity: 5,
-    areaKm2: 1435,
-    ring: [ll(20.9, 86.85), ll(20.85, 87.4), ll(20.35, 87.25), ll(20.4, 86.75)],
-    notes: 'World\'s largest olive ridley turtle rookery. Arribada mass-nesting occurs within 20 km of the Paradip approach lane.',
-    peakSeason: 'Jan – Mar (arribada)',
-  },
-  {
-    id: 'ESA-BHI-01',
-    name: 'Bhitarkanika Mangroves (Ramsar)',
-    category: 'Ramsar Wetland',
-    state: 'Odisha',
-    sensitivity: 4,
-    areaKm2: 650,
-    ring: [ll(20.75, 86.75), ll(20.72, 87.05), ll(20.4, 87.0), ll(20.45, 86.7)],
-    notes: 'Second largest mangrove ecosystem in India; saltwater crocodile habitat.',
-    peakSeason: 'Dec – Feb',
-  },
-  {
-    id: 'ESA-COR-01',
-    name: 'Coringa Wildlife Sanctuary',
-    category: 'Mangrove',
-    state: 'Andhra Pradesh',
-    sensitivity: 4,
-    areaKm2: 235,
-    ring: [ll(16.9, 82.2), ll(16.85, 82.42), ll(16.63, 82.35), ll(16.7, 82.15)],
-    notes: 'Godavari estuarine mangroves, directly downstream of the Kakinada anchorage.',
-    peakSeason: 'Oct – Jan',
-  },
-  {
-    id: 'ESA-PIC-01',
-    name: 'Pichavaram Mangrove Forest',
-    category: 'Mangrove',
-    state: 'Tamil Nadu',
-    sensitivity: 4,
-    areaKm2: 45,
-    ring: [ll(11.5, 79.75), ll(11.47, 79.83), ll(11.38, 79.8), ll(11.41, 79.72)],
-    notes: 'Dense mangrove used as a nursery by commercially important fin-fish and prawn species.',
-    peakSeason: 'Jun – Sep',
-  },
-  {
-    id: 'ESA-MAL-01',
-    name: 'Malvan Marine Sanctuary',
-    category: 'Coral Reef',
-    state: 'Maharashtra',
-    sensitivity: 4,
-    areaKm2: 29,
-    ring: [ll(16.08, 73.44), ll(16.05, 73.51), ll(15.96, 73.47), ll(15.99, 73.4)],
-    notes: 'Rocky reef and coral patches on the Konkan coast, adjacent to a dense fishing ground.',
-    peakSeason: 'Sep – Nov',
-  },
-  {
-    id: 'ESA-LAK-01',
-    name: 'Lakshadweep Atoll Complex',
-    category: 'Coral Reef',
-    state: 'Lakshadweep',
-    sensitivity: 5,
-    areaKm2: 4200,
-    ring: [ll(11.9, 72.1), ll(11.3, 73.3), ll(10.2, 73.9), ll(9.0, 73.3), ll(9.8, 72.3), ll(11.0, 71.9)],
-    notes: 'Atoll lagoons sit directly beside the Nine Degree Channel, one of the busiest tanker transit corridors in the Indian Ocean.',
-    peakSeason: 'Mar – May (bleaching risk window)',
-  },
-  {
-    id: 'ESA-AND-01',
-    name: 'Mahatma Gandhi Marine National Park',
-    category: 'Marine National Park',
-    state: 'Andaman & Nicobar',
-    sensitivity: 5,
-    areaKm2: 281,
-    ring: [ll(11.62, 92.58), ll(11.55, 92.72), ll(11.4, 92.66), ll(11.46, 92.52)],
-    notes: 'Fifteen islands with fringing reefs and one of the highest coral species counts in Indian waters.',
-    peakSeason: 'Dec – Apr',
-  },
-  {
-    id: 'ESA-CHI-01',
-    name: 'Chilika Lagoon (Ramsar)',
-    category: 'Ramsar Wetland',
-    state: 'Odisha',
-    sensitivity: 4,
-    areaKm2: 1100,
-    ring: [ll(19.8, 85.1), ll(19.72, 85.6), ll(19.5, 85.5), ll(19.6, 85.05)],
-    notes: 'Largest brackish lagoon in Asia; Irrawaddy dolphin habitat with a narrow sea mouth vulnerable to ingress.',
-    peakSeason: 'Nov – Feb',
-  },
-  {
-    id: 'ESA-VEM-01',
-    name: 'Vembanad-Kol Wetland (Ramsar)',
-    category: 'Seagrass',
-    state: 'Kerala',
-    sensitivity: 3,
-    areaKm2: 1512,
-    ring: [ll(10.1, 76.2), ll(10.05, 76.42), ll(9.5, 76.44), ll(9.55, 76.25)],
-    notes: 'Backwater system connected to the Arabian Sea at Kochi; supports clam fisheries.',
-    peakSeason: 'Jun – Aug',
-  },
-];
+/**
+ * Protected and ecologically sensitive areas, in shared/ecological-areas.json so the pipeline can
+ * fetch the real mapped boundary for each one (see `oceanwatch protected-areas`).
+ */
+export const ECOLOGICAL_AREAS: EcologicalArea[] = ECOLOGICAL_AREAS_FILE.areas as EcologicalArea[];
 
 /**
  * Traffic corridors used both as a shipping-lane overlay and as the spine for AIS track

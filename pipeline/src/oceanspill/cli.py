@@ -36,6 +36,65 @@ def cmd_build(settings: Settings, args: argparse.Namespace) -> int:
     return 1 if result["failures"] else 0
 
 
+def cmd_eo(settings: Settings, args: argparse.Namespace) -> int:
+    """What optical coverage exists over each incident, and whether cloud leaves it usable."""
+    import json as _json
+    from datetime import datetime, timedelta
+
+    from .providers.base import BBox
+    from .providers.eo_sentinel2 import Sentinel2Cdse, summarise
+
+    http = CachedHttp(settings.cache_dir, offline=args.offline)
+    provider = Sentinel2Cdse(settings, http)
+    out = {}
+    for case in load_cases(args.case):
+        incident = datetime.fromisoformat(case["incident"]["time"].replace("Z", "+00:00"))
+        position = case["incident"]["position"]
+        pad = args.pad_deg
+        bbox = BBox(west=position["lon"] - pad, south=position["lat"] - pad,
+                    east=position["lon"] + pad, north=position["lat"] + pad)
+        try:
+            scenes = provider.search(bbox, incident - timedelta(days=args.before), incident + timedelta(days=args.after))
+        except Exception as exc:
+            print(f"{case['id']:<32} search failed: {type(exc).__name__}: {exc}")
+            continue
+        report = summarise(scenes, incident)
+        out[case["id"]] = report
+        clearest = report["clearest"]
+        detail = "" if not clearest else (f" · clearest {clearest['cloudPercent']:.0f}% cloud "
+                                          f"{clearest['hoursFromIncident']:+.0f} h from the incident")
+        print(f"{case['id']:<32} {report['scenes']:2d} scenes · {report['usable']:2d} under "
+              f"{report['cloudThreshold']:.0f}% cloud{detail}")
+
+    if args.out:
+        Path(args.out).write_text(_json.dumps(out, indent=1))
+        print(f"wrote {args.out}")
+    return 0
+
+
+def cmd_protected(settings: Settings, args: argparse.Namespace) -> int:
+    """Find the mapped boundary of each protected area the risk pages rank."""
+    import json as _json
+
+    from .api.settings import SHARED_DIR
+    from .protected_areas import build_protected_areas
+
+    areas = _json.loads((SHARED_DIR / "ecological-areas.json").read_text())["areas"]
+    http = CachedHttp(settings.cache_dir, offline=args.offline)
+    build_protected_areas(http, areas, settings.output_dir)
+    return 0
+
+
+def cmd_shoretype(settings: Settings, args: argparse.Namespace) -> int:
+    """Label each case's coastline with what the shore is made of."""
+    from .shoretype import build_shore_types
+
+    http = CachedHttp(settings.cache_dir, offline=args.offline)
+    for case in load_cases(args.case):
+        build_shore_types(http, case["id"], settings.output_dir)
+    return 0
+
+
 def cmd_coast(settings: Settings, args: argparse.Namespace) -> int:
     from .providers.ais_synthetic import LandMask
 
@@ -95,13 +154,18 @@ def cmd_process(settings: Settings, args: argparse.Namespace) -> int:
     for path in paths:
         name = path.name.removesuffix(".zip").removesuffix(".SAFE")
         try:
-            record = process_scene(path, case, name, land_source, settings.output_dir, radius_km=args.radius_km, factor=args.factor)
+            record = process_scene(path, case, name, land_source, settings.output_dir, radius_km=args.radius_km,
+                                   factor=args.factor, model_path=args.model or settings.sar_model or None,
+                                   ship_model_path=args.ship_model or settings.ship_model or None)
         except Exception as exc:  # one bad scene must not stop the rest
             print(f"FAILED {name}: {exc}", file=sys.stderr)
             continue
         top = record["spots"][0] if record["spots"] else None
+        vessels, no_vessels = record.get("vessels"), record.get("vesselsUnavailable")
         print(f"processed {name}: {len(record['spots'])} dark spot(s)"
-              + (f"; nearest {top['distanceKm']} km, {top['areaKm2']} km2, contrast {top['contrastDb']} dB" if top else ""))
+              + (f"; nearest {top['distanceKm']} km, {top['areaKm2']} km2, contrast {top['contrastDb']} dB" if top else "")
+              + (f"; {len(vessels)} vessel(s) in the radar" if vessels is not None
+                 else f"; no vessel detection: {no_vessels}" if no_vessels else ""))
         done += 1
     artifact_path = settings.output_dir / "cases" / f"{args.case}.json"
     if done and artifact_path.exists():
@@ -136,6 +200,21 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--case", action="append", help="case id (repeatable); default all")
     c.add_argument("--offline", action="store_true", help="use cached coastline responses only")
 
+    eo = sub.add_parser("eo-search", help="what Sentinel-2 optical coverage exists over each incident")
+    eo.add_argument("--case", action="append", help="case id (repeatable); default all")
+    eo.add_argument("--before", type=int, default=2, help="days before the incident to search")
+    eo.add_argument("--after", type=int, default=7, help="days after the incident to search")
+    eo.add_argument("--pad-deg", type=float, default=0.35, help="half-width of the search box in degrees")
+    eo.add_argument("--out", help="write the result as JSON")
+    eo.add_argument("--offline", action="store_true", help="use cached responses only")
+
+    pa = sub.add_parser("protected-areas", help="fetch mapped boundaries for the protected areas on the ecological page")
+    pa.add_argument("--offline", action="store_true", help="use cached responses only")
+
+    st = sub.add_parser("shoretype", help="label each case coastline with beach, mangrove, rock or built shore")
+    st.add_argument("--case", action="append", help="case id (repeatable); default all")
+    st.add_argument("--offline", action="store_true", help="use cached responses only")
+
     d = sub.add_parser("download", help="download SAR scenes for a built case (needs credentials)")
     d.add_argument("--case", required=True)
     d.add_argument("--provider", choices=["cdse", "bhoonidhi"])
@@ -147,11 +226,14 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--scene", help="a .zip or .SAFE path (default: every scene in downloads/<case>)")
     pr.add_argument("--radius-km", type=float, default=40.0, help="analysis radius around the incident")
     pr.add_argument("--factor", type=int, help="multilook factor (default: 8 for Sentinel-1 GRDH, 4 for EOS-04 MRS, about 75 m pixels)")
+    pr.add_argument("--model", help="a trained segmentation model in ONNX form; without it the classical detector runs")
+    pr.add_argument("--ship-model", help="a trained ship detector in ONNX form; without it no vessel detection is attempted")
 
     args = parser.parse_args(argv)
     settings = Settings.load(Path(args.env) if args.env else None)
     try:
-        handler = {"providers": cmd_providers, "build": cmd_build, "coast": cmd_coast, "download": cmd_download, "process": cmd_process}[args.command]
+        handler = {"providers": cmd_providers, "build": cmd_build, "coast": cmd_coast, "shoretype": cmd_shoretype, "protected-areas": cmd_protected, "eo-search": cmd_eo,
+                   "download": cmd_download, "process": cmd_process}[args.command]
         return handler(settings, args)
     except ProviderConfigError as exc:
         print(f"configuration error: {exc}", file=sys.stderr)

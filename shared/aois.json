@@ -1,0 +1,103 @@
+{
+  "_comment": "Built-in satellite planning areas, shared by the web app and the API.",
+  "areas": [
+    {
+      "id": "AOI-KERALA",
+      "name": "Kerala Coast Shipping Lane",
+      "priority": 1,
+      "bounds": {
+        "north": 12.5,
+        "south": 8.0,
+        "east": 77.2,
+        "west": 73.8
+      },
+      "rationale": "Two major 2025 casualties (MSC ELSA 3, WAN HAI 503) on the Colombo–west coast container route.",
+      "pinned": true,
+      "requestedBy": "Analyst"
+    },
+    {
+      "id": "AOI-MUMBAI",
+      "name": "Mumbai Port Approaches and Bombay High",
+      "priority": 2,
+      "bounds": {
+        "north": 20.2,
+        "south": 18.4,
+        "east": 73.1,
+        "west": 70.8
+      },
+      "rationale": "MSC Chitra (2010), MV Rak (2011), Uran pipeline (2013) and Mumbai High (2005) all fall inside this area.",
+      "pinned": true,
+      "requestedBy": "NTRO Reviewer"
+    },
+    {
+      "id": "AOI-CHENNAI",
+      "name": "Chennai–Ennore Coast",
+      "priority": 3,
+      "bounds": {
+        "north": 13.6,
+        "south": 12.9,
+        "east": 80.7,
+        "west": 80.1
+      },
+      "rationale": "Ennore 2017 collision and 2023 refinery spill; dense port and refinery activity.",
+      "pinned": true,
+      "requestedBy": "Indian Coast Guard"
+    },
+    {
+      "id": "AOI-GOA",
+      "name": "Goa–Karnataka Tar Ball Coast",
+      "priority": 4,
+      "bounds": {
+        "north": 16.0,
+        "south": 14.0,
+        "east": 74.5,
+        "west": 72.8
+      },
+      "rationale": "Recurring April–September tar ball deposition; Ocean Seraya 2006 off Karwar.",
+      "pinned": false,
+      "requestedBy": "MoEFCC"
+    },
+    {
+      "id": "AOI-SUNDARBANS",
+      "name": "Hooghly Approach / Sundarbans",
+      "priority": 5,
+      "bounds": {
+        "north": 22.3,
+        "south": 20.8,
+        "east": 89.2,
+        "west": 87.6
+      },
+      "rationale": "SSL Kolkata 2018 wreck; world heritage mangroves adjacent to the shipping channel.",
+      "pinned": false,
+      "requestedBy": "MoEFCC"
+    },
+    {
+      "id": "AOI-CAUVERY",
+      "name": "Cauvery Delta / Karaikal",
+      "priority": 6,
+      "bounds": {
+        "north": 11.2,
+        "south": 10.4,
+        "east": 80.2,
+        "west": 79.7
+      },
+      "rationale": "Nagapattinam 2023 undersea pipeline leak; crude transfers to ships.",
+      "pinned": false,
+      "requestedBy": "Analyst"
+    },
+    {
+      "id": "AOI-KUTCH",
+      "name": "Gulf of Kachchh Oil Terminals",
+      "priority": 7,
+      "bounds": {
+        "north": 23.2,
+        "south": 21.4,
+        "east": 70.6,
+        "west": 67.8
+      },
+      "rationale": "Largest crude import terminals (Sikka, Vadinar, Mundra); historic tanker spills off Kutch.",
+      "pinned": false,
+      "requestedBy": "NTRO Reviewer"
+    }
+  ]
+}

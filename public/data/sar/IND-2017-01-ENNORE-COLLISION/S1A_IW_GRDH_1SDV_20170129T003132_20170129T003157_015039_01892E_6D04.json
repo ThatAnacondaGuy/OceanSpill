@@ -1,0 +1,445 @@
+{
+ "schemaVersion": 1,
+ "caseId": "IND-2017-01-ENNORE-COLLISION",
+ "scene": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_6D04",
+ "product": "Sentinel-1 GRD",
+ "radiometry": "Sigma0 (thermal noise removed)",
+ "processedAt": "2026-09-16T20:12:31Z",
+ "polarisation": "VV",
+ "method": "U-Net segmentation (unet_best.onnx), trained on Sentinel-1 oil spill, look-alike and clean-sea scenes (dual polarisation, decibels), threshold 0.7; the scene supplies one polarisation and the model expects 2, so the same band is used for each",
+ "model": {
+  "name": "unet-onnx:unet_best",
+  "threshold": 0.7,
+  "trainedOn": "Sentinel-1 oil spill, look-alike and clean-sea scenes (dual polarisation, decibels)",
+  "channelsExpected": 2,
+  "channelsSupplied": 1,
+  "duplicatedChannels": true
+ },
+ "landMask": "Natural Earth 1:10m coastline (data/reference/coastline_ne10m.json)",
+ "parameters": {
+  "leeWindow": 7,
+  "detectorWindow": 51,
+  "kSigma": 1.5,
+  "minContrastDb": 3.0,
+  "minAreaKm2": 0.5,
+  "coastBufferKm": 2.0,
+  "maxElongation": 50.0,
+  "multilookFactor": 8,
+  "pixelSpacingM": 80.0,
+  "equivalentLooks": 281.6,
+  "radiusKm": 40.0
+ },
+ "crop": {
+  "corners": [
+   {
+    "lat": 13.40479,
+    "lon": 80.78627
+   },
+   {
+    "lat": 13.5464,
+    "lon": 80.06171
+   },
+   {
+    "lat": 12.9781,
+    "lon": 79.9464
+   },
+   {
+    "lat": 12.83614,
+    "lon": 80.66921
+   }
+  ],
+  "shape": [
+   790,
+   1001
+  ]
+ },
+ "incidenceDeg": 33.76,
+ "sea": {
+  "meanDb": -19.61,
+  "stdDb": 2.63,
+  "pixels": 432475
+ },
+ "quicklook": "sar/IND-2017-01-ENNORE-COLLISION/S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_6D04.png",
+ "spots": [
+  {
+   "areaKm2": 1.094,
+   "meanDb": -27.82,
+   "backgroundDb": -26.54,
+   "contrastDb": -1.28,
+   "centroid": {
+    "lat": 13.35268,
+    "lon": 80.43414
+   },
+   "distanceKm": 11.85,
+   "elongation": 3.66,
+   "orientationDeg": 6.8,
+   "outline": [
+    {
+     "lat": 13.36272,
+     "lon": 80.43557
+    },
+    {
+     "lat": 13.36099,
+     "lon": 80.43673
+    },
+    {
+     "lat": 13.35783,
+     "lon": 80.43758
+    },
+    {
+     "lat": 13.34414,
+     "lon": 80.43478
+    },
+    {
+     "lat": 13.34226,
+     "lon": 80.43289
+    },
+    {
+     "lat": 13.3424,
+     "lon": 80.43216
+    },
+    {
+     "lat": 13.34326,
+     "lon": 80.43159
+    },
+    {
+     "lat": 13.34485,
+     "lon": 80.43116
+    },
+    {
+     "lat": 13.34787,
+     "lon": 80.43102
+    },
+    {
+     "lat": 13.35838,
+     "lon": 80.43092
+    },
+    {
+     "lat": 13.35982,
+     "lon": 80.43121
+    },
+    {
+     "lat": 13.36286,
+     "lon": 80.43485
+    }
+   ],
+   "modelOilProbability": 0.7156,
+   "modelPeakProbability": 0.7402
+  },
+  {
+   "areaKm2": 10.47,
+   "meanDb": -28.01,
+   "backgroundDb": -24.93,
+   "contrastDb": -3.07,
+   "centroid": {
+    "lat": 13.18188,
+    "lon": 80.48801
+   },
+   "distanceKm": 14.57,
+   "elongation": 3.64,
+   "orientationDeg": 21.8,
+   "outline": [
+    {
+     "lat": 13.21168,
+     "lon": 80.50632
+    },
+    {
+     "lat": 13.21068,
+     "lon": 80.50762
+    },
+    {
+     "lat": 13.2091,
+     "lon": 80.50805
+    },
+    {
+     "lat": 13.17694,
+     "lon": 80.49623
+    },
+    {
+     "lat": 13.17146,
+     "lon": 80.4936
+    },
+    {
+     "lat": 13.15443,
+     "lon": 80.48486
+    },
+    {
+     "lat": 13.15096,
+     "lon": 80.47964
+    },
+    {
+     "lat": 13.15584,
+     "lon": 80.47386
+    },
+    {
+     "lat": 13.15757,
+     "lon": 80.47271
+    },
+    {
+     "lat": 13.16448,
+     "lon": 80.47186
+    },
+    {
+     "lat": 13.16823,
+     "lon": 80.47187
+    },
+    {
+     "lat": 13.16895,
+     "lon": 80.47202
+    },
+    {
+     "lat": 13.18856,
+     "lon": 80.47903
+    },
+    {
+     "lat": 13.19274,
+     "lon": 80.48063
+    },
+    {
+     "lat": 13.19924,
+     "lon": 80.48572
+    },
+    {
+     "lat": 13.20112,
+     "lon": 80.48761
+    },
+    {
+     "lat": 13.21022,
+     "lon": 80.4985
+    },
+    {
+     "lat": 13.21138,
+     "lon": 80.50024
+    },
+    {
+     "lat": 13.21197,
+     "lon": 80.50488
+    }
+   ],
+   "modelOilProbability": 0.7491,
+   "modelPeakProbability": 0.8202
+  },
+  {
+   "areaKm2": 7.533,
+   "meanDb": -28.59,
+   "backgroundDb": -26.66,
+   "contrastDb": -1.94,
+   "centroid": {
+    "lat": 13.45714,
+    "lon": 80.41065
+   },
+   "distanceKm": 22.17,
+   "elongation": 2.34,
+   "orientationDeg": 169.3,
+   "outline": [
+    {
+     "lat": 13.47726,
+     "lon": 80.41308
+    },
+    {
+     "lat": 13.47612,
+     "lon": 80.41511
+    },
+    {
+     "lat": 13.47253,
+     "lon": 80.41814
+    },
+    {
+     "lat": 13.44691,
+     "lon": 80.42269
+    },
+    {
+     "lat": 13.44259,
+     "lon": 80.42181
+    },
+    {
+     "lat": 13.43927,
+     "lon": 80.41962
+    },
+    {
+     "lat": 13.43811,
+     "lon": 80.41788
+    },
+    {
+     "lat": 13.43622,
+     "lon": 80.41221
+    },
+    {
+     "lat": 13.4365,
+     "lon": 80.41077
+    },
+    {
+     "lat": 13.44024,
+     "lon": 80.40701
+    },
+    {
+     "lat": 13.45058,
+     "lon": 80.40009
+    },
+    {
+     "lat": 13.45216,
+     "lon": 80.39966
+    },
+    {
+     "lat": 13.47821,
+     "lon": 80.3967
+    },
+    {
+     "lat": 13.47879,
+     "lon": 80.39757
+    },
+    {
+     "lat": 13.47923,
+     "lon": 80.39917
+    },
+    {
+     "lat": 13.47754,
+     "lon": 80.41164
+    }
+   ],
+   "modelOilProbability": 0.7532,
+   "modelPeakProbability": 0.8456
+  },
+  {
+   "areaKm2": 5.517,
+   "meanDb": -28.05,
+   "backgroundDb": -24.32,
+   "contrastDb": -3.73,
+   "centroid": {
+    "lat": 13.42769,
+    "lon": 80.50451
+   },
+   "distanceKm": 23.0,
+   "elongation": 2.42,
+   "orientationDeg": 164.6,
+   "outline": [
+    {
+     "lat": 13.4476,
+     "lon": 80.50346
+    },
+    {
+     "lat": 13.43983,
+     "lon": 80.50865
+    },
+    {
+     "lat": 13.42228,
+     "lon": 80.51409
+    },
+    {
+     "lat": 13.41911,
+     "lon": 80.51494
+    },
+    {
+     "lat": 13.41335,
+     "lon": 80.51376
+    },
+    {
+     "lat": 13.41205,
+     "lon": 80.51274
+    },
+    {
+     "lat": 13.40916,
+     "lon": 80.50838
+    },
+    {
+     "lat": 13.41476,
+     "lon": 80.50275
+    },
+    {
+     "lat": 13.41749,
+     "lon": 80.50029
+    },
+    {
+     "lat": 13.42266,
+     "lon": 80.49683
+    },
+    {
+     "lat": 13.42511,
+     "lon": 80.49583
+    },
+    {
+     "lat": 13.42899,
+     "lon": 80.49512
+    },
+    {
+     "lat": 13.4313,
+     "lon": 80.49484
+    },
+    {
+     "lat": 13.4421,
+     "lon": 80.49706
+    },
+    {
+     "lat": 13.44412,
+     "lon": 80.49822
+    }
+   ],
+   "modelOilProbability": 0.7626,
+   "modelPeakProbability": 0.8302
+  },
+  {
+   "areaKm2": 0.96,
+   "meanDb": -29.24,
+   "backgroundDb": -29.23,
+   "contrastDb": -0.0,
+   "centroid": {
+    "lat": 13.48149,
+    "lon": 80.37771
+   },
+   "distanceKm": 24.63,
+   "elongation": 11.87,
+   "orientationDeg": 101.7,
+   "outline": [
+    {
+     "lat": 13.47978,
+     "lon": 80.3925
+    },
+    {
+     "lat": 13.47864,
+     "lon": 80.39453
+    },
+    {
+     "lat": 13.47734,
+     "lon": 80.39351
+    },
+    {
+     "lat": 13.47676,
+     "lon": 80.39264
+    },
+    {
+     "lat": 13.48044,
+     "lon": 80.3738
+    },
+    {
+     "lat": 13.48357,
+     "lon": 80.36163
+    },
+    {
+     "lat": 13.48443,
+     "lon": 80.36105
+    },
+    {
+     "lat": 13.48573,
+     "lon": 80.36207
+    }
+   ],
+   "modelOilProbability": 0.7092,
+   "modelPeakProbability": 0.7273
+  }
+ ],
+ "vessels": null,
+ "vesselsUnavailable": "vessel detection needs pixels of 30 m or finer; this window is 80 m, where a 200 m ship is under 2.5 pixels across",
+ "vesselModel": {
+  "name": "unet-onnx:unet_best",
+  "threshold": 0.7,
+  "chipThreshold": 0.3,
+  "thresholdNote": "The training threshold was chosen on chips cropped around a ship. Scene-wide use raises it, because a scene is mostly water and the chip score barely moves across that range.",
+  "trainedOn": "SAR Ship Detection Dataset (SSDD), ship outlines rasterised from the annotations"
+ },
+ "limitations": [
+  "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
+  "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",
+  "Multilooking trades resolution for speckle reduction; slicks narrower than two output pixels can be missed",
+  "The quicklook is in radar geometry (not north-up); use the outlines on the map for location"
+ ]
+}

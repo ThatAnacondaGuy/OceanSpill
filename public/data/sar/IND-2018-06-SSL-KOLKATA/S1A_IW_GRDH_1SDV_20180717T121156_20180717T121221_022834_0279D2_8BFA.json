@@ -1,0 +1,110 @@
+{
+ "schemaVersion": 1,
+ "caseId": "IND-2018-06-SSL-KOLKATA",
+ "scene": "S1A_IW_GRDH_1SDV_20180717T121156_20180717T121221_022834_0279D2_8BFA",
+ "product": "Sentinel-1 GRD",
+ "radiometry": "Sigma0 (thermal noise removed)",
+ "processedAt": "2026-09-16T10:10:30Z",
+ "polarisation": "VV",
+ "method": "Adaptive-threshold dark-spot detection on Lee-filtered calibrated backscatter (classical method, not a trained model)",
+ "landMask": "Natural Earth 1:10m coastline (data/reference/coastline_ne10m.json)",
+ "parameters": {
+  "leeWindow": 7,
+  "detectorWindow": 51,
+  "kSigma": 1.5,
+  "minContrastDb": 3.0,
+  "minAreaKm2": 0.5,
+  "coastBufferKm": 2.0,
+  "maxElongation": 50.0,
+  "multilookFactor": 8,
+  "pixelSpacingM": 80.0,
+  "equivalentLooks": 281.6,
+  "radiusKm": 40.0
+ },
+ "crop": {
+  "corners": [
+   {
+    "lat": 20.97863,
+    "lon": 87.84482
+   },
+   {
+    "lat": 21.11543,
+    "lon": 88.60137
+   },
+   {
+    "lat": 21.82062,
+    "lon": 88.45761
+   },
+   {
+    "lat": 21.6842,
+    "lon": 87.69735
+   }
+  ],
+  "shape": [
+   979,
+   1002
+  ]
+ },
+ "incidenceDeg": 34.9,
+ "sea": {
+  "meanDb": -17.66,
+  "stdDb": 1.65,
+  "pixels": 811107
+ },
+ "quicklook": "sar/IND-2018-06-SSL-KOLKATA/S1A_IW_GRDH_1SDV_20180717T121156_20180717T121221_022834_0279D2_8BFA.png",
+ "spots": [
+  {
+   "areaKm2": 0.57,
+   "meanDb": -23.79,
+   "backgroundDb": -16.08,
+   "contrastDb": -7.71,
+   "centroid": {
+    "lat": 21.69742,
+    "lon": 87.79835
+   },
+   "distanceKm": 49.16,
+   "elongation": 9.79,
+   "orientationDeg": 54.6,
+   "outline": [
+    {
+     "lat": 21.68991,
+     "lon": 87.79066
+    },
+    {
+     "lat": 21.69081,
+     "lon": 87.78733
+    },
+    {
+     "lat": 21.69225,
+     "lon": 87.78703
+    },
+    {
+     "lat": 21.7019,
+     "lon": 87.80313
+    },
+    {
+     "lat": 21.70417,
+     "lon": 87.80739
+    },
+    {
+     "lat": 21.70486,
+     "lon": 87.81118
+    },
+    {
+     "lat": 21.69105,
+     "lon": 87.79279
+    },
+    {
+     "lat": 21.69005,
+     "lon": 87.79142
+    }
+   ]
+  }
+ ],
+ "limitations": [
+  "Dark spots include look-alikes (low wind, biogenic films, rain cells); the look-alike checks must still be applied",
+  "Land is masked with a coastline plus a coastal buffer; detections within a few km of shore remain unreliable",
+  "Multilooking trades resolution for speckle reduction; slicks narrower than two output pixels can be missed",
+  "The quicklook is in radar geometry (not north-up); use the outlines on the map for location"
+ ]
+}

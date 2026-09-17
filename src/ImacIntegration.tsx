@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Database, Radio, CheckCircle2, AlertTriangle, Send, Server, Key,
-  ArrowUpRight, Copy, Cable, Terminal,
+  ArrowUpRight, Copy, Cable, Terminal, Shield,
 } from 'lucide-react';
 import { useStore, fmt, type CaseAnalysis } from './store/store';
 import {
@@ -18,7 +18,7 @@ import { READ_ONLY_HINT } from './data/access';
  * and can be downloaded. Nothing on this page claims delivery.
  */
 export default function ImacIntegration() {
-  const { world, now, pushToImac, navigate, consumeSection, notify, getAnalysis, revision, canEdit } = useStore();
+  const { world, now, pushToImac, startFlow, consumeSection, notify, getAnalysis, revision, canEdit } = useStore();
   const [tab, setTab] = useState('imac');
   const [query, setQuery] = useState('');
   const [kindFilter, setKindFilter] = useState('all');
@@ -81,8 +81,8 @@ export default function ImacIntegration() {
     { key: 'sovereign', header: 'Origin', width: '84px', value: (d) => (d.sovereign ? 0 : 1), render: (d) => <Badge tone={d.sovereign ? 'green' : 'gray'}>{d.sovereign ? 'Indian' : 'Foreign'}</Badge> },
     { key: 'role', header: 'Role', width: '84px', value: (d) => d.role, render: (d) => <span className="text-gray-600">{d.role}</span> },
     {
-      key: 'status', header: 'Status', width: '120px', value: (d) => ({ Online: 0, 'Interim fallback': 1, 'Not configured': 2, 'Pending access': 3 }[d.status]),
-      render: (d) => <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Interim fallback' ? 'teal' : d.status === 'Not configured' ? 'amber' : 'gray'}>{d.status}</Badge>,
+      key: 'status', header: 'Status', width: '120px', value: (d) => ({ Online: 0, 'Interim fallback': 1, 'Not configured': 2, 'Authorisation required': 3 }[d.status]),
+      render: (d) => <Badge tone={d.status === 'Online' ? 'green' : d.status === 'Interim fallback' ? 'teal' : d.status === 'Not configured' ? 'amber' : 'blue'}>{d.status}</Badge>,
     },
     { key: 'message', header: 'Detail', value: (d) => d.message, render: (d) => <span className="text-gray-600 text-[0.71875rem]">{d.message}</span> },
     {
@@ -95,7 +95,8 @@ export default function ImacIntegration() {
     online: world.dataSources.filter((d) => d.status === 'Online').length,
     fallback: world.dataSources.filter((d) => d.status === 'Interim fallback').length,
     notConfigured: world.dataSources.filter((d) => d.status === 'Not configured').length,
-    pendingAccess: world.dataSources.filter((d) => d.status === 'Pending access').length,
+    pendingAccess: world.dataSources.filter((d) => d.status === 'Authorisation required').length,
+    sovereignPending: world.dataSources.filter((d) => d.status === 'Authorisation required' && d.sovereign).length,
   }), [world.dataSources, revision]);
 
   const payloadCase = world.cases.find((c) => c.id === payloadFor);
@@ -162,7 +163,7 @@ export default function ImacIntegration() {
                     </div>
                     <p className="text-[0.6875rem] text-gray-400 mb-1.5">{c.status} · {fmt.precise(c.incidentTime, c.facts.incident.timePrecision)}</p>
                     <div className="flex gap-1.5">
-                      <Button size="sm" className="flex-1 justify-center" onClick={() => navigate({ tab: 'Investigation', caseId: c.id })}>Review</Button>
+                      <Button size="sm" className="flex-1 justify-center" onClick={() => startFlow(c.id)}>Review</Button>
                       <Button size="sm" variant="primary" className="flex-1 justify-center" disabled={!canEdit('Data Management')} title={canEdit('Data Management') ? undefined : READ_ONLY_HINT} onClick={() => { pushToImac(c.id); setPayloadFor(c.id); }} icon={<ArrowUpRight className="w-3 h-3" />}>Generate</Button>
                     </div>
                   </div>
@@ -184,8 +185,23 @@ export default function ImacIntegration() {
             <StatCard icon={<Server className="w-5 h-5" />} title="Online" value={health.online} trend={`of ${world.dataSources.length} listed`} accent="green" />
             <StatCard icon={<CheckCircle2 className="w-5 h-5" />} title="Interim fallback" value={health.fallback} trend="working stand-ins for pending sources" />
             <StatCard icon={<AlertTriangle className="w-5 h-5" />} title="Not configured" value={health.notConfigured} trend="adapter ready, credentials missing" accent="amber" />
-            <StatCard icon={<Key className="w-5 h-5" />} title="Pending access" value={health.pendingAccess} trend="needs agency access" />
+            <StatCard icon={<Key className="w-5 h-5" />} title="Authorisation required" value={health.pendingAccess} trend="Indian systems, access not granted" accent="blue" />
           </div>
+
+          {/*
+            Without this said plainly, a column of grey badges beside Indian agency names reads as
+            "the Indian sources do not work". The opposite is true: every source awaiting
+            authorisation is Indian, and the foreign ones are here only because they can be reached
+            without one. The list is what an authorising agency would need to act on.
+          */}
+          <InfoBanner tone="blue" icon={<Shield className="w-3.5 h-3.5" />}>
+            <b>Sovereignty position.</b> {health.sovereignPending} of the {health.pendingAccess} sources awaiting
+            authorisation are Indian government systems — ISRO, INCOIS, DGLL, DG Shipping, NDMA and the Navy.
+            They are not missing for want of engineering: each has an adapter and needs an authorisation this
+            prototype cannot grant itself. EOS-04 through Bhoonidhi is Indian, open, and already the primary
+            imagery source. The foreign feeds listed below are interim fallbacks, used only where an Indian
+            equivalent is not yet reachable, and every case record names which one it actually used.
+          </InfoBanner>
 
           <div className="flex items-center gap-2 flex-shrink-0">
             <SearchInput value={query} onChange={setQuery} placeholder="Source, agency or detail…" className="w-72" />
@@ -276,10 +292,10 @@ function buildPayload(c: SpillCase, world: ReturnType<typeof useStore>['world'],
     }
   }
   return JSON.stringify({
-    schema: 'oceanspill.cop.pollution.draft-1',
+    schema: 'oceanwatch.cop.pollution.draft-1',
     generatedAt: new Date(c.imacPushedAt ?? now).toISOString(),
     status: 'DRAFT_NOT_TRANSMITTED',
-    source: { system: 'OceanSpill', mode: 'retrospective-analysis' },
+    source: { system: 'OceanWatch', mode: 'retrospective-analysis' },
     incident: {
       id: c.id,
       title: c.title,

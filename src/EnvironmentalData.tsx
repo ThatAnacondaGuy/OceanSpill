@@ -17,13 +17,23 @@ const HOUR = 3600_000;
  * engine integrates. Model mode shows the climatological fallback and is labelled as modelled.
  */
 export default function EnvironmentalData() {
-  const { now, world, navigate, selectedCaseId, samplerFor } = useStore();
+  const { now, world, startFlow, selectedCaseId, samplerFor, flowCaseId } = useStore();
+  // While the pipeline is running a case, this page belongs to that case alone.
+  const locked = flowCaseId != null;
   const casesWithForcing = useMemo(() => world.cases.filter((c) => world.forcing.has(c.id)), [world]);
 
   const [mode, setMode] = useState<'case' | 'model'>(casesWithForcing.length ? 'case' : 'model');
   const [caseId, setCaseId] = useState<string>(
     casesWithForcing.find((c) => c.id === selectedCaseId)?.id ?? casesWithForcing[0]?.id ?? ''
   );
+  // The pipeline is authoritative: entering this stage pins it to the case being run.
+  useEffect(() => {
+    if (flowCaseId) {
+      setCaseId(flowCaseId);
+      setMode('case');
+    }
+  }, [flowCaseId]);
+
   const activeCase = world.cases.find((c) => c.id === caseId) ?? null;
   const forcing: ForcingArtifact | null = mode === 'case' ? world.forcing.get(caseId) ?? null : null;
 
@@ -178,7 +188,7 @@ export default function EnvironmentalData() {
             <button onClick={() => setMode('model')}
               className={`flex-1 px-2 py-1 text-[0.75rem] font-semibold border-l border-gray-300 ${mode === 'model' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Climatology</button>
           </div>
-          {mode === 'case' && (
+          {mode === 'case' && !locked && (
             <div className="mt-2">
               <Select value={caseId} onChange={setCaseId} options={casesWithForcing.map((c) => ({ value: c.id, label: c.title }))} />
             </div>
@@ -430,7 +440,7 @@ export default function EnvironmentalData() {
             fitTo={forcing ? [{ lat: forcing.lats[0], lon: forcing.lons[0] }, { lat: forcing.lats[forcing.lats.length - 1], lon: forcing.lons[forcing.lons.length - 1] }] : undefined}
             fitKey={`${mode}-${caseId}`}
             onMapClick={(p) => setProbe(p)}
-            onMarkerClick={(m) => { if (m.kind === 'case') navigate({ tab: 'Investigation', caseId: m.id }); }}
+            onMarkerClick={(m) => { if (m.kind === 'case') startFlow(m.id); }}
             overlay={
               <div className="absolute top-3 left-3 z-20 flex flex-col gap-2 items-start">
                 <BasemapSwitch value={basemap} onChange={setBasemap} />

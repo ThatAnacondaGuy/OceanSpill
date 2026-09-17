@@ -1,0 +1,361 @@
+{
+ "_comment": "Protected and ecologically sensitive areas the risk pages rank. Shared by the web app and the pipeline.",
+ "areas": [
+  {
+   "id": "ESA-GOK-01",
+   "name": "Gulf of Kachchh Marine National Park",
+   "category": "Marine National Park",
+   "state": "Gujarat",
+   "sensitivity": 5,
+   "areaKm2": 458,
+   "ring": [
+    {
+     "lat": 22.6,
+     "lon": 69.2
+    },
+    {
+     "lat": 22.55,
+     "lon": 70.1
+    },
+    {
+     "lat": 22.25,
+     "lon": 70.2
+    },
+    {
+     "lat": 22.2,
+     "lon": 69.3
+    },
+    {
+     "lat": 22.4,
+     "lon": 69.05
+    }
+   ],
+   "notes": "India's first marine national park. Coral reefs, 42 islands, extensive mangrove fringe adjoining the Sikka and Vadinar oil terminals.",
+   "peakSeason": "Nov – Feb (migratory birds)"
+  },
+  {
+   "id": "ESA-SUN-01",
+   "name": "Sundarbans Biosphere Reserve",
+   "category": "Mangrove",
+   "state": "West Bengal",
+   "sensitivity": 5,
+   "areaKm2": 4263,
+   "ring": [
+    {
+     "lat": 22.4,
+     "lon": 88.3
+    },
+    {
+     "lat": 22.3,
+     "lon": 89.1
+    },
+    {
+     "lat": 21.55,
+     "lon": 89
+    },
+    {
+     "lat": 21.6,
+     "lon": 88.25
+    },
+    {
+     "lat": 22,
+     "lon": 88.15
+    }
+   ],
+   "notes": "Largest contiguous mangrove forest on earth; UNESCO World Heritage site. Oil fouling of pneumatophores causes multi-year dieback.",
+   "peakSeason": "Year-round"
+  },
+  {
+   "id": "ESA-GOM-01",
+   "name": "Gulf of Mannar Biosphere Reserve",
+   "category": "Coral Reef",
+   "state": "Tamil Nadu",
+   "sensitivity": 5,
+   "areaKm2": 10500,
+   "ring": [
+    {
+     "lat": 9.28,
+     "lon": 78.9
+    },
+    {
+     "lat": 9.3,
+     "lon": 79.4
+    },
+    {
+     "lat": 8.85,
+     "lon": 79.2
+    },
+    {
+     "lat": 8.6,
+     "lon": 78.4
+    },
+    {
+     "lat": 8.95,
+     "lon": 78.3
+    }
+   ],
+   "notes": "21 islands with fringing coral reefs, seagrass beds supporting the endangered dugong population.",
+   "peakSeason": "Apr – Jun (coral spawning)"
+  },
+  {
+   "id": "ESA-GAH-01",
+   "name": "Gahirmatha Marine Sanctuary",
+   "category": "Turtle Nesting",
+   "state": "Odisha",
+   "sensitivity": 5,
+   "areaKm2": 1435,
+   "ring": [
+    {
+     "lat": 20.9,
+     "lon": 86.85
+    },
+    {
+     "lat": 20.85,
+     "lon": 87.4
+    },
+    {
+     "lat": 20.35,
+     "lon": 87.25
+    },
+    {
+     "lat": 20.4,
+     "lon": 86.75
+    }
+   ],
+   "notes": "World's largest olive ridley turtle rookery. Arribada mass-nesting occurs within 20 km of the Paradip approach lane.",
+   "peakSeason": "Jan – Mar (arribada)"
+  },
+  {
+   "id": "ESA-BHI-01",
+   "name": "Bhitarkanika Mangroves (Ramsar)",
+   "category": "Ramsar Wetland",
+   "state": "Odisha",
+   "sensitivity": 4,
+   "areaKm2": 650,
+   "ring": [
+    {
+     "lat": 20.75,
+     "lon": 86.75
+    },
+    {
+     "lat": 20.72,
+     "lon": 87.05
+    },
+    {
+     "lat": 20.4,
+     "lon": 87
+    },
+    {
+     "lat": 20.45,
+     "lon": 86.7
+    }
+   ],
+   "notes": "Second largest mangrove ecosystem in India; saltwater crocodile habitat.",
+   "peakSeason": "Dec – Feb"
+  },
+  {
+   "id": "ESA-COR-01",
+   "name": "Coringa Wildlife Sanctuary",
+   "category": "Mangrove",
+   "state": "Andhra Pradesh",
+   "sensitivity": 4,
+   "areaKm2": 235,
+   "ring": [
+    {
+     "lat": 16.9,
+     "lon": 82.2
+    },
+    {
+     "lat": 16.85,
+     "lon": 82.42
+    },
+    {
+     "lat": 16.63,
+     "lon": 82.35
+    },
+    {
+     "lat": 16.7,
+     "lon": 82.15
+    }
+   ],
+   "notes": "Godavari estuarine mangroves, directly downstream of the Kakinada anchorage.",
+   "peakSeason": "Oct – Jan"
+  },
+  {
+   "id": "ESA-PIC-01",
+   "name": "Pichavaram Mangrove Forest",
+   "category": "Mangrove",
+   "state": "Tamil Nadu",
+   "sensitivity": 4,
+   "areaKm2": 45,
+   "ring": [
+    {
+     "lat": 11.5,
+     "lon": 79.75
+    },
+    {
+     "lat": 11.47,
+     "lon": 79.83
+    },
+    {
+     "lat": 11.38,
+     "lon": 79.8
+    },
+    {
+     "lat": 11.41,
+     "lon": 79.72
+    }
+   ],
+   "notes": "Dense mangrove used as a nursery by commercially important fin-fish and prawn species.",
+   "peakSeason": "Jun – Sep"
+  },
+  {
+   "id": "ESA-MAL-01",
+   "name": "Malvan Marine Sanctuary",
+   "category": "Coral Reef",
+   "state": "Maharashtra",
+   "sensitivity": 4,
+   "areaKm2": 29,
+   "ring": [
+    {
+     "lat": 16.08,
+     "lon": 73.44
+    },
+    {
+     "lat": 16.05,
+     "lon": 73.51
+    },
+    {
+     "lat": 15.96,
+     "lon": 73.47
+    },
+    {
+     "lat": 15.99,
+     "lon": 73.4
+    }
+   ],
+   "notes": "Rocky reef and coral patches on the Konkan coast, adjacent to a dense fishing ground.",
+   "peakSeason": "Sep – Nov"
+  },
+  {
+   "id": "ESA-LAK-01",
+   "name": "Lakshadweep Atoll Complex",
+   "category": "Coral Reef",
+   "state": "Lakshadweep",
+   "sensitivity": 5,
+   "areaKm2": 4200,
+   "ring": [
+    {
+     "lat": 11.9,
+     "lon": 72.1
+    },
+    {
+     "lat": 11.3,
+     "lon": 73.3
+    },
+    {
+     "lat": 10.2,
+     "lon": 73.9
+    },
+    {
+     "lat": 9,
+     "lon": 73.3
+    },
+    {
+     "lat": 9.8,
+     "lon": 72.3
+    },
+    {
+     "lat": 11,
+     "lon": 71.9
+    }
+   ],
+   "notes": "Atoll lagoons sit directly beside the Nine Degree Channel, one of the busiest tanker transit corridors in the Indian Ocean.",
+   "peakSeason": "Mar – May (bleaching risk window)"
+  },
+  {
+   "id": "ESA-AND-01",
+   "name": "Mahatma Gandhi Marine National Park",
+   "category": "Marine National Park",
+   "state": "Andaman & Nicobar",
+   "sensitivity": 5,
+   "areaKm2": 281,
+   "ring": [
+    {
+     "lat": 11.62,
+     "lon": 92.58
+    },
+    {
+     "lat": 11.55,
+     "lon": 92.72
+    },
+    {
+     "lat": 11.4,
+     "lon": 92.66
+    },
+    {
+     "lat": 11.46,
+     "lon": 92.52
+    }
+   ],
+   "notes": "Fifteen islands with fringing reefs and one of the highest coral species counts in Indian waters.",
+   "peakSeason": "Dec – Apr"
+  },
+  {
+   "id": "ESA-CHI-01",
+   "name": "Chilika Lagoon (Ramsar)",
+   "category": "Ramsar Wetland",
+   "state": "Odisha",
+   "sensitivity": 4,
+   "areaKm2": 1100,
+   "ring": [
+    {
+     "lat": 19.8,
+     "lon": 85.1
+    },
+    {
+     "lat": 19.72,
+     "lon": 85.6
+    },
+    {
+     "lat": 19.5,
+     "lon": 85.5
+    },
+    {
+     "lat": 19.6,
+     "lon": 85.05
+    }
+   ],
+   "notes": "Largest brackish lagoon in Asia; Irrawaddy dolphin habitat with a narrow sea mouth vulnerable to ingress.",
+   "peakSeason": "Nov – Feb"
+  },
+  {
+   "id": "ESA-VEM-01",
+   "name": "Vembanad-Kol Wetland (Ramsar)",
+   "category": "Seagrass",
+   "state": "Kerala",
+   "sensitivity": 3,
+   "areaKm2": 1512,
+   "ring": [
+    {
+     "lat": 10.1,
+     "lon": 76.2
+    },
+    {
+     "lat": 10.05,
+     "lon": 76.42
+    },
+    {
+     "lat": 9.5,
+     "lon": 76.44
+    },
+    {
+     "lat": 9.55,
+     "lon": 76.25
+    }
+   ],
+   "notes": "Backwater system connected to the Arabian Sea at Kochi; supports clam fisheries.",
+   "peakSeason": "Jun – Aug"
+  }
+ ]
+}

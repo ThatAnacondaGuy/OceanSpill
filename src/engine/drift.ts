@@ -8,14 +8,34 @@ import { MODEL_SAMPLER, type FieldSampler } from './forcing';
  * Each particle advances under
  *     u_drift = u_current + u_stokes + windage * u_wind + turbulent diffusion
  * where windage is the fraction of the 10 m wind transferred to the floating slick. The
- * literature range is 2.5–5%; 3% is the conventional default and is used here.
+ * literature range for oil is 2.5–5%; 3% is the conventional default and is what this uses.
+ *
+ * Measuring it directly: NOAA drifting buoys that have lost their drogue float at the surface and
+ * feel 1.26% of the wind (95% CI 1.06–1.45, from 3,741 hourly positions), against 0.12% for buoys
+ * still carrying a 15 m drogue. The control coming out near zero, and the deflection flipping from
+ * +15° right of the wind north of the equator to −22° left of it south, is what says the fit is
+ * measuring Coriolis and not noise. A buoy is not an oil film — it sits partly submerged and misses
+ * some of the wave-driven push a surface film gets — so that figure is a floor, and the literature
+ * value for oil is kept. See pipeline/runs/drift_calibration.
  *
  * Running the same integration with a negative timestep gives the hindcast, which is how
  * the origin point and discharge window are recovered from an observed slick.
  */
 
 export const WINDAGE_DEFAULT = 0.03;
-export const HORIZONTAL_DIFFUSIVITY_DEFAULT = 8; // m^2/s
+
+/**
+ * Horizontal diffusivity, m²/s. Measured from 6,000 pairs of NOAA Global Drifter Program buoys that
+ * began within 25 km of each other in the Indian Ocean: the rate they drift apart is the spreading
+ * this model has to reproduce. The textbook 8 m²/s used before predicted 1.5 km of spread after a
+ * day where real buoys spread 11.3 km, so every uncertainty radius the app drew was about eight
+ * times too small.
+ *
+ * Real spreading grows faster than a single diffusivity can follow — currents stretch a patch as
+ * well as mixing it — so this still under-predicts beyond about two days. See
+ * pipeline/runs/drift_calibration.
+ */
+export const HORIZONTAL_DIFFUSIVITY_DEFAULT = 564;
 
 export interface DriftParams {
   windage: number;

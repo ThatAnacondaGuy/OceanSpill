@@ -12,6 +12,17 @@ dependencies = [
 [project.scripts]
 oceanspill = "oceanspill.cli:main"
 oceanspill-train = "oceanspill.ml.train:main"
+oceanspill-api = "oceanspill.api.cli:main"
+oceanspill-calibrate-drift = "oceanspill.ml.drift_calibration:main"
+oceanspill-prepare-sar = "oceanspill.ml.prepare_sar:main"
+oceanspill-train-sar = "oceanspill.ml.train_sar:main"
+oceanspill-train-ais = "oceanspill.ml.ais_anomaly:main"
+oceanspill-prepare-mados = "oceanspill.ml.prepare_mados:main"
+oceanspill-prepare-ships = "oceanspill.ml.prepare_ships:main"
+oceanspill-validate-drift = "oceanspill.ml.validate_drift:main"
+oceanspill-model-status = "oceanspill.ml.model_status:main"
+oceanspill-evaluate = "oceanspill.ml.evaluate:main"
+oceanspill-validate-vessels = "oceanspill.ml.validate_vessels:main"
 
 [project.optional-dependencies]
 sar = [
@@ -20,15 +31,34 @@ sar = [
 ]
 ml = [
     "onnx>=1.16",
+    "onnxruntime>=1.18",
+    "pandas>=2.2",
+    "pyarrow>=16.0",
     "onnxscript>=0.2",
     "torch>=2.4",
 ]
 cmems = [
     "copernicusmarine>=2.0",
 ]
+api = [
+    "alembic>=1.13",
+    "argon2-cffi>=23.1",
+    "fastapi>=0.115",
+    "geoalchemy2>=0.15",
+    "psycopg[binary]>=3.2",
+    "pyjwt>=2.9",
+    "pyotp>=2.9",
+    "python-multipart>=0.0.9",
+    "reportlab>=4.2",
+    "sqlalchemy>=2.0.30",
+    "uvicorn[standard]>=0.30",
+]
 
 [dependency-groups]
-dev = ["pytest>=8.3"]
+dev = [
+    "httpx>=0.27",
+    "pytest>=8.3",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.27,<0.12.0"]

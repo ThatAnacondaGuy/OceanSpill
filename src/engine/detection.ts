@@ -1,5 +1,68 @@
 import { analysePolygon, type PolygonShape } from '../lib/geo';
 import type { Detection, SourceType } from '../data/types';
+import MODEL_FILE from '../../shared/model-status.json';
+
+export interface ModelEntry {
+  trained: boolean;
+  task: string;
+  architecture: string;
+  training: string;
+  dataset: string;
+  datasetUrl: string;
+  version?: string;
+  trainedAt?: string;
+  threshold?: number;
+  tiles?: { train: number; val: number };
+  scores?: { iou: number; dice: number; precision: number; recall: number };
+  falseAlarmRate?: number | null;
+  falseAlarmBasis?: string | null;
+  modelFile?: string | null;
+  note?: string;
+  /** Scored only on tiles that actually contain the target, so recall is not diluted by empty water. */
+  onTilesWithTarget?: { tiles: number; iou: number; dice: number; precision: number; recall: number };
+  /** Dark patches that are not oil: the hard case, and the one a plain threshold cannot do at all. */
+  lookalikeFalseAlarm?: { rate: number; tiles: number; fired: number };
+  /** Open water with nothing in it, where any detection at all is wrong. */
+  cleanSeaFalseAlarm?: { rate: number; tiles: number; fired: number };
+  evaluationThreshold?: number;
+}
+
+export interface MeasuredFigures {
+  drift?: {
+    source: string;
+    observations: number;
+    buoys: number;
+    windage: { fraction: number; ci95: number[]; deflectionDeg: number; samples: number; group: string } | null;
+    diffusivity: { m2s: number; ci95: number[]; pairs: number; observedSeparationKm: Record<string, number> } | null;
+  };
+  driftValidation?: {
+    spread?: Record<string, unknown>;
+    trackSkill?: {
+      tracks: number; hours: number; median_error_km: number; median_no_drift_km: number;
+      skill_against_no_drift: number;
+      inside_one_sigma: number; inside_two_sigma: number;
+      expected_one_sigma: number; expected_two_sigma: number;
+    };
+  };
+  /** The ship detector run against AIS on a real Indian scene, rather than on training chips. */
+  vesselDetectionOnRealScene?: {
+    case: string; scene: string; sceneTime: string; pixelSpacingM: number; threshold: number;
+    matchRadiusKm: number; aisVesselsInScene: number; foundByRadar: number; recall: number;
+    radarTargets: number; unmatchedTargets: number;
+    missed: { key: string; nearestRadarKm: number; aisGapMinutes: number }[];
+    caveats: string[];
+  };
+  aisGaps?: {
+    events: number; source: string; window: string;
+    hoursPercentiles: Record<string, number>;
+    distanceFromShorePercentiles: Record<string, number>;
+    calibration: Record<string, number>;
+    caveat: string;
+  };
+}
+
+const SAR = MODEL_FILE.models.sarSegmentation as ModelEntry;
+
 
 /**
  * Oil-vs-look-alike discrimination.
@@ -106,12 +169,15 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
   if (!det.classProbabilities) {
     checks.push({ name: 'Segmentation class margin', status: 'pending', weight: 0.16, detail: 'No segmentation model output yet' });
   } else {
-    const margin = det.classProbabilities.oil - det.classProbabilities.lookalike;
+    // How far the model sits from a coin toss over this patch.
+    const margin = det.classProbabilities.oil - det.classProbabilities.notOil;
     checks.push({
       name: 'Segmentation class margin',
       status: margin > 0.25 ? 'passed' : 'failed',
       weight: 0.16,
-      detail: `Model separates oil from look-alike by ${(margin * 100).toFixed(0)} points (${det.modelVersion ?? 'model'})`,
+      detail: margin > 0
+        ? `Model calls this oil by ${(margin * 100).toFixed(0)} points over not-oil (${det.modelVersion ?? 'model'})`
+        : `Model leans against oil by ${(-margin * 100).toFixed(0)} points (${det.modelVersion ?? 'model'})`,
     });
   }
 
@@ -120,18 +186,22 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
   let verdict: DetectionAssessment['verdict'];
   let raw: number | null = null;
 
-  if (sarProcessed && det.classProbabilities) {
-    raw = det.classProbabilities.oil;
-    const scored = checks.filter((c) => c.status !== 'pending');
-    const supporting = scored.filter((c) => c.status === 'passed').reduce((s, c) => s + c.weight, 0);
-    const contradicting = scored.filter((c) => c.status === 'failed').reduce((s, c) => s + c.weight, 0);
-    confidence = Math.max(0.03, Math.min(0.985, raw + (supporting - contradicting) * 0.42));
-    confidenceBasis = 'sar-model';
-    verdict = confidence >= 0.85 ? 'Confirmed oil' : confidence >= 0.62 ? 'Probable oil' : confidence >= 0.4 ? 'Ambiguous' : 'Probable look-alike';
-  } else if (officiallyConfirmed) {
+  // The model's own score, kept for display whether or not it decides the verdict.
+  if (det.classProbabilities) raw = det.classProbabilities.oil;
+
+  if (officiallyConfirmed) {
+    // An authority that went and looked outranks a model. The checks still run and are shown; they
+    // inform the reader rather than overturning the finding.
     confidence = 1;
     confidenceBasis = 'official-report';
     verdict = 'Officially confirmed';
+  } else if (sarProcessed && det.classProbabilities) {
+    const scored = checks.filter((c) => c.status !== 'pending');
+    const supporting = scored.filter((c) => c.status === 'passed').reduce((s, c) => s + c.weight, 0);
+    const contradicting = scored.filter((c) => c.status === 'failed').reduce((s, c) => s + c.weight, 0);
+    confidence = Math.max(0.03, Math.min(0.985, (raw ?? 0.5) + (supporting - contradicting) * 0.42));
+    confidenceBasis = 'sar-model';
+    verdict = confidence >= 0.85 ? 'Confirmed oil' : confidence >= 0.62 ? 'Probable oil' : confidence >= 0.4 ? 'Ambiguous' : 'Probable look-alike';
   } else {
     confidence = 0.5;
     confidenceBasis = 'unconfirmed-report';
@@ -139,7 +209,7 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
   }
 
   let lookalikeHypothesis: string | null = null;
-  if (confidenceBasis === 'sar-model' && confidence < 0.62) {
+  if (confidenceBasis !== 'official-report' && confidence < 0.62) {
     if (wind != null && wind < 3.2) lookalikeHypothesis = 'Low-wind cell / wind shadow';
     else if (contrastDb != null && contrastDb > -6 && shape.compactness > 0.5) lookalikeHypothesis = 'Biogenic surfactant film (algal bloom)';
     else lookalikeHypothesis = 'Rain cell, current shear or upwelling front';
@@ -175,13 +245,123 @@ export function assessDetection(det: Detection, officiallyConfirmed: boolean, so
 }
 
 /** Status of the segmentation model. No model has been trained yet, so no accuracy figures are shown. */
+/**
+ * What the models score, written by the training runs into shared/model-status.json. Nothing here is
+ * typed in by hand: if a model has not been trained, the pages say so rather than showing a figure.
+ */
 export const MODEL_STATUS = {
-  trained: false,
-  version: null as string | null,
-  plannedArchitecture: 'U-Net binary oil segmentation on 2-channel (co-pol, cross-pol) calibrated Sigma0 dB tiles',
-  plannedTraining: 'Pre-train on the public Sentinel-1 oil spill dataset (1,200 VV+VH scenes, binary masks, CC BY 4.0), then fine-tune on hand-labelled EOS-04 chips from the real Indian cases',
-  plannedLoss: 'Dice + focal loss to handle oil pixels being a tiny fraction of each scene',
-  evaluation: ['Per-class IoU and Dice (oil and look-alike reported separately)', 'False-positive rate on look-alikes', 'False-negative rate on officially confirmed spills'],
-  datasetUrl: 'https://zenodo.org/records/8346860',
-  note: 'No segmentation model has been trained yet. Detection confidence comes from official confirmation; processed scenes add classical dark-spot measurements, not model scores.',
+  trained: SAR.trained,
+  version: (SAR as { version?: string }).version ?? null,
+  architecture: SAR.architecture,
+  training: SAR.training,
+  loss: 'Dice + focal loss, because oil is a tiny fraction of the pixels in any scene',
+  scores: (SAR as { scores?: { iou: number; dice: number; precision: number; recall: number } }).scores ?? null,
+  falseAlarmRate: (SAR as { falseAlarmRate?: number | null }).falseAlarmRate ?? null,
+  falseAlarmBasis: (SAR as { falseAlarmBasis?: string | null }).falseAlarmBasis ?? null,
+  threshold: (SAR as { threshold?: number }).threshold ?? null,
+  tiles: (SAR as { tiles?: { train: number; val: number } }).tiles ?? null,
+  evaluation: [
+    'Intersection over union and Dice against hand-drawn masks, on scenes the model never saw',
+    'How often it fires on water with no oil in it',
+    'Scored on scenes, not tiles, so one scene cannot appear on both sides of the split',
+  ],
+  datasetUrl: SAR.datasetUrl,
+  note: SAR.trained
+    ? `Trained on ${SAR.dataset}. Detection confidence on a case still comes from official confirmation; the model measures the slick, it does not decide whether a spill happened.`
+    : 'No segmentation model has been trained yet. Detection confidence comes from official confirmation; processed scenes add classical dark-spot measurements, not model scores.',
+  /** Every model, including the optical and ship detectors. */
+  models: MODEL_FILE.models as Record<string, ModelEntry>,
+  /** Figures measured from observations rather than trained: drift and AIS gaps. */
+  measured: MODEL_FILE.measured as MeasuredFigures,
+  generatedAt: MODEL_FILE.generatedAt,
 };
+
+/**
+ * Reads as a percentage when the model has been trained, and says so plainly when it has not.
+ *
+ * Where a group-wise evaluation exists it is preferred, because the single training figure averages
+ * scenes that hold the target with scenes that hold nothing, which drags the score down for a reason
+ * that has nothing to do with whether the model finds oil. The two kinds of false alarm are reported
+ * separately for the same reason: firing on a look-alike is the hard case, firing on clean water is
+ * not, and one number hides which is happening.
+ */
+export function modelScoreLine(entry: Pick<ModelEntry, 'trained' | 'scores' | 'falseAlarmRate' | 'onTilesWithTarget' | 'lookalikeFalseAlarm' | 'cleanSeaFalseAlarm'>): string {
+  const measured = entry.onTilesWithTarget ?? entry.scores;
+  if (!entry.trained || !measured) return 'Not trained — no accuracy figures';
+  const { iou, precision, recall } = measured;
+  const parts = [
+    `IoU ${iou.toFixed(3)}`,
+    `finds ${(recall * 100).toFixed(0)}% of the oil`,
+    `${(precision * 100).toFixed(0)}% of what it marks is oil`,
+  ];
+  if (entry.lookalikeFalseAlarm) parts.push(`fires on ${(entry.lookalikeFalseAlarm.rate * 100).toFixed(0)}% of look-alikes`);
+  if (entry.cleanSeaFalseAlarm) parts.push(`${(entry.cleanSeaFalseAlarm.rate * 100).toFixed(0)}% of clean sea`);
+  else if (entry.falseAlarmRate != null) parts.push(`fires on ${(entry.falseAlarmRate * 100).toFixed(1)}% of water with nothing in it`);
+  return parts.join(' · ');
+}
+
+/**
+ * How well the drift uncertainty held up when it was checked against real drifting buoys.
+ *
+ * A radius drawn on a map invites the reader to believe the thing is inside it. The buoy test says
+ * how often that was actually true: 25 tracks were run forward for a day from a known start, and the
+ * fraction that finished inside the one- and two-sigma circles was counted. A Gaussian would put 68%
+ * and 95% there. Anything below that means the circle is drawn too small, and an operator reading it
+ * deserves to be told so rather than left to assume.
+ *
+ * Returns null when no validation run has been recorded, so nothing is implied that was not measured.
+ */
+export function driftCalibrationNote(): { line: string; optimistic: boolean } | null {
+  const skill = MODEL_STATUS.measured?.driftValidation?.trackSkill;
+  if (!skill) return null;
+  const one = skill.inside_one_sigma;
+  const two = skill.inside_two_sigma;
+  const optimistic = one < skill.expected_one_sigma - 0.05 || two < skill.expected_two_sigma - 0.02;
+  const held = `Checked against ${skill.tracks} drifting buoys over ${skill.hours} h: ${(one * 100).toFixed(0)}% finished inside the ±1σ circle and ${(two * 100).toFixed(0)}% inside ±2σ`;
+  const expectation = `, where the model claims ${(skill.expected_one_sigma * 100).toFixed(0)}% and ${(skill.expected_two_sigma * 100).toFixed(0)}%`;
+  return {
+    line: optimistic
+      ? `${held}${expectation}. The circle is narrower than the real spread — treat it as a floor, not a bound.`
+      : `${held}${expectation}.`,
+    optimistic,
+  };
+}
+
+/**
+ * Where a gap in AIS sits among gaps that Global Fishing Watch judged intentional. It answers "is
+ * this a long silence by the standards of ships that were actually switching off?" — which is what
+ * an analyst wants, rather than whether it crossed a number someone picked.
+ *
+ * It carries no base rate: most gaps are reception, not intent. See docs/models.md.
+ */
+export function aisGapPercentile(minutes: number): { percentile: number; reading: string } | null {
+  const scale = MODEL_STATUS.measured?.aisGaps;
+  if (!scale || minutes <= 0) return null;
+  const hours = minutes / 60;
+  const points = Object.entries(scale.hoursPercentiles)
+    .map(([key, value]) => ({ p: Number(key.slice(1)), hours: value }))
+    .sort((a, b) => a.hours - b.hours);
+
+  let percentile = 0;
+  if (hours >= points[points.length - 1].hours) percentile = points[points.length - 1].p;
+  else if (hours > points[0].hours) {
+    for (let i = 1; i < points.length; i++) {
+      if (hours <= points[i].hours) {
+        const span = points[i].hours - points[i - 1].hours;
+        const along = span > 0 ? (hours - points[i - 1].hours) / span : 0;
+        percentile = points[i - 1].p + along * (points[i].p - points[i - 1].p);
+        break;
+      }
+    }
+  }
+
+  const rounded = Math.round(percentile);
+  const reading = rounded < 5
+    ? `shorter than almost every deliberate one on record`
+    : rounded < 25
+      ? `short by the standards of deliberate ones`
+      : rounded < 75
+        ? `about as long as a typical deliberate one`
+        : `longer than ${rounded}% of ${scale.events.toLocaleString('en-IN')} confirmed deliberate ones`;
+  return { percentile: rounded, reading };
+}

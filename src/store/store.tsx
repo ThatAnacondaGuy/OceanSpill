@@ -7,6 +7,10 @@ import { seaStateAt, type SeaState } from '../engine/ocean';
 import { MODEL_SAMPLER, observedSampler, type FieldSampler, type SampledVector } from '../engine/forcing';
 import { LandGrid } from '../engine/land';
 import { loadWorld, type World } from '../data/world';
+import { ApiError, hasToken, serverMode, setSignedOutHandler, signOut as apiSignOut, streamNotifications, whoAmI, type Account } from '../data/api';
+import * as server from '../data/server';
+import { SignIn } from '../SignIn';
+import { STAGES } from '../flow/pipeline';
 import { ECOLOGICAL_AREAS } from '../data/geography';
 import type { AreaOfInterest, AuditEntry, CaseStatus, CommunityAlert, EnforcementAction, SightingReport, SpillCase, SystemUser, WorkflowStage } from '../data/types';
 import { clearanceAllowsIdentities, tabAccess, type AccessLevel } from '../data/access';
@@ -67,6 +71,25 @@ interface StoreValue {
   pendingSection: string | null;
   consumeSection: () => string | null;
 
+  /**
+   * The pipeline: which case is running through it, and which stages have been reached.
+   *
+   * A stage is "run" once it has been opened for this case, which is what lets the progress strip
+   * offer a stage back without pretending the operator has seen one they have not.
+   */
+  flowCaseId: string | null;
+  runStages: string[];
+  /**
+   * Opens the pipeline on a case, at its first stage unless another is named. The live markers and
+   * the incident list use the plain form; `at` exists for the few places that want a specific stage,
+   * such as the tasking suggestions, which would otherwise have nowhere to go.
+   */
+  startFlow: (caseId: string, at?: string) => void;
+  /** Moves to a stage of the running case, recording that it has now been reached. */
+  goToStage: (tab: string) => void;
+  /** Leaves the pipeline without changing which case is selected. */
+  exitFlow: () => void;
+
   weights: ScoringWeights;
   setWeights: (w: ScoringWeights) => void;
   resetWeights: () => void;
@@ -89,6 +112,12 @@ interface StoreValue {
   setTimeZone: (tz: DisplayTimeZone) => void;
   /** Discards changes saved in this browser and reloads the recorded cases. */
   resetSession: () => void;
+  /** False when signed in against a server: the role then comes from the account, not a menu. */
+  canSwitchAccount: boolean;
+  /** True when the site is running against the server rather than the recorded files. */
+  serverMode: boolean;
+  /** Re-reads the shared state from the server. */
+  refreshState: () => Promise<void>;
   pushToImac: (id: string) => void;
   draftAlert: (alert: Omit<CommunityAlert, 'id' | 'reach' | 'status' | 'provenance' | 'issuer'>) => void;
   addEnforcement: (a: Omit<EnforcementAction, 'id' | 'provenance'>) => void;
@@ -96,10 +125,13 @@ interface StoreValue {
   linkSighting: (sightingId: string, caseId: string) => void;
   verifySighting: (sightingId: string) => void;
   addUser: (u: Omit<SystemUser, 'id'>) => void;
+  addAoi: (a: Omit<AreaOfInterest, 'id' | 'provenance' | 'pinned' | 'requestedBy'>) => void;
   updateUser: (id: string, patch: Partial<SystemUser>) => void;
   toggleAoiPin: (id: string) => void;
   reorderAoi: (id: string, dir: -1 | 1) => void;
-  log: (entry: Omit<AuditEntry, 'id' | 't' | 'provenance'>) => void;
+  /** Adds an entry to the audit trail. `server: true` also sends it, for actions the browser
+   * performs by itself; anything the server did records itself. */
+  log: (entry: Omit<AuditEntry, 'id' | 't' | 'provenance'>, options?: { server?: boolean }) => void;
 
   toasts: Toast[];
   dismissToast: (id: number) => void;
@@ -113,12 +145,46 @@ const Ctx = createContext<StoreValue | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [world, setWorld] = useState<World | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [account, setAccount] = useState<Account | null>(null);
+  // Against a server, nothing is loaded until we know who is asking.
+  const [checkingSession, setCheckingSession] = useState(serverMode);
 
   useEffect(() => {
+    if (!serverMode) return;
+    setSignedOutHandler(() => {
+      setAccount(null);
+      setWorld(null);
+    });
+    if (!hasToken()) {
+      setCheckingSession(false);
+      return () => setSignedOutHandler(null);
+    }
+    whoAmI()
+      .then(setAccount)
+      .catch(() => undefined)
+      .finally(() => setCheckingSession(false));
+    return () => setSignedOutHandler(null);
+  }, []);
+
+  useEffect(() => {
+    if (serverMode && !account) return;
     // Keep the first loaded world: a second load (React runs effects twice in development) would
     // replace the restored session with a fresh copy and overwrite what was saved.
-    loadWorld().then((w) => setWorld((prev) => prev ?? w)).catch((e: Error) => setError(e.message));
-  }, []);
+    (async () => {
+      const w = await loadWorld();
+      if (serverMode) server.applyState(w, await server.fetchState());
+      setWorld((prev) => prev ?? w);
+    })().catch((e: Error) => setError(e.message));
+  }, [account]);
+
+  if (serverMode && checkingSession) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#f0f4f8]">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (serverMode && !account) return <SignIn onSignedIn={setAccount} />;
 
   if (error) {
     return (
@@ -141,11 +207,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  return <LoadedStore world={world}>{children}</LoadedStore>;
+  return <LoadedStore world={world} account={account}>{children}</LoadedStore>;
 }
 
-const SESSION_KEY = 'oceanspill.session.v1';
-const PREFS_KEY = 'oceanspill.prefs.v1';
+/** The signed-in account as the app's own user record. */
+function asUser(account: Account): SystemUser {
+  return {
+    id: account.id, name: account.name, email: account.email, role: account.role as SystemUser['role'],
+    agency: account.agency, status: account.status, lastLogin: account.lastLogin, mfa: account.mfa,
+    clearance: account.clearance,
+  };
+}
+
+const SESSION_KEY = 'oceanwatch.session.v1';
+const PREFS_KEY = 'oceanwatch.prefs.v1';
 const CASE_FIELDS = ['status', 'workflowStage', 'imacPushed', 'imacPushedAt', 'alertDispatched', 'lookalikeReason', 'updatedAt'] as const;
 
 interface SessionSnapshot {
@@ -221,18 +296,24 @@ function loadPrefs(): { timeZone: DisplayTimeZone } {
   }
 }
 
-function LoadedStore({ world, children }: { world: World; children: ReactNode }) {
-  const [restored] = useState(() => restoreSession(world));
+function LoadedStore({ world, account, children }: { world: World; account: Account | null; children: ReactNode }) {
+  // With a server, the server is the record: nothing is restored from or kept in this browser.
+  const [restored] = useState(() => (serverMode ? null : restoreSession(world)));
   const [revision, setRevision] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(world.cases[0]?.id ?? null);
   const [selectedMmsi, setSelectedMmsi] = useState<string | null>(null);
   const [pendingSection, setPendingSection] = useState<string | null>(null);
+  // Null when nobody is running a case through the pipeline; the stage pages are then unreachable.
+  const [flowCaseId, setFlowCaseId] = useState<string | null>(null);
+  const [runStages, setRunStages] = useState<string[]>([]);
   const [weights, setWeightsState] = useState<ScoringWeights>(restored?.weights ?? DEFAULT_WEIGHTS);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [currentUser, setCurrentUserState] = useState<SystemUser>(
-    () => world.users.find((u) => u.id === restored?.currentUserId) ?? world.users[0]
+    () => (account ? world.users.find((u) => u.id === account.id) ?? asUser(account) : null)
+      ?? world.users.find((u) => u.id === restored?.currentUserId)
+      ?? world.users[0]
   );
   const [signedOut, setSignedOut] = useState(restored?.signedOut ?? false);
   const [timeZone, setTimeZoneState] = useState<DisplayTimeZone>(() => {
@@ -254,6 +335,7 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
   const bump = useCallback(() => setRevision((r) => r + 1), []);
 
   useEffect(() => {
+    if (serverMode) return;
     saveSession(world, weights, currentUser.id, signedOut);
   }, [world, weights, currentUser, signedOut, revision]);
 
@@ -266,12 +348,52 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
   const dismissToast = useCallback((id: number) => setToasts((l) => l.filter((t) => t.id !== id)), []);
 
   const log = useCallback(
-    (entry: Omit<AuditEntry, 'id' | 't' | 'provenance'>) => {
+    (entry: Omit<AuditEntry, 'id' | 't' | 'provenance'>, options?: { server?: boolean }) => {
       world.audit.unshift({ ...entry, id: `SES-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, t: Date.now(), provenance: 'session' });
       bump();
+      // The server records everything it was asked to do, so entries are only sent for what the
+      // browser does on its own; otherwise the same action would appear twice in the trail.
+      if (serverMode && options?.server) {
+        void server.postAudit({ action: entry.action, target: entry.target, detail: entry.detail, category: entry.category }).catch(() => undefined);
+      }
     },
     [world, bump]
   );
+
+  /** Re-reads the shared state, so the screen matches the record after anything unexpected. */
+  const refreshState = useCallback(async () => {
+    if (!serverMode) return;
+    try {
+      server.applyState(world, await server.fetchState());
+      bump();
+    } catch {
+      // Leave what is on screen; the next action or notification will try again.
+    }
+  }, [world, bump]);
+
+  /**
+   * Sends a change to the server. The screen has already been updated, so a refusal — a permission,
+   * a workflow rule, someone else editing the same case — is reported and the record read back.
+   */
+  const sync = useCallback(
+    (run: () => Promise<unknown>, title: string) => {
+      if (!serverMode) return;
+      run().catch(async (e: unknown) => {
+        notify({ kind: 'error', title, body: e instanceof ApiError ? e.message : 'The server could not be reached.' });
+        await refreshState();
+      });
+    },
+    [notify, refreshState]
+  );
+
+  useEffect(() => {
+    if (!serverMode) return;
+    // Anything the server or the background worker does reaches the people signed in.
+    return streamNotifications(0, (n) => {
+      notify({ kind: n.kind === 'warning' ? 'warn' : n.kind === 'error' ? 'error' : n.kind === 'success' ? 'success' : 'info', title: n.title, body: n.body });
+      void refreshState();
+    });
+  }, [notify, refreshState]);
 
   const setWeights = useCallback((w: ScoringWeights) => {
     setWeightsState(w);
@@ -408,6 +530,30 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
     return s;
   }, [pendingSection]);
 
+  const startFlow = useCallback((caseId: string, at?: string) => {
+    setFlowCaseId(caseId);
+    setSelectedCaseId(caseId);
+    // Starting again on the same case starts again properly: every stage is unseen, so the pipeline
+    // plays through from the beginning rather than skipping to wherever it was left. Opening at a
+    // named stage marks the ones before it as reached, so the strip can go back to them.
+    const target = at && STAGES.some((s) => s.tab === at) ? at : STAGES[0].tab;
+    const upto = STAGES.findIndex((s) => s.tab === target);
+    setRunStages(STAGES.slice(0, upto + 1).map((s) => s.tab));
+    setActiveTab(target);
+    setPendingSection(null);
+  }, []);
+
+  const goToStage = useCallback((tab: string) => {
+    setRunStages((seen) => (seen.includes(tab) ? seen : [...seen, tab]));
+    setActiveTab(tab);
+    setPendingSection(null);
+  }, []);
+
+  const exitFlow = useCallback(() => {
+    setFlowCaseId(null);
+    setRunStages([]);
+  }, []);
+
   const updateCase = useCallback(
     (id: string, patch: Partial<SpillCase>) => {
       const c = world.cases.find((x) => x.id === id);
@@ -428,11 +574,12 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
         return false;
       }
       updateCase(id, { status });
+      sync(() => server.patchCaseState(id, { status, note: detail }), 'Status not saved');
       log({ actor: currentUser.name, role: currentUser.role, action: 'Status changed', target: id, detail: detail ?? `Status set to "${status}"`, category: 'Analysis' });
       notify({ kind: 'success', title: `${id} → ${status}`, body: detail });
       return true;
     },
-    [world, updateCase, log, notify, currentUser]
+    [world, updateCase, log, notify, sync, currentUser]
   );
 
   const setWorkflowStage = useCallback(
@@ -445,11 +592,12 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
         return false;
       }
       updateCase(id, { workflowStage: stage });
+      sync(() => server.patchCaseState(id, { workflowStage: stage }), 'Stage not saved');
       log({ actor: currentUser.name, role: currentUser.role, action: 'Workflow advanced', target: id, detail: `Moved to "${stage}"`, category: 'Dispatch' });
       notify({ kind: 'success', title: `${id} moved to ${stage}` });
       return true;
     },
-    [world, updateCase, log, notify, currentUser]
+    [world, updateCase, log, notify, sync, currentUser]
   );
 
   const replayCase = useCallback(
@@ -464,45 +612,71 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
   const pushToImac = useCallback(
     (id: string) => {
       updateCase(id, { imacPushed: true, imacPushedAt: Date.now() });
+      sync(() => server.patchCaseState(id, { imacPushed: true }), 'Not recorded on the server');
       log({ actor: currentUser.name, role: currentUser.role, action: 'IMAC payload generated', target: id, detail: 'Payload prepared locally; IMAC ingest endpoint not integrated', category: 'Dispatch' });
       notify({ kind: 'info', title: `IMAC payload generated for ${id}`, body: 'Delivery to IMAC needs Navy integration; the payload is available to download.' });
     },
-    [updateCase, log, notify, currentUser]
+    [updateCase, log, notify, sync, currentUser]
   );
 
   const draftAlert = useCallback(
     (alert: Omit<CommunityAlert, 'id' | 'reach' | 'status' | 'provenance' | 'issuer'>) => {
       const id = `DRAFT-${String(world.alerts.length + 1).padStart(3, '0')}`;
-      world.alerts.unshift({ ...alert, id, status: 'Draft', reach: null, issuer: currentUser.name, provenance: 'session' });
+      const draft: CommunityAlert = { ...alert, id, status: 'Draft', reach: null, issuer: currentUser.name, provenance: 'session' };
+      if (serverMode) {
+        sync(async () => {
+          const saved = await server.postAlert(alert);
+          world.alerts.unshift(saved);
+          const target = world.cases.find((x) => x.id === alert.caseId);
+          if (target) target.alertDispatched = true;
+          bump();
+        }, 'Alert not saved');
+      } else {
+        world.alerts.unshift(draft);
+      }
       const c = world.cases.find((x) => x.id === alert.caseId);
       if (c) c.alertDispatched = true;
       log({ actor: currentUser.name, role: currentUser.role, action: 'Community alert drafted', target: alert.caseId, detail: `${alert.channel.join(', ')} to ${alert.districts.join(', ')} (${alert.languages.join('/')})`, category: 'Alert' });
       notify({ kind: 'success', title: 'Alert drafted as CAP message', body: 'Publishing through SACHET requires NDMA authorisation.' });
       bump();
     },
-    [world, log, notify, bump, currentUser]
+    [world, log, notify, bump, sync, currentUser]
   );
 
   const addEnforcement = useCallback(
     (a: Omit<EnforcementAction, 'id' | 'provenance'>) => {
       const id = `SES-ENF-${String(world.enforcement.length + 1).padStart(3, '0')}`;
-      world.enforcement.unshift({ ...a, id, provenance: 'session' });
+      if (serverMode) {
+        sync(async () => {
+          world.enforcement.unshift(await server.postEnforcement(a));
+          bump();
+        }, 'Action not saved');
+      } else {
+        world.enforcement.unshift({ ...a, id, provenance: 'session' });
+      }
       log({ actor: currentUser.name, role: currentUser.role, action: a.type, target: a.caseId, detail: `${a.type} recorded against ${a.party}`, category: 'Enforcement' });
       notify({ kind: 'success', title: `${a.type} recorded`, body: a.party });
       bump();
     },
-    [world, log, notify, bump, currentUser]
+    [world, log, notify, bump, sync, currentUser]
   );
 
   const addSighting = useCallback(
     (r: Omit<SightingReport, 'id' | 'receivedAt' | 'verified' | 'provenance'>) => {
       const id = `SES-RPT-${String(world.sightings.filter((x) => x.provenance === 'session').length + 1).padStart(3, '0')}`;
-      world.sightings.unshift({ ...r, id, receivedAt: Date.now(), verified: false, provenance: 'session' });
+      if (serverMode) {
+        sync(async () => {
+          world.sightings.unshift(await server.postSighting(r));
+          bump();
+        }, 'Report not saved');
+      } else {
+        world.sightings.unshift({ ...r, id, receivedAt: Date.now(), verified: false, provenance: 'session' });
+      }
       log({ actor: currentUser.name, role: currentUser.role, action: 'Field report logged', target: r.linkedCaseId ?? id, detail: `${r.severity} reported by ${r.reporter} (${r.district})`, category: 'Analysis' });
       notify({ kind: 'success', title: 'Field report logged', body: 'Marked unverified until an analyst confirms it.' });
       bump();
     },
-    [world, log, notify, bump, currentUser]
+    [world, log, notify, bump, sync, currentUser]
   );
 
   const linkSighting = useCallback(
@@ -510,11 +684,12 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
       const s = world.sightings.find((x) => x.id === sightingId);
       if (!s) return;
       s.linkedCaseId = caseId;
+      sync(() => server.linkSighting(sightingId, caseId), 'Link not saved');
       log({ actor: currentUser.name, role: currentUser.role, action: 'Report linked to case', target: caseId, detail: `${sightingId} attached as corroborating evidence`, category: 'Analysis' });
       notify({ kind: 'success', title: `${sightingId} linked to ${caseId}` });
       bump();
     },
-    [world, log, notify, bump, currentUser]
+    [world, log, notify, bump, sync, currentUser]
   );
 
   const verifySighting = useCallback(
@@ -522,22 +697,31 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
       const s = world.sightings.find((x) => x.id === sightingId);
       if (!s) return;
       s.verified = true;
+      sync(() => server.verifySighting(sightingId), 'Not saved');
       log({ actor: currentUser.name, role: currentUser.role, action: 'Report verified', target: sightingId, detail: `Report from ${s.reporter} marked verified`, category: 'Analysis' });
       notify({ kind: 'success', title: 'Report verified' });
       bump();
     },
-    [world, log, notify, bump, currentUser]
+    [world, log, notify, bump, sync, currentUser]
   );
 
   const addUser = useCallback(
     (u: Omit<SystemUser, 'id'>) => {
       const id = `U-${String(world.users.length + 1).padStart(3, '0')}`;
-      world.users.push({ ...u, id });
+      if (serverMode) {
+        sync(async () => {
+          const created = await server.postUser(u);
+          world.users.push(asUser(created));
+          bump();
+        }, 'Account not created');
+      } else {
+        world.users.push({ ...u, id });
+      }
       log({ actor: currentUser.name, role: currentUser.role, action: 'User created', target: id, detail: `${u.name} (${u.role}, ${u.agency})`, category: 'Access' });
       notify({ kind: 'success', title: 'User created', body: `${u.name} — ${u.role}` });
       bump();
     },
-    [world, log, notify, bump, currentUser]
+    [world, log, notify, bump, sync, currentUser]
   );
 
   const updateUser = useCallback(
@@ -545,10 +729,29 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
       const u = world.users.find((x) => x.id === id);
       if (!u) return;
       Object.assign(u, patch);
+      sync(() => server.patchUser(id, patch), 'Account not updated');
       log({ actor: currentUser.name, role: currentUser.role, action: 'User updated', target: id, detail: Object.keys(patch).join(', '), category: 'Access' });
       bump();
     },
-    [world, log, bump, currentUser]
+    [world, log, bump, sync, currentUser]
+  );
+
+  const addAoi = useCallback(
+    (a: Omit<AreaOfInterest, 'id' | 'provenance' | 'pinned' | 'requestedBy'>) => {
+      const id = `AOI-SES-${String(world.aois.length + 1).padStart(2, '0')}`;
+      const local: AreaOfInterest = { ...a, id, pinned: false, requestedBy: currentUser.role, provenance: 'session' };
+      if (serverMode) {
+        sync(async () => {
+          world.aois.push(await server.postAoi(a));
+          bump();
+        }, 'Planning area not saved');
+      } else {
+        world.aois.push(local);
+      }
+      log({ actor: currentUser.name, role: currentUser.role, action: 'Planning area created', target: id, detail: a.name, category: 'System' });
+      bump();
+    },
+    [world, log, bump, sync, currentUser]
   );
 
   const toggleAoiPin = useCallback(
@@ -556,10 +759,11 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
       const a = world.aois.find((x) => x.id === id);
       if (!a) return;
       a.pinned = !a.pinned;
+      sync(() => server.patchAoi(id, { pinned: a.pinned }), 'Not saved');
       notify({ kind: 'info', title: a.pinned ? `${a.name} pinned` : `${a.name} unpinned` });
       bump();
     },
-    [world, notify, bump]
+    [world, notify, bump, sync]
   );
 
   const reorderAoi = useCallback(
@@ -571,9 +775,13 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
       const pi = sorted[i].priority;
       sorted[i].priority = sorted[j].priority;
       sorted[j].priority = pi;
+      sync(async () => {
+        await server.patchAoi(sorted[i].id, { priority: sorted[i].priority });
+        await server.patchAoi(sorted[j].id, { priority: sorted[j].priority });
+      }, 'Order not saved');
       bump();
     },
-    [world, bump]
+    [world, bump, sync]
   );
 
   const setCurrentUser = useCallback((u: SystemUser) => {
@@ -585,6 +793,12 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
   const canEdit = useCallback((tab: string) => tabAccess(currentUser.role, tab) === 'full', [currentUser.role]);
 
   const signOut = useCallback(() => {
+    if (serverMode) {
+      // Ends the session on the server too, then the app returns to the sign-in screen.
+      void apiSignOut().finally(() => setSignedOutHandler(null));
+      window.setTimeout(() => window.location.reload(), 150);
+      return;
+    }
     log({ actor: currentUser.name, role: currentUser.role, action: 'Signed out', target: currentUser.id, detail: currentUser.email, category: 'Access' });
     setSignedOut(true);
   }, [log, currentUser]);
@@ -612,23 +826,29 @@ function LoadedStore({ world, children }: { world: World; children: ReactNode })
   }, []);
 
   const identitiesVisible = clearanceAllowsIdentities(currentUser.clearance);
+  // Against a server the role comes from the account you signed in with, so it cannot be switched here.
+  const canSwitchAccount = !serverMode;
 
   const value = useMemo<StoreValue>(
     () => ({
       world, now, currentUser, setCurrentUser,
       activeTab, navigate, selectedCaseId, setSelectedCaseId, selectedMmsi, setSelectedMmsi,
       pendingSection, consumeSection, weights, setWeights, resetWeights, getAnalysis, samplerFor,
+      flowCaseId, runStages, startFlow, goToStage, exitFlow,
       updateCase, setCaseStatus, setWorkflowStage, replayCase, pushToImac, draftAlert, addEnforcement,
-      addSighting, linkSighting, verifySighting, addUser, updateUser, toggleAoiPin, reorderAoi, log,
+      addSighting, linkSighting, verifySighting, addUser, updateUser, addAoi, toggleAoiPin, reorderAoi, log,
       toasts, dismissToast, notify, revision,
       access, canEdit, identitiesVisible, signedOut, signOut, signIn, timeZone, setTimeZone, resetSession,
+      canSwitchAccount, serverMode, refreshState,
     }),
     [
       world, now, currentUser, activeTab, navigate, selectedCaseId, selectedMmsi, pendingSection, consumeSection,
+      flowCaseId, runStages, startFlow, goToStage, exitFlow,
       weights, setWeights, resetWeights, getAnalysis, samplerFor, updateCase, setCaseStatus, setWorkflowStage,
       replayCase, pushToImac, draftAlert, addEnforcement, addSighting, linkSighting, verifySighting, addUser, updateUser,
-      toggleAoiPin, reorderAoi, log, toasts, dismissToast, notify, revision,
+      addAoi, toggleAoiPin, reorderAoi, log, toasts, dismissToast, notify, revision,
       access, canEdit, identitiesVisible, signedOut, signOut, signIn, timeZone, setTimeZone, resetSession,
+      canSwitchAccount, refreshState,
     ]
   );
 

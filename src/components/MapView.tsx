@@ -3,7 +3,7 @@ import maplibregl, { type GeoJSONSource, type Map as MlMap, type MapLayerMouseEv
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { LatLon } from '../lib/geo';
 import { ANDAMAN_EEZ, INDIA_EEZ } from '../data/geography';
-import { arrowHead, bearing, circleRing, cssColor, markerIcon, selectionRing, SlickRenderer, vectorArrow } from './mapAssets';
+import { arrowHead, bearing, circleRing, cssColor, markerIcon, selectionRing, SlickRenderer, vectorArrow, vesselShape } from './mapAssets';
 
 /**
  * Interactive map on real basemap tiles (MapLibre GL).
@@ -19,7 +19,9 @@ export type BasemapStyle = 'map' | 'satellite' | 'dark' | 'bathymetry';
 export interface MapMarker {
   id: string;
   position: LatLon;
-  kind: 'case' | 'vessel' | 'port' | 'origin' | 'sighting' | 'asset' | 'platform';
+  kind: 'case' | 'vessel' | 'port' | 'origin' | 'sighting' | 'asset' | 'platform' | 'detection';
+  /** The vessel's type from the registry, which decides which silhouette is drawn. */
+  vesselType?: string | null;
   color?: string;
   label?: string;
   sublabel?: string;
@@ -130,6 +132,23 @@ const BASEMAP_LAYERS: Record<BasemapStyle, string[]> = {
   dark: ['bm-dark', 'bm-dark-labels'],
 };
 const ALL_BASEMAP_LAYERS = Object.values(BASEMAP_LAYERS).flat();
+const ALL_BASEMAP_SOURCES = ['street', 'dark', 'darkLabels', 'imagery', 'imageryLabels', 'ocean', 'oceanLabels'];
+
+/** Natural Earth coastline for the Indian Ocean region, kept with the case data. */
+let offlineLand: GeoJSON.FeatureCollection | null = null;
+let offlineLandTried = false;
+
+async function loadOfflineLand(): Promise<GeoJSON.FeatureCollection | null> {
+  if (offlineLand || offlineLandTried) return offlineLand;
+  offlineLandTried = true;
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}data/coast/natural-earth-land.json`);
+    offlineLand = res.ok ? ((await res.json()) as GeoJSON.FeatureCollection) : null;
+  } catch {
+    offlineLand = null;
+  }
+  return offlineLand;
+}
 
 const ATTRIBUTION: Record<BasemapStyle, string> = {
   map: 'Esri, HERE, Garmin, USGS, NGA, © OpenStreetMap contributors',
@@ -155,8 +174,11 @@ function baseStyle(): maplibregl.StyleSpecification {
       imageryLabels: raster(ESRI('Reference/World_Boundaries_and_Places'), 13),
       ocean: raster(ESRI('Ocean/World_Ocean_Base'), 10),
       oceanLabels: raster(ESRI('Ocean/World_Ocean_Reference'), 10),
+      // Drawn from a local coastline file when tiles cannot be fetched, so a demo without a
+      // connection still shows land and sea rather than an empty blue rectangle.
+      offlineLand: emptyFc,
       graticule: emptyFc, eez: emptyFc, vectors: emptyFc, polygons: emptyFc, circles: emptyFc,
-      particles: emptyFc, paths: emptyFc, arrows: emptyFc, markers: emptyFc, circleLabels: emptyFc,
+      particles: emptyFc, paths: emptyFc, arrows: emptyFc, markers: emptyFc, circleLabels: emptyFc, pulses: emptyFc,
     },
     layers: [
       { id: 'bg', type: 'background', paint: { 'background-color': '#aad3df' } },
@@ -167,6 +189,9 @@ function baseStyle(): maplibregl.StyleSpecification {
       { id: 'bm-imagery-labels', type: 'raster', source: 'imageryLabels', layout: { visibility: 'none' } },
       { id: 'bm-ocean', type: 'raster', source: 'ocean', layout: { visibility: 'none' } },
       { id: 'bm-ocean-labels', type: 'raster', source: 'oceanLabels', layout: { visibility: 'none' } },
+
+      { id: 'offline-land', type: 'fill', source: 'offlineLand', layout: { visibility: 'none' },
+        paint: { 'fill-color': '#e7e2d6', 'fill-outline-color': '#9aa79b' } },
 
       { id: 'graticule', type: 'line', source: 'graticule', paint: { 'line-color': '#5b7f99', 'line-width': 0.5, 'line-opacity': 0.35 } },
       { id: 'eez', type: 'line', source: 'eez', paint: { 'line-color': '#2c7fb8', 'line-width': 1.3, 'line-opacity': 0.8, 'line-dasharray': [4, 3] } },
@@ -222,6 +247,18 @@ function baseStyle(): maplibregl.StyleSpecification {
         'icon-allow-overlap': true, 'icon-ignore-placement': true, 'icon-size': ['get', 'size'],
       }, paint: { 'icon-opacity': ['get', 'opacity'] } },
 
+      // The attention rings. These were DOM elements positioned by JavaScript on move events, while
+      // the icon they surround is drawn by the GPU inside the map's own render loop. During a zoom
+      // the two updated at different moments and the ring visibly slid off its marker. Drawn here as
+      // circles they cannot separate: one renderer, one frame, one position.
+      { id: 'pulse-a', type: 'circle', source: 'pulses', paint: {
+        'circle-radius': ['get', 'r0'], 'circle-color': 'rgba(0,0,0,0)',
+        'circle-stroke-color': ['to-color', ['get', 'color']], 'circle-stroke-width': 2, 'circle-stroke-opacity': 0,
+      } },
+      { id: 'pulse-b', type: 'circle', source: 'pulses', paint: {
+        'circle-radius': ['get', 'r0'], 'circle-color': 'rgba(0,0,0,0)',
+        'circle-stroke-color': ['to-color', ['get', 'color']], 'circle-stroke-width': 2, 'circle-stroke-opacity': 0,
+      } },
       { id: 'mk-rings', type: 'symbol', source: 'markers', filter: ['get', 'selected'], layout: {
         'icon-image': ['get', 'ring'], 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'z'],
       } },
@@ -297,7 +334,6 @@ export function MapView({
   markersRef.current = markers;
   const clickRef = useRef({ onMarkerClick, onMapClick, interactive });
   clickRef.current = { onMarkerClick, onMapClick, interactive };
-  const pulseMarkers = useRef(new Map<string, maplibregl.Marker>());
   const slicks = useRef(new Map<string, { id: string; renderer: SlickRenderer }>());
   const slickSeq = useRef(0);
   const [slickCount, setSlickCount] = useState(0);
@@ -384,8 +420,6 @@ export function MapView({
     return () => {
       ro.disconnect();
       window.clearTimeout(refit);
-      pulseMarkers.current.forEach((mk) => mk.remove());
-      pulseMarkers.current.clear();
       slicks.current.clear();
       map.remove();
       mapRef.current = null;
@@ -401,6 +435,31 @@ export function MapView({
     handlers.forEach((h) => (interactive ? h.enable() : h.disable()));
     if (interactive) map.touchZoomRotate.disableRotation();
   }, [interactive, ready]);
+
+  // ---- offline fallback ------------------------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || styledMap.current !== map) return;
+
+    let failures = 0;
+    const show = async () => {
+      if (tilesFailed) return;
+      setTilesFailed(true);
+      const land = await loadOfflineLand();
+      if (!land || styledMap.current !== map) return;
+      (map.getSource('offlineLand') as GeoJSONSource | undefined)?.setData(land);
+      map.setLayoutProperty('offline-land', 'visibility', 'visible');
+    };
+    // A handful of failed tiles means the basemap is not reachable; one is just a gap.
+    const onError = (e: maplibregl.ErrorEvent & { sourceId?: string }) => {
+      if (!e.sourceId || !ALL_BASEMAP_SOURCES.includes(e.sourceId)) return;
+      if (++failures >= 4) void show();
+    };
+    map.on('error', onError);
+    return () => {
+      map.off('error', onError);
+    };
+  }, [ready, tilesFailed]);
 
   // ---- basemap ---------------------------------------------------------------------------------
   useEffect(() => {
@@ -557,16 +616,45 @@ export function MapView({
     (map.getSource('arrows') as GeoJSONSource).setData(fc(arrows));
   }, [paths, ready]);
 
+  /**
+   * The rings expand and fade on the map's own clock.
+   *
+   * Radius and opacity are paint properties, so each frame updates the layer rather than an element,
+   * and the ring is composited with the icon it surrounds instead of chasing it. Two layers half a
+   * period apart give the double pulse the old CSS produced with ::before and ::after.
+   */
+  useEffect(() => {
+    if (!ready) return;
+    let frame = 0;
+    const PERIOD = 2400;
+    const tick = () => {
+      const map = mapRef.current;
+      if (map && styledMap.current === map && map.getLayer('pulse-a')) {
+        const now = performance.now();
+        for (const [id, offset] of [['pulse-a', 0], ['pulse-b', PERIOD / 2]] as const) {
+          const phase = (((now + offset) % PERIOD) / PERIOD);
+          map.setPaintProperty(id, 'circle-radius', ['*', ['get', 'r0'], 0.8 + phase * 2.4]);
+          map.setPaintProperty(id, 'circle-stroke-opacity', 0.75 * (1 - phase));
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [ready]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || styledMap.current !== map) return;
     const features: Feature[] = [];
-    const wantPulse = new Set<string>();
+    const pulses: Feature[] = [];
     for (const m of markers) {
       const color = cssColor(m.color ?? '#ef4444');
       const r = m.size ?? 6;
-      const icon = `mk|${m.kind}|${color}|${r}`;
-      ensureImage(map, icon, () => markerIcon(m.kind, color, r));
+      // The silhouette is part of the sprite key, so each kind of ship gets its own image.
+      const shape = m.kind === 'vessel' ? vesselShape(m.vesselType) : 'plain';
+      const icon = `mk|${m.kind}|${shape}|${color}|${r}`;
+      ensureImage(map, icon, () => markerIcon(m.kind, color, r, shape));
       let ring = '';
       if (m.selected) {
         ring = `ring|${color}|${r}`;
@@ -581,24 +669,15 @@ export function MapView({
         geometry: { type: 'Point', coordinates: lngLat(m.position) },
       });
       if (m.pulse && !m.dimmed) {
-        const key = `${m.id}|${color}|${r}|${m.kind}`;
-        wantPulse.add(key);
-        const existing = pulseMarkers.current.get(key);
-        if (existing) {
-          existing.setLngLat(lngLat(m.position));
-        } else {
-          const el = document.createElement('div');
-          el.className = m.kind === 'origin' ? 'os-pulse os-pulse-origin' : 'os-pulse';
-          el.style.setProperty('--pulse-color', color);
-          el.style.setProperty('--pulse-size', `${r * 2 + 4}px`);
-          pulseMarkers.current.set(key, new maplibregl.Marker({ element: el }).setLngLat(lngLat(m.position)).addTo(map));
-        }
+        pulses.push({
+          type: 'Feature',
+          properties: { color, r0: r + 2 },
+          geometry: { type: 'Point', coordinates: lngLat(m.position) },
+        });
       }
     }
-    for (const [key, mk] of pulseMarkers.current) {
-      if (!wantPulse.has(key)) { mk.remove(); pulseMarkers.current.delete(key); }
-    }
     (map.getSource('markers') as GeoJSONSource).setData(fc(features));
+    (map.getSource('pulses') as GeoJSONSource).setData(fc(pulses));
     if (!showLabels) {
       map.setLayoutProperty('mk-labels', 'visibility', 'none');
       map.setLayoutProperty('mk-labels-selected', 'visibility', 'none');
@@ -804,7 +883,7 @@ export function MapView({
           <span className="ml-2 text-gray-500">z{(view.zoom + ZOOM_OFFSET).toFixed(1)}</span>
         </div>
         <div className="bg-white/80 px-1.5 py-0.5 rounded text-[0.53125rem] text-gray-600 max-w-[260px] truncate" title={ATTRIBUTION[basemap]}>
-          {tilesFailed ? 'Basemap tiles unavailable offline · ' : ''}{ATTRIBUTION[basemap]}
+          {tilesFailed ? 'Offline: coastline from Natural Earth, no basemap tiles · ' : ''}{ATTRIBUTION[basemap]}
         </div>
       </div>
 

@@ -150,6 +150,8 @@ def analyse_linear(
     incident: tuple[float, float],
     looks: float,
     params: dict[str, Any],
+    segmenter: Any | None = None,
+    ship_detector: Any | None = None,
 ) -> dict[str, Any]:
     """Filter, mask and detect over a calibrated multilooked window (linear backscatter)."""
     filtered = lee_filter(linear, int(params["leeWindow"]), looks)
@@ -158,9 +160,18 @@ def analyse_linear(
     buffer_px = int(round(params["coastBufferKm"] / pixel_km))
     near_land = dilate(land, buffer_px)
     sea = valid & ~near_land
+    # A trained model, when one is configured, replaces only the pixel decision; everything the
+    # record reports about each spot is measured the same way either way.
+    model_mask = None
+    model_probability = None
+    if segmenter is not None:
+        from ..ml.infer import mask_to_spots
+        model_probability = segmenter.mask(db, sea)
+        model_mask = mask_to_spots(model_probability, segmenter.info.threshold)
     spots, labels = detect_dark_spots(
         db, sea, pixel_km, window=int(params["detectorWindow"]), k_sigma=float(params["kSigma"]),
         min_contrast_db=float(params["minContrastDb"]), min_area_km2=float(params["minAreaKm2"]),
+        dark=model_mask,
     )
 
     out_spots = []
@@ -175,16 +186,39 @@ def analyse_linear(
             rc = rc[np.linspace(0, len(rc) - 1, 4000).astype(int)]
         elong, bearing = geo_shape(lat[rc[:, 0], rc[:, 1]], lon[rc[:, 0], rc[:, 1]])
         outline = [{"lat": round(float(lat[int(pr), int(pc)]), 5), "lon": round(float(lon[int(pr), int(pc)]), 5)} for pr, pc in s.hull_rc]
-        out_spots.append({
+        spot = {
             "areaKm2": round(s.area_km2, 3), "meanDb": round(s.mean_db, 2), "backgroundDb": round(s.background_db, 2),
             "contrastDb": round(s.contrast_db, 2), "centroid": {"lat": round(clat, 5), "lon": round(clon, 5)},
             "distanceKm": round(haversine_km(clat, clon, *incident), 2), "elongation": round(elong, 2),
             "orientationDeg": round(bearing, 1), "outline": outline,
-        })
+        }
+        if model_probability is not None:
+            # How sure the model is over this patch, so the interface can show a margin between oil
+            # and look-alike instead of leaving the check permanently unanswered.
+            inside = model_probability[labels == s.label]
+            spot["modelOilProbability"] = round(float(inside.mean()), 4)
+            spot["modelPeakProbability"] = round(float(inside.max()), 4)
+        out_spots.append(spot)
     out_spots.sort(key=lambda s: (s["distanceKm"], -s["areaKm2"]))
+
+    # The same window, read for the opposite thing. Oil damps the return and steel brightens it, so
+    # one pass of the ship detector over the water mask says what traffic was physically there when
+    # the satellite went over — including whatever was not transmitting.
+    vessels: list[dict[str, Any]] | None = None
+    vessels_unavailable: str | None = None
+    if ship_detector is not None:
+        from .vessels import SCENE_THRESHOLD, TooCoarse, as_records, detect_vessels
+        try:
+            ship_probability = ship_detector.mask(db, sea)
+            vessels = as_records(detect_vessels(ship_probability, sea, lat, lon, pixel_km, incident,
+                                                max(ship_detector.info.threshold, SCENE_THRESHOLD)))
+        except TooCoarse as exc:
+            vessels_unavailable = str(exc)
+
     sea_db = db[sea]
     return {
         "db": db, "land": near_land | ~valid, "labels": labels, "spots": out_spots,
+        "vessels": vessels, "vesselsUnavailable": vessels_unavailable,
         "sea": {"meanDb": round(float(sea_db.mean()), 2) if sea_db.size else None,
                 "stdDb": round(float(sea_db.std()), 2) if sea_db.size else None, "pixels": int(sea_db.size)},
     }
@@ -199,6 +233,8 @@ def process_scene(
     radius_km: float = 40.0,
     factor: int | None = None,
     params: dict[str, Any] | None = None,
+    model_path: Path | str | None = None,
+    ship_model_path: Path | str | None = None,
 ) -> dict[str, Any]:
     # 2 km is enough with the Natural Earth coastline; the coarse fallback outlines need about 8 km.
     params = {"leeWindow": 7, "detectorWindow": 51, "kSigma": 1.5, "minContrastDb": 3.0, "minAreaKm2": 0.5,
@@ -213,7 +249,14 @@ def process_scene(
         factor = factor or 8
         scene = load_sentinel1(path, incident, radius_km, factor)
     pixel_km = scene.pixel_m / 1000.0
-    result = analyse_linear(scene.linear, scene.valid, scene.lat, scene.lon, land_source, pixel_km, incident, scene.looks, params)
+    # Without a trained model, or when one cannot be loaded, this stays None and the classical
+    # detector runs — which is what the record then says it used.
+    from ..ml.infer import segmenter as load_segmenter
+    detector = load_segmenter(model_path)
+    # Independent of the oil model: a scene can have a ship detector and no oil detector, or neither.
+    ship_detector = load_segmenter(ship_model_path)
+    result = analyse_linear(scene.linear, scene.valid, scene.lat, scene.lon, land_source, pixel_km,
+                            incident, scene.looks, params, segmenter=detector, ship_detector=ship_detector)
 
     case_dir = out_dir / "sar" / case["id"]
     quicklook = write_quicklook(case_dir / f"{scene_name}.png", result["db"], result["land"], result["labels"])
@@ -226,7 +269,15 @@ def process_scene(
         "radiometry": scene.radiometry,
         "processedAt": iso(datetime.now(timezone.utc)),
         "polarisation": scene.polarisation,
-        "method": METHOD,
+        "method": detector.description if detector else METHOD,
+        "model": None if detector is None else {
+            "name": detector.name,
+            "threshold": detector.info.threshold,
+            "trainedOn": detector.info.trained_on,
+            "channelsExpected": detector.info.channels,
+            "channelsSupplied": 1,
+            "duplicatedChannels": bool(getattr(detector, "duplicated_channels", False)),
+        },
         "landMask": land_source.source,
         "parameters": {**params, "multilookFactor": factor, "pixelSpacingM": round(scene.pixel_m, 1),
                        "equivalentLooks": scene.looks, "radiusKm": radius_km},
@@ -236,10 +287,29 @@ def process_scene(
         "sea": result["sea"],
         "quicklook": str(quicklook.relative_to(out_dir)).replace("\\", "/"),
         "spots": result["spots"][:20],
+        # Absent, not empty, when no ship detector ran or the window was too coarse for one: "the
+        # radar found no vessels", "nobody looked" and "this window cannot tell" are three different
+        # claims, and the interface has to be able to say which one it is.
+        "vessels": result["vessels"],
+        "vesselsUnavailable": result["vesselsUnavailable"],
+        "vesselModel": None if ship_detector is None else {
+            "name": ship_detector.name,
+            "threshold": max(ship_detector.info.threshold, _scene_threshold()),
+            "chipThreshold": ship_detector.info.threshold,
+            "thresholdNote": ("The training threshold was chosen on chips cropped around a ship. Scene-wide "
+                              "use raises it, because a scene is mostly water and the chip score barely "
+                              "moves across that range."),
+            "trainedOn": ship_detector.info.trained_on,
+        },
         "limitations": [*LIMITATIONS, f"The quicklook is in {scene.geometry}; use the outlines on the map for location"],
     }
     (case_dir / f"{scene_name}.json").write_text(json.dumps(record, indent=1))
     return record
+
+
+def _scene_threshold() -> float:
+    from .vessels import SCENE_THRESHOLD
+    return SCENE_THRESHOLD
 
 
 def haversine_grid(lat: np.ndarray, lon: np.ndarray, lat0: float, lon0: float) -> np.ndarray:

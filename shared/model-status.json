@@ -1,0 +1,322 @@
+{
+ "_comment": "Written by oceanspill-model-status from the training runs. Do not edit by hand.",
+ "generatedAt": "2026-09-16T20:10:35+00:00",
+ "models": {
+  "sarSegmentation": {
+   "task": "Finds oil pixels in dual-polarisation Sentinel-1 radar scenes",
+   "architecture": "U-Net, 2 input channels (co-polarised and cross-polarised backscatter in decibels)",
+   "training": "Sentinel-1 oil spill scenes with hand-drawn masks, plus look-alike and clean-sea scenes as negatives",
+   "dataset": "Sentinel-1 oil spill dataset (Zenodo 8346860)",
+   "datasetUrl": "https://zenodo.org/records/8346860",
+   "trained": true,
+   "version": "sarSegmentation-20260916",
+   "trainedAt": "2026-09-16T16:14:29+00:00",
+   "threshold": 0.7,
+   "tiles": {
+    "train": 18696,
+    "val": 3247
+   },
+   "scores": {
+    "iou": 0.3436,
+    "dice": 0.5115,
+    "precision": 0.4058,
+    "recall": 0.6915
+   },
+   "falseAlarmRate": 0.181,
+   "falseAlarmBasis": "409 of 2260 tiles with no target in them produced a detection of at least 50 pixels",
+   "modelFile": "runs/sar_oil/unet_best.onnx",
+   "onTilesWithTarget": {
+    "tiles": 987,
+    "iou": 0.6298,
+    "dice": 0.7729,
+    "precision": 0.8759,
+    "recall": 0.6915
+   },
+   "lookalikeFalseAlarm": {
+    "rate": 0.4709,
+    "tiles": 618,
+    "fired": 291
+   },
+   "cleanSeaFalseAlarm": {
+    "rate": 0.0841,
+    "tiles": 642,
+    "fired": 54
+   },
+   "evaluationThreshold": 0.7
+  },
+  "sarSegmentationSinglePol": {
+   "task": "Finds oil in single-polarisation radar scenes, which is what EOS-04 provides",
+   "architecture": "U-Net, 1 input channel (co-polarised backscatter in decibels)",
+   "training": "The same Sentinel-1 scenes as the dual-polarisation model, with the cross-polarised channel withheld",
+   "dataset": "Sentinel-1 oil spill dataset (Zenodo 8346860)",
+   "datasetUrl": "https://zenodo.org/records/8346860",
+   "note": "Trained and measured, and not used. Training loss barely moved across eight epochs and it finds under a fifth of the oil, so EOS-04 scenes keep the classical dark-spot detector. Published because the result is the finding: one polarisation did not carry enough signal for this architecture on this data.",
+   "trained": true,
+   "version": "sarSegmentationSinglePol-20260916",
+   "trainedAt": "2026-09-16T19:02:16+00:00",
+   "threshold": 0.4,
+   "tiles": {
+    "train": 18696,
+    "val": 3247
+   },
+   "scores": {
+    "iou": 0.063,
+    "dice": 0.1186,
+    "precision": 0.0918,
+    "recall": 0.1675
+   },
+   "falseAlarmRate": 0.2133,
+   "falseAlarmBasis": "482 of 2260 tiles with no target in them produced a detection of at least 50 pixels",
+   "modelFile": "runs/sar_oil_vv/unet_best.onnx",
+   "onTilesWithTarget": {
+    "tiles": 960,
+    "iou": 0.1152,
+    "dice": 0.2067,
+    "precision": 0.2698,
+    "recall": 0.1675
+   },
+   "lookalikeFalseAlarm": {
+    "rate": 0.2718,
+    "tiles": 206,
+    "fired": 56
+   },
+   "cleanSeaFalseAlarm": {
+    "rate": 0.1495,
+    "tiles": 214,
+    "fired": 32
+   },
+   "evaluationThreshold": 0.4
+  },
+  "opticalSegmentation": {
+   "task": "Finds oil in Sentinel-2 optical scenes, where radar look-alikes behave differently",
+   "architecture": "U-Net, 4 input channels (10 m blue, green, red and near-infrared reflectance)",
+   "training": "MADOS marine debris and oil spill scenes, fifteen hand-labelled classes",
+   "dataset": "MADOS (Marine Debris and Oil Spill), Sentinel-2",
+   "datasetUrl": "https://zenodo.org/records/10664073",
+   "trained": true,
+   "version": "opticalSegmentation-20260916",
+   "trainedAt": "2026-09-16T20:07:19+00:00",
+   "threshold": 0.5,
+   "tiles": {
+    "train": 1433,
+    "val": 642
+   },
+   "scores": {
+    "iou": 0.2032,
+    "dice": 0.3378,
+    "precision": 0.2976,
+    "recall": 0.3905
+   },
+   "falseAlarmRate": 0.0336,
+   "falseAlarmBasis": "19 of 565 tiles with no target in them produced a detection of at least 50 pixels",
+   "modelFile": "runs/mados_optical/unet_best.onnx"
+  },
+  "shipDetection": {
+   "task": "Finds vessels in radar imagery, including ships transmitting nothing on AIS",
+   "architecture": "U-Net, single-channel radar amplitude; connected regions become vessel detections",
+   "training": "SAR Ship Detection Dataset, ship outlines rasterised from the annotations",
+   "dataset": "SSDD (SAR Ship Detection Dataset)",
+   "datasetUrl": "https://github.com/TianwenZhang0825/Official-SSDD",
+   "trained": true,
+   "version": "shipDetection-20260916",
+   "trainedAt": "2026-09-16T20:03:18+00:00",
+   "threshold": 0.3,
+   "tiles": {
+    "train": 928,
+    "val": 232
+   },
+   "scores": {
+    "iou": 0.5504,
+    "dice": 0.71,
+    "precision": 0.6484,
+    "recall": 0.7846
+   },
+   "falseAlarmRate": 0.1125,
+   "falseAlarmBasis": "45 of 400 tiles with no target in them produced a detection of at least 50 pixels",
+   "modelFile": "runs/ship_detection/unet_best.onnx",
+   "cleanSeaFalseAlarm": {
+    "rate": 0.1125,
+    "tiles": 400,
+    "fired": 45
+   },
+   "evaluationThreshold": 0.3
+  }
+ },
+ "measured": {
+  "drift": {
+   "source": "NOAA Global Drifter Program hourly product (doi 10.25921/x46c-3620)",
+   "observations": 696322,
+   "buoys": 166,
+   "windage": {
+    "fraction": 0.00806,
+    "ci95": [
+     0.00307,
+     0.02941
+    ],
+    "deflectionDeg": 15.3,
+    "samples": 61,
+    "group": "undrogued, northern hemisphere"
+   },
+   "diffusivity": {
+    "m2s": 563.7,
+    "ci95": [
+     517.3,
+     611.3
+    ],
+    "pairs": 6000,
+    "observedSeparationKm": {
+     "6": 3.7,
+     "12": 6.2,
+     "24": 11.3,
+     "48": 21.0
+    }
+   }
+  },
+  "driftValidation": {
+   "spread": {
+    "hours": [
+     6,
+     12,
+     24,
+     48
+    ],
+    "observed_separation_km": [
+     3.6622999741006628,
+     6.208464147892699,
+     11.320601208008096,
+     21.025742427577793
+    ],
+    "modelled_separation_km": {
+     "the model's old 8 m\u00b2/s": [
+      0.7367952297214717,
+      1.0419858065639056,
+      1.4735904594429434,
+      2.083971613127811
+     ],
+     "the measured 564 m\u00b2/s": [
+      6.184778876843078,
+      8.74659816791012,
+      12.369557753686156,
+      17.49319633582024
+     ]
+    },
+    "diffusivity_tested": {
+     "the model's old 8 m\u00b2/s": 8.0,
+     "the measured 564 m\u00b2/s": 563.6957106674038
+    },
+    "pairs": 6000,
+    "verdict": "the measured 564 m\u00b2/s reproduces the observed spreading to within 34% on average; the model's old 8 m\u00b2/s is off by 85%"
+   },
+   "trackSkill": {
+    "tracks": 25,
+    "hours": 24,
+    "windage": 0.012628066733106954,
+    "diffusivity": 563.6957106674038,
+    "median_error_km": 15.715051068892127,
+    "mean_error_km": 16.983196338701795,
+    "median_no_drift_km": 21.64838831916131,
+    "median_current_only_km": 16.91792099934267,
+    "skill_against_no_drift": 0.27407755084555174,
+    "inside_one_sigma": 0.52,
+    "inside_two_sigma": 0.88,
+    "expected_one_sigma": 0.68,
+    "expected_two_sigma": 0.95
+   }
+  },
+  "vesselDetectionOnRealScene": {
+   "case": "IND-2017-01-ENNORE-COLLISION",
+   "scene": "S1A_IW_GRDH_1SDV_20170129T003132_20170129T003157_015039_01892E_6D04",
+   "sceneTime": "2017-01-29T00:31:32+00:00",
+   "pixelSpacingM": 20.0,
+   "threshold": 0.7,
+   "matchRadiusKm": 2.0,
+   "aisVesselsInScene": 23,
+   "foundByRadar": 16,
+   "recall": 0.696,
+   "radarTargets": 200,
+   "unmatchedTargets": 176,
+   "missed": [
+    {
+     "key": "MMSI-419000988",
+     "provenance": "real",
+     "nearestRadarKm": 2.9,
+     "aisGapMinutes": 1260.0
+    },
+    {
+     "key": "REF-BW-MAPLE",
+     "provenance": "synthetic-anchored",
+     "nearestRadarKm": 2.61,
+     "aisGapMinutes": 10.0
+    },
+    {
+     "key": "MMSI-419009300",
+     "provenance": "real",
+     "nearestRadarKm": 3.2,
+     "aisGapMinutes": 60.0
+    },
+    {
+     "key": "MMSI-419000842",
+     "provenance": "real",
+     "nearestRadarKm": 13.45,
+     "aisGapMinutes": 60.0
+    },
+    {
+     "key": "MMSI-419000806",
+     "provenance": "real",
+     "nearestRadarKm": 3.73,
+     "aisGapMinutes": 60.0
+    },
+    {
+     "key": "MMSI-371559000",
+     "provenance": "real",
+     "nearestRadarKm": 3.73,
+     "aisGapMinutes": 60.0
+    },
+    {
+     "key": "MMSI-565567000",
+     "provenance": "real",
+     "nearestRadarKm": 3.85,
+     "aisGapMinutes": 60.0
+    }
+   ],
+   "caveats": [
+    "AIS positions between pings are interpolated, so a stale report puts a vessel where it is not and counts as a miss against the detector.",
+    "Unmatched radar targets are not dark ships. Small craft that never transmit are ordinary here, and the detector's false-alarm rate over open sea has not been measured.",
+    "One scene over one stretch of coast. This is evidence the detector works on real data, not a performance figure for the system."
+   ]
+  },
+  "aisGaps": {
+   "events": 55368,
+   "source": "Global Fishing Watch published AIS disabling events (gaps judged intentional)",
+   "window": "2017-01-01 to 2019-12-31",
+   "hoursPercentiles": {
+    "p5": 12.483333333333333,
+    "p10": 13.133333333333333,
+    "p25": 15.583333333333334,
+    "p50": 23.483333333333334,
+    "p75": 67.8,
+    "p90": 204.0816666666668,
+    "p95": 377.71999999999923,
+    "p99": 1163.0416666666683
+   },
+   "distanceFromShorePercentiles": {
+    "p5": 116.0,
+    "p10": 145.0,
+    "p25": 279.0,
+    "p50": 413.0,
+    "p75": 661.0,
+    "p90": 993.0,
+    "p95": 1222.0,
+    "p99": 1737.0
+   },
+   "calibration": {
+    "heldOut": 13842,
+    "maxDecileShare": 0.10518711168906228,
+    "minDecileShare": 0.09319462505418293,
+    "uniformShare": 0.1,
+    "meanAbsoluteDeviation": 0.0026325675480421916
+   },
+   "caveat": "Confirmed disabling events only. Without a comparable sample of ordinary gaps from the same feed there is no base rate here, so a high percentile means 'resembles the deliberate ones', not 'probably deliberate'."
+  }
+ }
+}

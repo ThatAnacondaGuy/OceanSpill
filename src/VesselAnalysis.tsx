@@ -4,6 +4,7 @@ import {
   TrendingDown, Gauge, Flag, Shield, Clock, ArrowRight, Radio,
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
+import { aisGapPercentile } from './engine/detection';
 import { MapView, BasemapSwitch, type BasemapStyle, type MapMarker, type MapPath, type MapPolygon } from './components/MapView';
 import {
   DataTable, SearchInput, Select, Badge, Button, KeyValue, Toggle, Tabs, InfoBanner,
@@ -36,7 +37,10 @@ const TRACK_LABEL: Record<string, string> = {
 };
 
 export default function VesselAnalysis() {
-  const { world, selectedMmsi, setSelectedMmsi, selectedCaseId, setSelectedCaseId, navigate, getAnalysis, revision } = useStore();
+  const { world, selectedMmsi, setSelectedMmsi, selectedCaseId, setSelectedCaseId, navigate, getAnalysis, revision, flowCaseId } = useStore();
+  // While the pipeline is running a case, this page belongs to that case alone.
+  const locked = flowCaseId != null;
+
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [provenanceFilter, setProvenanceFilter] = useState('all');
@@ -149,7 +153,7 @@ export default function VesselAnalysis() {
         const pos = at ?? (darkNow ? track.pings.filter((p) => p.t < playback.value).pop() : undefined);
         if (pos) {
           markers.push({
-            id: v.mmsi, position: pos, kind: 'vessel', color: darkNow ? '#ef4444' : color,
+            id: v.mmsi, position: pos, kind: 'vessel', vesselType: v.type, color: darkNow ? '#ef4444' : color,
             size: isSel ? 8 : v.provenance === 'real' ? 6.5 : 5, headingDeg: pos.cog, selected: isSel, pulse: darkNow,
             label: v.name, sublabel: `${v.type} · ${TRACK_LABEL[track.provenance]}${darkNow ? ' · AIS dark' : ''}`,
             z: isSel ? 9 : 6,
@@ -209,7 +213,7 @@ export default function VesselAnalysis() {
           </p>
         </div>
         <div className="p-2 space-y-3 border-b border-gray-200">
-          <Select value={caseId} onChange={setCase} options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
+          {!locked && <Select value={caseId} onChange={setCase} options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />}
           <SearchInput value={query} onChange={setQuery} placeholder="Name, MMSI, IMO, operator…" />
           <div className="grid grid-cols-3 gap-2">
             <Select value={provenanceFilter} onChange={setProvenanceFilter}
@@ -227,8 +231,16 @@ export default function VesselAnalysis() {
             initialSort={{ key: 'rank', dir: 'asc' }} />
         </div>
         <div className="p-2 border-t border-gray-200 flex items-center justify-between gap-2">
-          <span className="text-[0.6875rem] text-gray-500">AIS: {activeCase?.aisProvider}</span>
-          <ExportButton onExport={() => downloadCsv(`oceanspill-vessels-${caseId}.csv`, columns.filter((c) => c.value), filtered)} />
+          {/*
+            A vessel table beside a live map reads as a live picture. It is not: these are the tracks
+            for the case's own AIS window, which closed when the case was built. Saying so here costs
+            one line and stops an operator assuming a ship is still where the map puts it.
+          */}
+          <span className="text-[0.6875rem] text-gray-500">
+            AIS: {activeCase?.aisProvider}
+            {activeCase && ` · window closed ${fmt.utcShort(activeCase.aisWindow.end)}`}
+          </span>
+          <ExportButton onExport={() => downloadCsv(`oceanwatch-vessels-${caseId}.csv`, columns.filter((c) => c.value), filtered)} />
         </div>
       </aside>
 
@@ -405,7 +417,9 @@ export default function VesselAnalysis() {
                   <div className="grid grid-cols-2 gap-2">
                     <StatCard icon={<Gauge className="w-4 h-4" />} title="Mean speed" value={`${behaviour.meanSpeedKn.toFixed(1)}`} trend={`knots over ${fmt.hoursOrDays(aisSpanHours)} of AIS`} />
                     <StatCard icon={<TrendingDown className="w-4 h-4" />} title="Min speed" value={`${behaviour.minSpeedKn.toFixed(1)}`} trend="knots" accent={behaviour.minSpeedKn < 8 ? 'amber' : 'blue'} />
-                    <StatCard icon={<EyeOff className="w-4 h-4" />} title="AIS dark" value={`${behaviour.darkMinutes}`} trend="minutes" accent={behaviour.darkMinutes > 0 ? 'red' : 'green'} />
+                    <StatCard icon={<EyeOff className="w-4 h-4" />} title="AIS dark" value={`${behaviour.darkMinutes}`}
+                      trend={aisGapPercentile(behaviour.darkMinutes)?.reading ?? 'minutes'}
+                      accent={behaviour.darkMinutes > 0 ? 'red' : 'green'} />
                     <StatCard icon={<Clock className="w-4 h-4" />} title="Loitering" value={`${behaviour.loiterMinutes}`} trend="minutes below 2 kn" accent={behaviour.loiterMinutes > 25 ? 'amber' : 'blue'} />
                   </div>
 

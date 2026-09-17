@@ -27,7 +27,7 @@ export type SourceType = 'vessel' | 'facility' | 'pipeline' | 'unknown';
 export type TimePrecision = 'minute' | 'hour' | 'day' | 'month' | 'year';
 
 // ---------------------------------------------------------------------------------------------
-// Pipeline artifacts (public/data). These mirror the JSON written by pipeline/src/oceanspill/build.py.
+// Pipeline artifacts (public/data). These mirror the JSON written by pipeline/src/oceanwatch/build.py.
 // ---------------------------------------------------------------------------------------------
 
 export interface AnchorFact {
@@ -156,9 +156,12 @@ export interface SarSpot {
   elongation: number;
   orientationDeg: number;
   outline: LatLon[];
+  /** Mean model confidence over this patch, when a trained detector produced it. */
+  modelOilProbability?: number;
+  modelPeakProbability?: number;
 }
 
-/** Output of `oceanspill process`: calibrated scene analysed with the classical dark-spot detector. */
+/** Output of `oceanwatch process`: calibrated scene analysed with the classical dark-spot detector. */
 export interface SarMeasurement {
   schemaVersion: 1;
   caseId: string;
@@ -170,11 +173,39 @@ export interface SarMeasurement {
   method: string;
   parameters: Record<string, number>;
   crop: { corners: LatLon[]; shape: [number, number] };
+  /** The trained detector that produced this record, when one was used. */
+  model?: {
+    name: string;
+    threshold: number;
+    trainedOn: string;
+    channelsExpected: number;
+    channelsSupplied: number;
+    duplicatedChannels: boolean;
+  } | null;
   incidenceDeg: number;
   sea: { meanDb: number | null; stdDb: number | null; pixels: number };
   quicklook: string;
   spots: SarSpot[];
+  /**
+   * Vessels the radar itself saw. Three states, and they mean different things: a list is what the
+   * detector found, `null` with a reason in `vesselsUnavailable` means the window could not resolve
+   * a ship, and `undefined` means no ship detector was run at all.
+   */
+  vessels?: RadarVessel[] | null;
+  vesselsUnavailable?: string | null;
+  vesselModel?: { name: string; threshold: number; trainedOn: string } | null;
   limitations: string[];
+}
+
+/** A bright, compact, ship-sized return. It has a position; it has no identity and no AIS. */
+export interface RadarVessel {
+  position: LatLon;
+  pixels: number;
+  /** Null when the blob is too small for its axes to mean anything. */
+  lengthM: number | null;
+  widthM: number | null;
+  confidence: number;
+  distanceKm: number;
 }
 
 export interface CaseArtifact {
@@ -229,6 +260,37 @@ export interface CoastArtifact {
   bbox: CoastBBox;
   simplifiedToleranceM: number;
   rings: [number, number][][];
+}
+
+/** What optical coverage exists over an incident, and whether cloud leaves any of it usable. */
+export interface OpticalCoverage {
+  scenes: number;
+  usable: number;
+  cloudThreshold: number;
+  clearest: {
+    name: string;
+    start: string;
+    cloudPercent: number;
+    hoursFromIncident: number;
+    sizeBytes: number | null;
+  } | null;
+  note: string;
+}
+
+/** What the shore is made of along a case's coastline, from OpenStreetMap. */
+export interface ShoreTypeArtifact {
+  caseId: string;
+  source: string;
+  matchRadiusKm: number;
+  descriptions: Record<string, string>;
+  /** One label per coastline vertex, in the same order as the coastline rings. */
+  types: string[][];
+  summary: {
+    kilometres: Record<string, number>;
+    totalKm: number;
+    classifiedFraction: number;
+  };
+  note: string;
 }
 
 export type OilQuantityBasis = 'released' | 'on board' | 'recovered' | 'unaccounted';
@@ -369,7 +431,12 @@ export interface Detection {
   /** The processed dark spot used for the contrast check, if one lies near the incident. */
   sarSpot: (SarSpot & { scene: string }) | null;
   // SAR-derived measurements. Null until segmentation has run on a downloaded scene.
-  classProbabilities: { oil: number; lookalike: number; sea: number } | null;
+  /**
+   * What the trained detector made of the patch. The model answers one question — oil or not — so
+   * that is what is recorded; splitting the remainder between look-alike and clean sea would be
+   * inventing two numbers from one.
+   */
+  classProbabilities: { oil: number; notOil: number } | null;
   meanBackscatterDb: number | null;
   backgroundBackscatterDb: number | null;
   modelVersion: string | null;
@@ -529,8 +596,15 @@ export interface DataSource {
   name: string;
   agency: string;
   sovereign: boolean;
-  /** Online = integrated and working; Not configured = integrated but credentials missing; Pending access = not integrated yet. */
-  status: 'Online' | 'Not configured' | 'Pending access' | 'Interim fallback';
+  /**
+   * Online = integrated and working; Not configured = integrated but credentials missing;
+   * Authorisation required = an Indian government system we cannot lawfully reach yet.
+   *
+   * That last one is not a failure. Every source carrying it is Indian, and it is waiting on an
+   * authorisation rather than on engineering — which makes this list an integration roadmap for
+   * whoever can grant it, not a list of things that are broken.
+   */
+  status: 'Online' | 'Not configured' | 'Authorisation required' | 'Interim fallback';
   message: string;
   role: 'primary' | 'fallback';
   lastSync: number | null;
