@@ -178,7 +178,7 @@ function baseStyle(): maplibregl.StyleSpecification {
       // connection still shows land and sea rather than an empty blue rectangle.
       offlineLand: emptyFc,
       graticule: emptyFc, eez: emptyFc, vectors: emptyFc, polygons: emptyFc, circles: emptyFc,
-      particles: emptyFc, paths: emptyFc, arrows: emptyFc, markers: emptyFc, circleLabels: emptyFc,
+      particles: emptyFc, paths: emptyFc, arrows: emptyFc, markers: emptyFc, circleLabels: emptyFc, pulses: emptyFc,
     },
     layers: [
       { id: 'bg', type: 'background', paint: { 'background-color': '#aad3df' } },
@@ -247,6 +247,18 @@ function baseStyle(): maplibregl.StyleSpecification {
         'icon-allow-overlap': true, 'icon-ignore-placement': true, 'icon-size': ['get', 'size'],
       }, paint: { 'icon-opacity': ['get', 'opacity'] } },
 
+      // The attention rings. These were DOM elements positioned by JavaScript on move events, while
+      // the icon they surround is drawn by the GPU inside the map's own render loop. During a zoom
+      // the two updated at different moments and the ring visibly slid off its marker. Drawn here as
+      // circles they cannot separate: one renderer, one frame, one position.
+      { id: 'pulse-a', type: 'circle', source: 'pulses', paint: {
+        'circle-radius': ['get', 'r0'], 'circle-color': 'rgba(0,0,0,0)',
+        'circle-stroke-color': ['to-color', ['get', 'color']], 'circle-stroke-width': 2, 'circle-stroke-opacity': 0,
+      } },
+      { id: 'pulse-b', type: 'circle', source: 'pulses', paint: {
+        'circle-radius': ['get', 'r0'], 'circle-color': 'rgba(0,0,0,0)',
+        'circle-stroke-color': ['to-color', ['get', 'color']], 'circle-stroke-width': 2, 'circle-stroke-opacity': 0,
+      } },
       { id: 'mk-rings', type: 'symbol', source: 'markers', filter: ['get', 'selected'], layout: {
         'icon-image': ['get', 'ring'], 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'symbol-sort-key': ['get', 'z'],
       } },
@@ -322,7 +334,6 @@ export function MapView({
   markersRef.current = markers;
   const clickRef = useRef({ onMarkerClick, onMapClick, interactive });
   clickRef.current = { onMarkerClick, onMapClick, interactive };
-  const pulseMarkers = useRef(new Map<string, maplibregl.Marker>());
   const slicks = useRef(new Map<string, { id: string; renderer: SlickRenderer }>());
   const slickSeq = useRef(0);
   const [slickCount, setSlickCount] = useState(0);
@@ -409,8 +420,6 @@ export function MapView({
     return () => {
       ro.disconnect();
       window.clearTimeout(refit);
-      pulseMarkers.current.forEach((mk) => mk.remove());
-      pulseMarkers.current.clear();
       slicks.current.clear();
       map.remove();
       mapRef.current = null;
@@ -607,11 +616,38 @@ export function MapView({
     (map.getSource('arrows') as GeoJSONSource).setData(fc(arrows));
   }, [paths, ready]);
 
+  /**
+   * The rings expand and fade on the map's own clock.
+   *
+   * Radius and opacity are paint properties, so each frame updates the layer rather than an element,
+   * and the ring is composited with the icon it surrounds instead of chasing it. Two layers half a
+   * period apart give the double pulse the old CSS produced with ::before and ::after.
+   */
+  useEffect(() => {
+    if (!ready) return;
+    let frame = 0;
+    const PERIOD = 2400;
+    const tick = () => {
+      const map = mapRef.current;
+      if (map && styledMap.current === map && map.getLayer('pulse-a')) {
+        const now = performance.now();
+        for (const [id, offset] of [['pulse-a', 0], ['pulse-b', PERIOD / 2]] as const) {
+          const phase = (((now + offset) % PERIOD) / PERIOD);
+          map.setPaintProperty(id, 'circle-radius', ['*', ['get', 'r0'], 0.8 + phase * 2.4]);
+          map.setPaintProperty(id, 'circle-stroke-opacity', 0.75 * (1 - phase));
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [ready]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || styledMap.current !== map) return;
     const features: Feature[] = [];
-    const wantPulse = new Set<string>();
+    const pulses: Feature[] = [];
     for (const m of markers) {
       const color = cssColor(m.color ?? '#ef4444');
       const r = m.size ?? 6;
@@ -633,24 +669,15 @@ export function MapView({
         geometry: { type: 'Point', coordinates: lngLat(m.position) },
       });
       if (m.pulse && !m.dimmed) {
-        const key = `${m.id}|${color}|${r}|${m.kind}`;
-        wantPulse.add(key);
-        const existing = pulseMarkers.current.get(key);
-        if (existing) {
-          existing.setLngLat(lngLat(m.position));
-        } else {
-          const el = document.createElement('div');
-          el.className = m.kind === 'origin' ? 'os-pulse os-pulse-origin' : 'os-pulse';
-          el.style.setProperty('--pulse-color', color);
-          el.style.setProperty('--pulse-size', `${r * 2 + 4}px`);
-          pulseMarkers.current.set(key, new maplibregl.Marker({ element: el }).setLngLat(lngLat(m.position)).addTo(map));
-        }
+        pulses.push({
+          type: 'Feature',
+          properties: { color, r0: r + 2 },
+          geometry: { type: 'Point', coordinates: lngLat(m.position) },
+        });
       }
     }
-    for (const [key, mk] of pulseMarkers.current) {
-      if (!wantPulse.has(key)) { mk.remove(); pulseMarkers.current.delete(key); }
-    }
     (map.getSource('markers') as GeoJSONSource).setData(fc(features));
+    (map.getSource('pulses') as GeoJSONSource).setData(fc(pulses));
     if (!showLabels) {
       map.setLayoutProperty('mk-labels', 'visibility', 'none');
       map.setLayoutProperty('mk-labels-selected', 'visibility', 'none');
