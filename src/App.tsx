@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  Bell, HelpCircle, LogOut, Search, Home, AlertTriangle,
+  Bell, HelpCircle, LogOut, Search, Home, AlertTriangle, Megaphone,
   Database, ChevronDown, CheckSquare, Shield, Archive,
   Settings, Clock, X, CheckCircle2, Info, AlertCircle, User as UserIcon, Ship,
   ChevronLeft, ChevronRight, Contrast, Leaf, History, Radar, KeyRound,
@@ -127,48 +127,137 @@ function Shell() {
     return () => window.removeEventListener('mousedown', h);
   }, []);
 
-  // Global search across cases, vessels, protected areas, the historical register and SAR scenes.
-  const results = useMemo(() => {
+  /**
+   * Global search.
+   *
+   * It used to look in five places and hand back the first ten things it found in the order it
+   * happened to walk them, so typing a vessel's name could return ten cases and none of the vessel.
+   * It now searches everything a person might be looking for — including the enforcement actions,
+   * advisories, field reports, planning areas and accounts it never covered — scores each hit by how
+   * well it matches, and keeps the best of each kind so one crowded category cannot bury the rest.
+   */
+  const { results, totalMatches } = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (q.length < 2) return [];
-    const out: { kind: string; label: string; sub: string; go: () => void }[] = [];
+    if (q.length < 2) return { results: [], totalMatches: 0 };
     const can = (tab: string) => allowed.includes(tab);
+
+    type Hit = { kind: string; label: string; sub: string; score: number; go: () => void };
+    const out: Hit[] = [];
+
+    /** An identifier that starts with the query beats one that merely contains it somewhere. */
+    const score = (primary: string, secondary = ''): number => {
+      const a = primary.toLowerCase();
+      if (a === q) return 100;
+      if (a.startsWith(q)) return 80;
+      if (a.includes(q)) return 60;
+      const b = secondary.toLowerCase();
+      if (b.startsWith(q)) return 40;
+      if (b.includes(q)) return 20;
+      return 0;
+    };
+    const add = (hit: Omit<Hit, 'score'>, primary: string, secondary = '') => {
+      const sc = score(primary, secondary);
+      if (sc > 0) out.push({ ...hit, score: sc });
+    };
+
     for (const c of world.cases) {
-      if (`${c.id} ${c.title} ${c.region} ${c.subRegion}`.toLowerCase().includes(q)) {
-        out.push({ kind: 'Case', label: c.title, sub: `${c.id} · ${c.subRegion}`, go: () => (can('Investigation') ? store.startFlow(c.id) : navigate({ tab: 'Spill Incidents', caseId: c.id })) });
-      }
+      add({
+        kind: 'Case', label: c.title, sub: `${c.id} · ${c.subRegion} · ${c.status}`,
+        go: () => (can('Investigation') ? store.startFlow(c.id) : navigate({ tab: 'Spill Incidents', caseId: c.id })),
+      }, c.title, `${c.id} ${c.region} ${c.subRegion} ${c.status} ${c.oilType} ${c.assignedTo} ${c.workflowStage}`);
     }
+
     if (can('Vessel Analysis')) {
       for (const v of world.vessels) {
-        if (v.name.toLowerCase().includes(q) || (store.identitiesVisible && ((v.mmsiNumber ?? '').includes(q) || (v.imo ?? '').includes(q)))) {
-          out.push({ kind: 'Vessel', label: v.name, sub: `${fmt.vesselId(v)} · ${v.type}${v.provenance === 'synthetic' ? ' · synthetic' : ''}`, go: () => navigate({ tab: 'Vessel Analysis', mmsi: v.mmsi }) });
-        }
+        const ids = store.identitiesVisible ? `${v.mmsiNumber ?? ''} ${v.imo ?? ''}` : '';
+        add({
+          kind: 'Vessel', label: v.name, sub: `${fmt.vesselId(v)} · ${v.type}${v.provenance === 'synthetic' ? ' · synthetic' : ''}`,
+          go: () => navigate({ tab: 'Vessel Analysis', mmsi: v.mmsi }),
+        }, v.name, `${ids} ${v.flag ?? ''} ${v.type} ${v.operator ?? ''}`);
       }
     }
+
     if (can('NCSCM Ecological')) {
       for (const a of ECOLOGICAL_AREAS) {
-        if (`${a.name} ${a.category} ${a.state}`.toLowerCase().includes(q)) {
-          out.push({ kind: 'Area', label: a.name, sub: `${a.category} · ${a.state}`, go: () => navigate({ tab: 'NCSCM Ecological', section: a.id }) });
-        }
+        add({
+          kind: 'Area', label: a.name, sub: `${a.category} · ${a.state}`,
+          go: () => navigate({ tab: 'NCSCM Ecological', section: a.id }),
+        }, a.name, `${a.category} ${a.state}`);
       }
     }
+
     if (can('Case Archive')) {
       for (const h of world.historical) {
         if (h.activeCaseId) continue;
-        if (`${h.name} ${h.location} ${h.date}`.toLowerCase().includes(q)) {
-          out.push({ kind: 'Historical', label: `${h.name} (${h.date.slice(0, 4)})`, sub: h.location, go: () => navigate({ tab: 'Case Archive', section: 'historical' }) });
-        }
+        add({
+          kind: 'Historical', label: `${h.name} (${h.date.slice(0, 4)})`, sub: h.location,
+          go: () => navigate({ tab: 'Case Archive', section: 'historical' }),
+        }, h.name, `${h.location} ${h.date} ${h.oil ?? ''} ${h.cause ?? ''}`);
       }
     }
+
     if (can('Satellite Tasking')) {
       for (const p of world.passes) {
-        if (p.name.toLowerCase().includes(q)) {
-          out.push({ kind: 'Scene', label: p.name, sub: `${p.sensor} · ${fmt.utc(p.start)}`, go: () => navigate({ tab: 'Satellite Tasking', caseId: p.caseIds[0] }) });
-        }
+        add({
+          kind: 'Scene', label: p.name, sub: `${p.sensor} · ${fmt.utc(p.start)}`,
+          go: () => store.startFlow(p.caseIds[0] ?? world.cases[0]?.id ?? '', 'Satellite Tasking'),
+        }, p.name, p.sensor);
+      }
+      for (const a of world.aois) {
+        add({
+          kind: 'Area', label: a.name, sub: `Planning area · priority ${a.priority}`,
+          go: () => store.startFlow(world.cases[0]?.id ?? '', 'Satellite Tasking'),
+        }, a.name, a.rationale);
       }
     }
-    return out.slice(0, 10);
-  }, [search, world, navigate, allowed, store.identitiesVisible]);
+
+    if (can('Offender Registry')) {
+      for (const e of world.enforcement) {
+        const v = world.vesselsByMmsi.get(e.mmsi);
+        add({
+          kind: 'Action', label: `${e.type} — ${e.party}`, sub: `${e.authority}${e.reference ? ` · ${e.reference}` : ''}`,
+          go: () => navigate({ tab: 'Offender Registry' }),
+        }, e.party, `${e.type} ${e.authority} ${e.reference ?? ''} ${v?.name ?? ''}`);
+      }
+    }
+
+    if (can('SACHET / SAMUDRA')) {
+      for (const a of world.alerts) {
+        add({
+          kind: 'Advisory', label: a.headline, sub: `${a.districts.join(', ')} · ${fmt.utcShort(a.issuedAt)}`,
+          go: () => store.startFlow(a.caseId, 'SACHET / SAMUDRA'),
+        }, a.headline, `${a.body} ${a.districts.join(' ')}`);
+      }
+      for (const r of world.sightings) {
+        add({
+          kind: 'Report', label: r.description, sub: `${r.district} · ${r.reporter}`,
+          go: () => navigate({ tab: 'SACHET / SAMUDRA' }),
+        }, r.description, `${r.district} ${r.reporter}`);
+      }
+    }
+
+    if (can('System Admin')) {
+      for (const u of world.users) {
+        add({
+          kind: 'Account', label: u.name, sub: `${u.role} · ${u.agency}`,
+          go: () => navigate({ tab: 'System Admin' }),
+        }, u.name, `${u.role} ${u.agency} ${u.email ?? ''}`);
+      }
+    }
+
+    out.sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+    // A per-kind cap so a hundred matching scenes cannot push the one matching case off the list.
+    const perKind = new Map<string, number>();
+    const kept: Hit[] = [];
+    for (const hit of out) {
+      const n = perKind.get(hit.kind) ?? 0;
+      if (n >= 6) continue;
+      perKind.set(hit.kind, n + 1);
+      kept.push(hit);
+      if (kept.length >= 30) break;
+    }
+    return { results: kept, totalMatches: out.length };
+  }, [search, world, navigate, allowed, store]);
 
   const unread = useMemo(() => world.audit.filter((a) => a.t > now - 6 * 3600_000).slice(0, 8), [world.audit, now, store.revision]);
 
@@ -268,6 +357,10 @@ function Shell() {
                     : r.kind === 'Vessel' ? <Ship className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                     : r.kind === 'Area' ? <Leaf className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
                     : r.kind === 'Historical' ? <History className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                    : r.kind === 'Action' ? <Shield className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                    : r.kind === 'Advisory' ? <Megaphone className="w-3.5 h-3.5 text-teal-600 flex-shrink-0" />
+                    : r.kind === 'Report' ? <CheckSquare className="w-3.5 h-3.5 text-cyan-600 flex-shrink-0" />
+                    : r.kind === 'Account' ? <UserIcon className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                     : <Radar className="w-3.5 h-3.5 text-violet-500 flex-shrink-0" />}
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-gray-900 truncate">{r.label}</div>
@@ -275,6 +368,11 @@ function Shell() {
                   </div>
                 </button>
               ))}
+              {totalMatches > results.length && (
+                <p className="px-3 py-1.5 text-[0.6875rem] text-gray-500 bg-gray-50">
+                  Showing {results.length} of {totalMatches} matches — keep typing to narrow it.
+                </p>
+              )}
             </div>
           )}
           {searchOpen && search.trim().length >= 2 && results.length === 0 && (
