@@ -292,10 +292,10 @@ function buildPayload(c: SpillCase, world: ReturnType<typeof useStore>['world'],
     }
   }
   return JSON.stringify({
-    schema: 'oceanspill.cop.pollution.draft-1',
+    schema: 'oceanwatch.cop.pollution.draft-1',
     generatedAt: new Date(c.imacPushedAt ?? now).toISOString(),
     status: 'DRAFT_NOT_TRANSMITTED',
-    source: { system: 'OceanSpill', mode: 'retrospective-analysis' },
+    source: { system: 'OceanWatch', mode: 'retrospective-analysis' },
     incident: {
       id: c.id,
       title: c.title,

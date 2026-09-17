@@ -53,7 +53,7 @@ const NAV_GROUPS: { title: string; items: string[] }[] = [
   { title: 'Records', items: ['Data Management', 'Case Archive', 'System Admin'] },
 ];
 
-const A11Y_KEY = 'oceanspill.a11y.v1';
+const A11Y_KEY = 'oceanwatch.a11y.v1';
 const TEXT_SCALES = ['100%', '112.5%', '125%'];
 
 function loadA11y(): { scale: number; contrast: boolean } {
@@ -326,7 +326,7 @@ function Shell() {
           <div className="hidden sm:block w-px self-stretch my-1 bg-gray-300" aria-hidden />
           <div className="min-w-0 leading-tight">
             <p lang="hi" className="font-hindi text-[0.75rem] sm:text-[0.8125rem] text-gray-700 truncate">समुद्री तेल रिसाव जाँच एवं पोत अभिनिर्धारण प्रणाली</p>
-            <h1 className="text-[1.0625rem] sm:text-[1.1875rem] font-bold text-[#0b2a55] tracking-wide uppercase">OceanSpill</h1>
+            <h1 className="text-[1.0625rem] sm:text-[1.1875rem] font-bold text-[#0b2a55] tracking-wide uppercase">OceanWatch</h1>
             <p className="hidden md:block text-[0.75rem] text-gray-600 truncate">Oil Spill Detection &amp; Vessel Attribution System</p>
           </div>
         </div>
@@ -643,7 +643,7 @@ function SignedOut() {
             <Seal size={48} />
             <div>
               <p lang="hi" className="font-hindi text-[0.8125rem] text-gray-700">समुद्री तेल रिसाव जाँच एवं पोत अभिनिर्धारण प्रणाली</p>
-              <h1 className="text-lg font-bold text-[#0b2a55] tracking-wide uppercase">OceanSpill</h1>
+              <h1 className="text-lg font-bold text-[#0b2a55] tracking-wide uppercase">OceanWatch</h1>
             </div>
           </div>
           <div className="px-6 py-5">

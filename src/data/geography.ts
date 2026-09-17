@@ -189,7 +189,7 @@ export interface EcologicalArea {
 
 /**
  * Protected and ecologically sensitive areas, in shared/ecological-areas.json so the pipeline can
- * fetch the real mapped boundary for each one (see `oceanspill protected-areas`).
+ * fetch the real mapped boundary for each one (see `oceanwatch protected-areas`).
  */
 export const ECOLOGICAL_AREAS: EcologicalArea[] = ECOLOGICAL_AREAS_FILE.areas as EcologicalArea[];
 

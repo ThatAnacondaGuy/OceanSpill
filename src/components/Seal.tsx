@@ -5,7 +5,7 @@
 export function Seal({ size = 52 }: { size?: number }) {
   const spokes = Array.from({ length: 8 }, (_, i) => (i * Math.PI) / 4);
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="OceanSpill seal" className="flex-shrink-0">
+    <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="OceanWatch seal" className="flex-shrink-0">
       <circle cx="32" cy="32" r="31" fill="#0b2a55" />
       <circle cx="32" cy="32" r="28.5" fill="none" stroke="#c9a449" strokeWidth="1.6" />
       <circle cx="32" cy="32" r="25.5" fill="none" stroke="#c9a449" strokeWidth="0.6" strokeDasharray="1.2 1.6" />

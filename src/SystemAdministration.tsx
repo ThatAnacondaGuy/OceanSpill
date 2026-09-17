@@ -167,7 +167,7 @@ export default function SystemAdministration() {
               <SearchInput value={query} onChange={setQuery} placeholder="Name, email, role or agency…" className="flex-1" />
               <Select value={roleFilter} onChange={setRoleFilter}
                 options={[{ value: 'all', label: 'All roles' }, ...Array.from(new Set(world.users.map((u) => u.role))).map((r) => ({ value: r, label: r }))]} />
-              <ExportButton onExport={() => downloadCsv('oceanspill-users.csv', userColumns.filter((c) => c.value), users)} />
+              <ExportButton onExport={() => downloadCsv('oceanwatch-users.csv', userColumns.filter((c) => c.value), users)} />
               <Button size="sm" variant="primary" disabled={restricted} onClick={() => setAddOpen(true)} icon={<Plus className="w-3 h-3" />}>Add user</Button>
             </div>
 

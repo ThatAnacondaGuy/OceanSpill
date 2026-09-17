@@ -200,8 +200,8 @@ export default function OffenderRegistry() {
           <Select value={kindFilter} onChange={setKindFilter}
             options={[{ value: 'all', label: 'All parties' }, ...['Vessel', 'Facility', 'Company / crew'].map((k) => ({ value: k, label: k }))]} />
           <ExportButton onExport={() => (tab === 'synthetic'
-            ? downloadCsv('oceanspill-synthetic-watchlist.csv', syntheticColumns.filter((c) => c.value), synthetic)
-            : downloadCsv('oceanspill-liability-register.csv', columns.filter((c) => c.value), register))} label="Export" />
+            ? downloadCsv('oceanwatch-synthetic-watchlist.csv', syntheticColumns.filter((c) => c.value), synthetic)
+            : downloadCsv('oceanwatch-liability-register.csv', columns.filter((c) => c.value), register))} label="Export" />
         </div>
       </div>
 

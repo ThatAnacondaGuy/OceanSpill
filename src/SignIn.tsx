@@ -66,7 +66,7 @@ export function SignIn({ onSignedIn }: { onSignedIn: (account: Account) => void 
                 <p lang="hi" className="font-hindi text-[0.8125rem] text-gray-700 leading-snug">
                   समुद्री तेल रिसाव जाँच एवं पोत अभिनिर्धारण प्रणाली
                 </p>
-                <h1 className="text-lg font-bold text-[#0b2a55] tracking-wide uppercase leading-tight">OceanSpill</h1>
+                <h1 className="text-lg font-bold text-[#0b2a55] tracking-wide uppercase leading-tight">OceanWatch</h1>
               </div>
             </div>
 

@@ -268,7 +268,7 @@ export default function CaseArchive() {
                 options={[{ value: 'all', label: 'All outcomes' }, ...Array.from(new Set(world.cases.map((c) => c.status))).map((s) => ({ value: s, label: s }))]} />
               <Select value={yearFilter} onChange={setYearFilter}
                 options={[{ value: 'all', label: 'All years' }, ...Array.from(new Set(world.cases.map((c) => new Date(c.incidentTime).getUTCFullYear()))).sort((a, b) => b - a).map((y) => ({ value: String(y), label: String(y) }))]} />
-              <ExportButton onExport={() => downloadCsv('oceanspill-case-archive.csv', caseColumns.filter((c) => c.value), archived)} />
+              <ExportButton onExport={() => downloadCsv('oceanwatch-case-archive.csv', caseColumns.filter((c) => c.value), archived)} />
             </div>
             <div className="flex-1 min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
               <DataTable columns={caseColumns} rows={archived} rowKey={(c) => c.id} dense
@@ -395,7 +395,7 @@ export default function CaseArchive() {
               options={[{ value: 'all', label: 'All categories' }, ...Array.from(new Set(world.audit.map((e) => e.category))).map((c) => ({ value: c, label: c }))]} />
             <Select value={auditActor} onChange={setAuditActor}
               options={[{ value: 'all', label: 'All actors' }, ...actors.map((a) => ({ value: a, label: a }))]} />
-            <ExportButton onExport={() => downloadCsv('oceanspill-audit-trail.csv', auditColumns.filter((c) => c.value), audit)} label="Export audit" />
+            <ExportButton onExport={() => downloadCsv('oceanwatch-audit-trail.csv', auditColumns.filter((c) => c.value), audit)} label="Export audit" />
           </div>
           <div className="flex-1 min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
             <DataTable columns={auditColumns} rows={audit} rowKey={(e) => e.id} dense
@@ -462,7 +462,7 @@ function HistoricalRegister() {
         <div className="flex gap-2">
           <SearchInput value={query} onChange={setQuery} placeholder="Vessel, location, oil, cause…" className="flex-1" />
           <Select value={decade} onChange={setDecade} options={[{ value: 'all', label: 'All decades' }, ...decades.map((d) => ({ value: d, label: d }))]} />
-          <ExportButton onExport={() => downloadCsv('oceanspill-historical-register.csv', columns.filter((c) => c.value), rows)} />
+          <ExportButton onExport={() => downloadCsv('oceanwatch-historical-register.csv', columns.filter((c) => c.value), rows)} />
         </div>
         <div className="flex-1 min-h-0 bg-white rounded-lg shadow-sm border border-gray-200">
           <DataTable columns={columns} rows={rows} rowKey={(h) => h.id} dense selectedId={selected}

@@ -240,7 +240,7 @@ export default function VesselAnalysis() {
             AIS: {activeCase?.aisProvider}
             {activeCase && ` · window closed ${fmt.utcShort(activeCase.aisWindow.end)}`}
           </span>
-          <ExportButton onExport={() => downloadCsv(`oceanspill-vessels-${caseId}.csv`, columns.filter((c) => c.value), filtered)} />
+          <ExportButton onExport={() => downloadCsv(`oceanwatch-vessels-${caseId}.csv`, columns.filter((c) => c.value), filtered)} />
         </div>
       </aside>
 

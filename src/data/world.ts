@@ -64,7 +64,7 @@ export async function loadWorld(): Promise<World> {
   );
   // Shore type is an extra pass over the coastline and may not have been run; without it the
   // pages simply do not mention what the shore is made of.
-  // What optical coverage exists over each incident; absent until `oceanspill eo-search` has run.
+  // What optical coverage exists over each incident; absent until `oceanwatch eo-search` has run.
   let optical: Record<string, OpticalCoverage> = {};
   try {
     optical = await getJson<Record<string, OpticalCoverage>>('eo-coverage.json');
@@ -448,7 +448,7 @@ function buildDataSources(index: IndexArtifact): DataSource[] {
       : { id: 'gfw', kind: 'AIS', role: 'fallback', name: 'Global Fishing Watch AIS', agency: 'Global Fishing Watch', sovereign: false, status: 'Not configured', message: 'Adapter ready: set AIS_PROVIDER=gfw and GFW_API_TOKEN (free, non-commercial)', lastSync: null },
     pipeline.has('synthetic')
       ? fromPipeline('synthetic', 'AIS', 'fallback')
-      : { id: 'synthetic', kind: 'AIS', role: 'fallback', name: 'Estimated tracks from reported positions', agency: 'OceanSpill (built in)', sovereign: true, status: 'Interim fallback', message: 'Used only where a vessel has no AIS in the window, between its officially reported positions', lastSync: built },
+      : { id: 'synthetic', kind: 'AIS', role: 'fallback', name: 'Estimated tracks from reported positions', agency: 'OceanWatch (built in)', sovereign: true, status: 'Interim fallback', message: 'Used only where a vessel has no AIS in the window, between its officially reported positions', lastSync: built },
     pending('dgs-registry', 'Registry', 'Vessel registry and PSC history', 'DG Shipping', 'Needs government access; Equasis account as interim'),
     pending('mea', 'Sanctions', 'Watchlists', 'MEA / DG Shipping', 'Needs government access'),
     { ...fromPipeline('unsc', 'Sanctions', 'fallback'), name: 'UN Security Council Consolidated List', agency: 'United Nations', message: 'Public sanctions list, checked by vessel name and IMO number' },

@@ -581,7 +581,7 @@ function ReportModal({ open, onClose, period, stats, byCoast, bySource, hotspots
       L.push('  e. Attribution scores prioritise inspection. They are not evidence of discharge.', '');
     }
     L.push('='.repeat(72));
-    L.push('OceanSpill — Oil Spill Detection & Vessel Attribution System');
+    L.push('OceanWatch — Oil Spill Detection & Vessel Attribution System');
     return L.join('\n');
   };
 
@@ -597,14 +597,14 @@ function ReportModal({ open, onClose, period, stats, byCoast, bySource, hotspots
               // The server renders it, hashes what it says and signs the hash, so the file can be
               // checked later against the issuing record.
               reportPdf({
-                kind: 'briefing', title: `OceanSpill briefing — ${period}`,
+                kind: 'briefing', title: `OceanWatch briefing — ${period}`,
                 subtitle: 'Computed from the recorded cases and the actions taken on them.',
                 sections: textToSections(build()),
               })
                 .then((filename) => notify({ kind: 'success', title: 'Signed report generated', body: `${filename} · ${count} sections` }))
                 .catch((e: Error) => notify({ kind: 'error', title: 'Report not generated', body: e.message }));
             } else {
-              triggerDownload(`oceanspill-report-${period}.txt`, build());
+              triggerDownload(`oceanwatch-report-${period}.txt`, build());
               notify({ kind: 'success', title: 'Report generated', body: `${count} sections exported.` });
             }
             onClose();

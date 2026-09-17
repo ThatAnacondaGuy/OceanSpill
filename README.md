@@ -1,4 +1,4 @@
-# OceanSpill
+# OceanWatch
 
 Maritime oil spill detection and vessel attribution for Indian waters. Built for Smart India
 Hackathon problem statement 26143 (NTRO).

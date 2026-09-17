@@ -219,8 +219,8 @@ function asUser(account: Account): SystemUser {
   };
 }
 
-const SESSION_KEY = 'oceanspill.session.v1';
-const PREFS_KEY = 'oceanspill.prefs.v1';
+const SESSION_KEY = 'oceanwatch.session.v1';
+const PREFS_KEY = 'oceanwatch.prefs.v1';
 const CASE_FIELDS = ['status', 'workflowStage', 'imacPushed', 'imacPushedAt', 'alertDispatched', 'lookalikeReason', 'updatedAt'] as const;
 
 interface SessionSnapshot {

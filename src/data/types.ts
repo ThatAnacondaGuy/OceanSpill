@@ -27,7 +27,7 @@ export type SourceType = 'vessel' | 'facility' | 'pipeline' | 'unknown';
 export type TimePrecision = 'minute' | 'hour' | 'day' | 'month' | 'year';
 
 // ---------------------------------------------------------------------------------------------
-// Pipeline artifacts (public/data). These mirror the JSON written by pipeline/src/oceanspill/build.py.
+// Pipeline artifacts (public/data). These mirror the JSON written by pipeline/src/oceanwatch/build.py.
 // ---------------------------------------------------------------------------------------------
 
 export interface AnchorFact {
@@ -161,7 +161,7 @@ export interface SarSpot {
   modelPeakProbability?: number;
 }
 
-/** Output of `oceanspill process`: calibrated scene analysed with the classical dark-spot detector. */
+/** Output of `oceanwatch process`: calibrated scene analysed with the classical dark-spot detector. */
 export interface SarMeasurement {
   schemaVersion: 1;
   caseId: string;

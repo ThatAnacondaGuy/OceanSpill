@@ -176,7 +176,7 @@ export default function SpillIncidents() {
             <button onClick={() => setView('map')} className={`px-2.5 py-1.5 text-[0.75rem] font-semibold flex items-center gap-1.5 border-l border-gray-300 ${view === 'map' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}><MapIcon className="w-3.5 h-3.5" /> Map</button>
           </div>
           <Button size="sm" onClick={() => setFiltersOpen((o) => !o)} icon={<Filter className="w-3 h-3" />}>Filters{activeFilters.length > 0 && ` (${activeFilters.length})`}</Button>
-          <ExportButton onExport={() => downloadCsv('oceanspill-cases.csv', columns.filter((c) => c.value), filtered)} />
+          <ExportButton onExport={() => downloadCsv('oceanwatch-cases.csv', columns.filter((c) => c.value), filtered)} />
         </div>
       </div>
 

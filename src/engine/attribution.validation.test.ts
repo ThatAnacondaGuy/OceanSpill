@@ -39,7 +39,7 @@ const world = loadWorld();
 
 describe('attribution against officially named sources', () => {
   it('has case data to check', () => {
-    expect(world, 'run the pipeline first: cd pipeline && uv run oceanspill build').not.toBeNull();
+    expect(world, 'run the pipeline first: cd pipeline && uv run oceanwatch build').not.toBeNull();
   });
 
   if (!world) return;

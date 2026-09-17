@@ -1,5 +1,5 @@
 /**
- * Talking to the OceanSpill server.
+ * Talking to the OceanWatch server.
  *
  * The site runs two ways. Without VITE_API_URL it reads the case files the pipeline wrote and keeps
  * changes in this browser, which is how the recorded-case demo runs. With VITE_API_URL set it signs
@@ -11,7 +11,7 @@ const RAW_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 export const API_BASE = RAW_BASE.replace(/\/+$/, '');
 export const serverMode = API_BASE.length > 0;
 
-const TOKEN_KEY = 'oceanspill.token.v1';
+const TOKEN_KEY = 'oceanwatch.token.v1';
 
 export class ApiError extends Error {
   readonly status: number;
