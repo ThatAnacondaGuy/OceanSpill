@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Shield, Ship, Scale, TrendingUp, Flag, Ban, Building2, ExternalLink,
+  Shield, Ship, Scale, TrendingUp, Flag, Ban, Building2, ExternalLink, AlertTriangle,
 } from 'lucide-react';
 import { useStore, fmt } from './store/store';
+import { assessLiability } from './engine/liability';
 import {
   Badge, Button, KeyValue, Select, SearchInput, InfoBanner, Tabs, StatCard,
   DataTable, EmptyState, Modal, Field, TextArea, ExportButton, downloadCsv,
@@ -216,9 +217,11 @@ export default function OffenderRegistry() {
           <Tabs active={tab} onChange={setTab} tabs={[
             { id: 'register', label: 'Register', count: register.length },
             { id: 'analysis', label: 'Legal outcomes' },
+            { id: 'liability', label: 'Liability worksheet' },
             // Shown only when synthetic vessels exist in the loaded cases.
             ...(synthetic.length ? [{ id: 'synthetic', label: 'Synthetic watch list', count: synthetic.length }] : []),
           ]} className="px-2" />
+          {tab === 'liability' && <LiabilityWorksheet />}
           {tab === 'register' && (
             <div className="flex-1 min-h-0">
               <DataTable columns={columns} rows={register} rowKey={(p) => p.key} dense
@@ -454,5 +457,120 @@ function RegulatoryActionModal({ open, onClose, party }: { open: boolean; onClos
         </InfoBanner>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * What a liability case would need, for the case an analyst has open.
+ *
+ * It stops short of a rupee figure on purpose. Quantum turns on the statute invoked, the tribunal,
+ * the tonnage limit and findings of fact a tribunal makes — put a number on screen and it will be
+ * read as an assessment. What it does instead is lay out the facts counsel asks for first, mark
+ * which are evidenced and which are modelled, name the regimes those facts engage, and list plainly
+ * what a claim would still turn on that nobody here can supply.
+ */
+function LiabilityWorksheet() {
+  const { world, selectedCaseId, setSelectedCaseId, getAnalysis } = useStore();
+  const spill = world.cases.find((c) => c.id === selectedCaseId) ?? world.cases[0] ?? null;
+  const analysis = spill ? getAnalysis(spill.id) : null;
+  const party = useMemo(() => {
+    if (!spill) return null;
+    const src = world.vessels.find((v) => v.caseId === spill.id && v.role === 'source');
+    return src ?? null;
+  }, [spill, world.vessels]);
+
+  const assessment = useMemo(
+    () => (spill ? assessLiability(spill, analysis, party) : null),
+    [spill, analysis, party]
+  );
+  if (!spill || !assessment) return <EmptyState title="No case selected" body="Choose a case to work up." />;
+
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Select value={spill.id} onChange={setSelectedCaseId}
+          options={world.cases.map((c) => ({ value: c.id, label: c.title }))} />
+        <Badge tone={spill.facts.officiallyConfirmed ? 'green' : 'amber'}>
+          {spill.facts.officiallyConfirmed ? 'Officially confirmed' : 'Not officially confirmed'}
+        </Badge>
+      </div>
+
+      <InfoBanner tone="amber" icon={<Scale className="w-3.5 h-3.5" />}>
+        This is a worksheet, not an assessment. It names the regimes the facts engage and gathers what
+        counsel would ask for. Section-level citation and any figure for quantum are matters for legal
+        advice and a tribunal, and are deliberately not produced here.
+      </InfoBanner>
+
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="px-3 py-2 border-b border-gray-200">
+          <h3 className="text-[0.8125rem] font-bold text-gray-900">The facts</h3>
+          <p className="text-[0.6875rem] text-gray-500">Marked by whether they are evidenced or modelled</p>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {assessment.factors.map((f) => (
+            <div key={f.label} className="px-3 py-2 flex items-start gap-2.5">
+              <Badge tone={f.evidenced ? 'green' : 'gray'}>{f.evidenced ? 'evidenced' : 'not evidenced'}</Badge>
+              <div className="min-w-0 flex-1">
+                <p className="text-[0.75rem] font-semibold text-gray-900">{f.label}</p>
+                <p className="text-[0.75rem] text-gray-700">{f.value}</p>
+                {f.note && <p className="text-[0.6875rem] text-gray-500 mt-0.5">{f.note}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="px-3 py-2 border-b border-gray-200">
+          <h3 className="text-[0.8125rem] font-bold text-gray-900">Regimes these facts engage</h3>
+          <p className="text-[0.6875rem] text-gray-500">Indian statutory framework for marine oil pollution</p>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {assessment.regimes.map((r) => (
+            <div key={r.statute} className={`px-3 py-2 ${r.engaged ? '' : 'opacity-55'}`}>
+              <div className="flex items-start gap-2">
+                <Badge tone={r.engaged ? 'blue' : 'gray'}>{r.engaged ? 'engaged' : 'not on these facts'}</Badge>
+                <p className="text-[0.75rem] font-semibold text-gray-900 flex-1">{r.statute}</p>
+              </div>
+              <p className="text-[0.75rem] text-gray-700 mt-1">{r.provides}</p>
+              <p className="text-[0.6875rem] text-gray-500 mt-0.5">Engaged by: {r.engagedBy}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="px-3 py-2 border-b border-gray-200">
+          <h3 className="text-[0.8125rem] font-bold text-gray-900">What a claim would still turn on</h3>
+        </div>
+        <ul className="p-3 space-y-1.5">
+          {assessment.unevidenced.map((u) => (
+            <li key={u} className="text-[0.75rem] text-gray-700 flex gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500 mt-0.5 flex-shrink-0" />{u}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {assessment.recorded.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="px-3 py-2 border-b border-gray-200">
+            <h3 className="text-[0.8125rem] font-bold text-gray-900">What an authority actually did</h3>
+            <p className="text-[0.6875rem] text-gray-500">Published outcomes for this incident</p>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {assessment.recorded.map((r, i) => (
+              <div key={i} className="px-3 py-2">
+                <p className="text-[0.75rem] font-semibold text-gray-900">
+                  {r.action} — {r.party}
+                  {r.amountInr != null && <span className="ml-2 font-mono text-red-700">{fmt.inr(r.amountInr)}</span>}
+                </p>
+                <p className="text-[0.6875rem] text-gray-500">{r.authority}{r.note ? ` · ${r.note}` : ''}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
