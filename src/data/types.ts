@@ -596,8 +596,15 @@ export interface DataSource {
   name: string;
   agency: string;
   sovereign: boolean;
-  /** Online = integrated and working; Not configured = integrated but credentials missing; Pending access = not integrated yet. */
-  status: 'Online' | 'Not configured' | 'Pending access' | 'Interim fallback';
+  /**
+   * Online = integrated and working; Not configured = integrated but credentials missing;
+   * Authorisation required = an Indian government system we cannot lawfully reach yet.
+   *
+   * That last one is not a failure. Every source carrying it is Indian, and it is waiting on an
+   * authorisation rather than on engineering — which makes this list an integration roadmap for
+   * whoever can grant it, not a list of things that are broken.
+   */
+  status: 'Online' | 'Not configured' | 'Authorisation required' | 'Interim fallback';
   message: string;
   role: 'primary' | 'fallback';
   lastSync: number | null;

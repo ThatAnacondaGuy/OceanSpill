@@ -387,7 +387,7 @@ export default function SystemAdministration() {
                 value={`${world.dataSources.filter((d) => d.status === 'Online' || d.status === 'Interim fallback').length}/${world.dataSources.length}`} trend="online or interim fallback" accent="green" />
               <StatCard icon={<Database className="w-5 h-5" />} title="Cases loaded" value={world.cases.length} trend={`${world.index.failures.length} build failures`} accent={world.index.failures.length ? 'amber' : 'green'} />
               <StatCard icon={<Cpu className="w-5 h-5" />} title="Engine runtime" value={`${meanRuntime.toFixed(0)} ms`} trend="mean per case, measured here" />
-              <StatCard icon={<Key className="w-5 h-5" />} title="Pending access" value={world.dataSources.filter((d) => d.status === 'Pending access' || d.status === 'Not configured').length} trend="integrations waiting on credentials" accent="amber" />
+              <StatCard icon={<Key className="w-5 h-5" />} title="Authorisation required" value={world.dataSources.filter((d) => d.status === 'Authorisation required' || d.status === 'Not configured').length} trend="integrations waiting on credentials" accent="amber" />
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h4 className="text-[0.75rem] font-bold text-gray-700 uppercase mb-2">Analysis engine, measured in this browser</h4>

@@ -424,12 +424,12 @@ function buildDataSources(index: IndexArtifact): DataSource[] {
     const p = pipeline.get(id);
     return {
       id, kind, role, name: p?.agency ?? id, agency: p?.agency ?? id, sovereign: p?.sovereign ?? false,
-      status: !p ? 'Pending access' : !p.available ? 'Not configured' : role === 'fallback' ? 'Interim fallback' : 'Online',
+      status: !p ? 'Authorisation required' : !p.available ? 'Not configured' : role === 'fallback' ? 'Interim fallback' : 'Online',
       message: p?.message ?? 'Not configured in pipeline', lastSync: p?.available ? built : null,
     };
   };
   const pending = (id: string, kind: DataSource['kind'], name: string, agency: string, message: string): DataSource =>
-    ({ id, kind, role: 'primary', name, agency, sovereign: true, status: 'Pending access', message, lastSync: null });
+    ({ id, kind, role: 'primary', name, agency, sovereign: true, status: 'Authorisation required', message, lastSync: null });
 
   return [
     { ...fromPipeline('eos04', 'SAR', 'primary'), name: 'EOS-04 SAR', agency: 'ISRO / NRSC Bhoonidhi' },
