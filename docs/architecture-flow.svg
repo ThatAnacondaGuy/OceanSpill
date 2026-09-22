@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 800" width="1400" height="800" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#4a545e"/></marker>
+  <marker id="ab" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#3b76d8"/></marker>
+  <style>
+    .i  { fill:none; stroke:#3d4650; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .ib { fill:none; stroke:#3b76d8; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .l  { text-anchor:middle; font-size:11.5px; font-weight:700; fill:#1b2026; }
+    .s  { text-anchor:middle; font-size:9.5px; fill:#6c757d; }
+    .lb { text-anchor:middle; font-size:11.5px; font-weight:700; fill:#1e49a6; }
+    .sb { text-anchor:middle; font-size:9.5px; fill:#3b76d8; }
+    .f  { stroke:#4a545e; stroke-width:1.7; fill:none; }
+    .fb { stroke:#3b76d8; stroke-width:1.7; fill:none; stroke-dasharray:5 3; }
+  </style>
+</defs>
+<rect width="1400" height="800" fill="#ffffff"/>
+
+<text x="40" y="56" font-size="31" font-weight="800" fill="#1b2026">SYSTEM ARCHITECTURE</text>
+<text x="40" y="76" font-size="11.5" fill="#6c757d">OceanWatch · oil spill detection, drift hindcast and vessel attribution</text>
+<rect x="1148" y="42" width="14" height="14" rx="3" fill="#f2f7ff" stroke="#3b76d8" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="1172" y="54" font-size="10.5" fill="#1e49a6">Awaiting authorisation</text>
+
+<!-- ───────── ACQUISITION ───────── -->
+<g class="i" transform="translate(170,165)">
+  <rect x="-8" y="-9" width="16" height="18" rx="2"/>
+  <path d="M-24 -6 L-10 -6 M-24 4 L-10 4 M-24 -6 L-24 4 M10 -6 L24 -6 M10 4 L24 4 M24 -6 L24 4 M0 -9 L0 -15"/>
+</g>
+<text class="l" x="170" y="202">Satellites</text><text class="s" x="170" y="216">EOS-04 · Sentinel-1/2</text>
+
+<g class="i" transform="translate(340,165)">
+  <path d="M-15 10 L15 10"/><path d="M-11 10 A 13 13 0 0 1 8 -7"/><path d="M8 -7 L15 -14"/><circle cx="-1" cy="4" r="2.4"/>
+</g>
+<text class="l" x="340" y="202">Ground Segment</text><text class="s" x="340" y="216">Bhoonidhi · CDSE</text>
+
+<rect x="556" y="116" width="612" height="108" rx="8" fill="#f8f9fa" stroke="#c3c9cf" stroke-width="1.4"/>
+<g class="i" transform="translate(640,156)">
+  <circle cx="0" cy="0" r="5"/>
+  <path d="M0 -12 L0 -8 M0 8 L0 12 M-12 0 L-8 0 M8 0 L12 0 M-8.5 -8.5 L-5.5 -5.5 M5.5 5.5 L8.5 8.5 M8.5 -8.5 L5.5 -5.5 M-5.5 5.5 L-8.5 8.5"/>
+</g>
+<text class="l" x="640" y="190" font-size="10.5">σ⁰ Calibration</text><text class="s" x="640" y="203" font-size="8.8">Noise removal</text>
+
+<g class="i" transform="translate(780,156)">
+  <rect x="-12" y="-11" width="24" height="22" rx="2"/>
+  <path d="M-12 -4 L12 -4 M-4 -11 L-4 11 M4 -11 L4 11"/>
+</g>
+<text class="l" x="780" y="190" font-size="10.5">Lee Filter</text><text class="s" x="780" y="203" font-size="8.8">Multilook · despeckle</text>
+
+<g class="i" transform="translate(920,156)">
+  <circle cx="-10" cy="-8" r="2.6"/><circle cx="-10" cy="8" r="2.6"/><circle cx="0" cy="0" r="2.6"/>
+  <circle cx="10" cy="-8" r="2.6"/><circle cx="10" cy="8" r="2.6"/>
+  <path d="M-8 -7 L-2 -1 M-8 7 L-2 1 M2 -1 L8 -7 M2 1 L8 7"/>
+</g>
+<text class="l" x="920" y="190" font-size="10.5">U-Net + GLCM</text><text class="s" x="920" y="203" font-size="8.8">Oil &amp; vessel segmentation</text>
+
+<g class="i" transform="translate(1060,156)">
+  <path d="M-12 8 L-12 -10 L12 -10 L12 8 Z"/><path d="M-12 -2 L12 -2"/>
+  <path d="M-6 3 L6 3"/><circle cx="-7" cy="-6" r="1.6" fill="#3d4650"/>
+</g>
+<text class="l" x="1060" y="190" font-size="10.5">ONNX Runtime</text><text class="s" x="1060" y="203" font-size="8.8">Model serving</text>
+
+<g class="i" transform="translate(1280,165)">
+  <circle cx="0" cy="0" r="14"/><path d="M0 -8 L0 0 L7 4"/>
+</g>
+<text class="l" x="1280" y="202">Worker Queue</text><text class="s" x="1280" y="216">Scan · process · build</text>
+
+<path class="f" d="M200 165 L306 165" marker-end="url(#a)"/>
+<path class="f" d="M376 165 L550 165" marker-end="url(#a)"/>
+<path class="f" d="M1248 165 L1174 165" marker-end="url(#a)"/>
+
+<!-- ───────── STORE ───────── -->
+<g class="i" transform="translate(300,300)">
+  <ellipse cx="0" cy="-9" rx="14" ry="5"/><path d="M-14 -9 L-14 9 A 14 5 0 0 0 14 9 L14 -9"/><path d="M-14 0 A 14 5 0 0 0 14 0"/>
+</g>
+<text class="l" x="300" y="337">Object Store</text><text class="s" x="300" y="351">Scenes · quicklooks</text>
+
+<g class="i" transform="translate(480,300)">
+  <rect x="-13" y="-12" width="26" height="24" rx="3"/><path d="M-13 -4 L13 -4"/>
+  <circle cx="-7" cy="-8" r="1.6" fill="#3d4650"/><path d="M-7 3 L7 3 M-7 8 L3 8"/>
+</g>
+<text class="l" x="480" y="337">Model Registry</text><text class="s" x="480" y="351">Versions + scores</text>
+
+<path class="f" d="M620 224 L620 262 L300 262 L300 280" marker-end="url(#a)"/>
+<path class="f" d="M336 300 L444 300" marker-end="url(#a)"/>
+<path class="f" d="M512 300 L600 300 L600 400 L690 400 L690 420" marker-end="url(#a)"/>
+
+<!-- ───────── SPINE ───────── -->
+<g class="i" transform="translate(130,440)">
+  <circle cx="0" cy="-5" r="6.5"/><path d="M-12 12 c0 -8 5 -12 12 -12 s12 4 12 12"/>
+</g>
+<text class="l" x="130" y="477">Operator</text><text class="s" x="130" y="491">NTRO · Coast Guard</text>
+
+<g class="i" transform="translate(300,440)">
+  <path d="M0 -14 L12 -9 V1 c0 7 -6 11 -12 13 c-6 -2 -12 -6 -12 -13 V-9 Z"/><path d="M-5 0 L-1 4 L5 -4"/>
+</g>
+<text class="l" x="300" y="477">Authentication</text><text class="s" x="300" y="491">JWT · MFA · RBAC</text>
+
+<g class="i" transform="translate(490,440)">
+  <rect x="-14" y="-13" width="28" height="10" rx="2"/><rect x="-14" y="2" width="28" height="10" rx="2"/>
+  <circle cx="-9" cy="-8" r="1.5" fill="#3d4650"/><circle cx="-9" cy="7" r="1.5" fill="#3d4650"/>
+</g>
+<text class="l" x="490" y="477">API Server</text><text class="s" x="490" y="491">FastAPI</text>
+
+<g class="i" transform="translate(690,440)">
+  <path d="M-14 -12 L-14 12 L14 12"/><path d="M-14 9 L-5 -3 L1 3 L14 -11"/><circle cx="14" cy="-11" r="2.2" fill="#3d4650"/>
+</g>
+<text class="l" x="690" y="477">Analysis Engine</text><text class="s" x="690" y="491">Lagrangian · MCDA · Fingas</text>
+
+<g class="i" transform="translate(890,440)">
+  <ellipse cx="0" cy="-10" rx="14" ry="5"/><path d="M-14 -10 L-14 9 A 14 5 0 0 0 14 9 L14 -10"/><path d="M-14 -1 A 14 5 0 0 0 14 -1"/>
+  <path d="M-5 4 L0 9 L7 -1" stroke="#3d4650"/>
+</g>
+<text class="l" x="890" y="477">PostgreSQL + PostGIS</text><text class="s" x="890" y="491">Cases · tracks · audit</text>
+
+<g class="i" transform="translate(1110,440)">
+  <path d="M-14 11 L14 11 L10 5 L-10 5 Z"/><path d="M0 5 L0 -6"/>
+  <path d="M-7 -10 A 10 10 0 0 1 7 -10"/><path d="M-13 -14 A 18 18 0 0 1 13 -14"/>
+</g>
+<text class="l" x="1110" y="477">AIS &amp; Metocean</text><text class="s" x="1110" y="491">GFW · ERA5 · CMEMS</text>
+
+<g class="ib" transform="translate(1290,440)">
+  <rect x="-13" y="-11" width="26" height="22" rx="3"/><path d="M-6 -3 L6 -3 M-6 3 L2 3"/>
+  <path d="M-13 -11 L0 -1 L13 -11"/>
+</g>
+<text class="lb" x="1290" y="477">National AIS</text><text class="sb" x="1290" y="491">DGLL · Coast Guard</text>
+
+<path class="f" d="M166 440 L266 440" marker-end="url(#a)"/>
+<path class="f" d="M336 440 L456 440" marker-end="url(#a)"/>
+<path class="f" d="M526 440 L656 440" marker-end="url(#a)"/>
+<path class="f" d="M726 440 L856 440" marker-end="url(#a)"/>
+<path class="f" d="M1076 440 L 926 440" marker-end="url(#a)"/>
+<path class="fb" d="M1256 440 L1148 440" marker-end="url(#ab)"/>
+
+<!-- ───────── LIVE LAYER ───────── -->
+<path class="f" d="M512 452 C 566 476, 566 524, 522 548" marker-end="url(#a)"/>
+<path class="f" d="M712 452 C 780 484, 812 512, 862 546" marker-end="url(#a)"/>
+
+<g class="i" transform="translate(490,570)">
+  <rect x="-15" y="-12" width="30" height="24" rx="2.5"/><path d="M-15 -5 L15 -5"/>
+  <circle cx="-11" cy="-8.5" r="1.4" fill="#3d4650"/><path d="M-9 2 L-1 2 M-9 7 L5 7"/>
+</g>
+<text class="l" x="490" y="607">Web Console</text><text class="s" x="490" y="621">React · MapLibre GL</text>
+
+<g class="i" transform="translate(680,570)">
+  <circle cx="0" cy="0" r="4"/>
+  <path d="M-8 -8 A 11 11 0 0 0 -8 8 M8 -8 A 11 11 0 0 1 8 8"/>
+  <path d="M-14 -14 A 20 20 0 0 0 -14 14 M14 -14 A 20 20 0 0 1 14 14"/>
+</g>
+<text class="l" x="680" y="607">Live Updates</text><text class="s" x="680" y="621">Server-sent events</text>
+
+<g class="i" transform="translate(890,570)">
+  <rect x="-13" y="-12" width="26" height="24" rx="3"/>
+  <path d="M-7 -5 L-3 -1 L7 -9 M-7 5 L-3 9 L7 1"/>
+</g>
+<text class="l" x="890" y="607">Case Workflow</text><text class="s" x="890" y="621">Dispatch · audit · close</text>
+
+<path class="f" d="M526 570 L644 570" marker-end="url(#a)"/>
+<path class="f" d="M716 570 L856 570" marker-end="url(#a)"/>
+
+<!-- ───────── OUTPUTS ───────── -->
+<path class="f" d="M456 578 C 410 604, 398 630, 420 652"/>
+<path class="f" d="M180 652 L1280 652"/>
+<path class="f" d="M180 652 L180 678" marker-end="url(#a)"/>
+<path class="f" d="M400 652 L400 678" marker-end="url(#a)"/>
+<path class="f" d="M620 652 L620 678" marker-end="url(#a)"/>
+<path class="f" d="M840 652 L840 678" marker-end="url(#a)"/>
+<path class="f" d="M1060 652 L1060 678" marker-end="url(#a)"/>
+<path class="fb" d="M1280 652 L1280 678" marker-end="url(#ab)"/>
+
+<g class="i" transform="translate(180,700)">
+  <ellipse cx="0" cy="2" rx="14" ry="8"/><path d="M-14 2 q 7 -10 14 -2 t 14 -4"/>
+</g>
+<text class="l" x="180" y="737">Oil Spill Mask</text><text class="s" x="180" y="751">Extent &amp; confidence</text>
+
+<g class="i" transform="translate(400,700)">
+  <path d="M-15 7 q 9 -14 17 -4 t 13 -7"/><path d="M10 -4 L15 -4 L15 -9"/><circle cx="-15" cy="7" r="2.4" fill="#3d4650"/>
+</g>
+<text class="l" x="400" y="737">Drift Forecast</text><text class="s" x="400" y="751">Cone + uncertainty</text>
+
+<g class="i" transform="translate(620,700)">
+  <path d="M-14 7 L14 7 L10 0 L-10 0 Z"/><path d="M0 0 L0 -11 M0 -7 L9 -3"/><circle cx="-10" cy="-8" r="4"/>
+</g>
+<text class="l" x="620" y="737">Ranked Vessels</text><text class="s" x="620" y="751">Shortlist, not evidence</text>
+
+<g class="i" transform="translate(840,700)">
+  <path d="M-14 7 L14 7 L10 0 L-10 0 Z"/><path d="M0 0 L0 -10"/><path d="M-12 -12 L12 9" stroke="#c0392b"/>
+</g>
+<text class="l" x="840" y="737">Dark Ships</text><text class="s" x="840" y="751">Radar ∩ no AIS</text>
+
+<g class="i" transform="translate(1060,700)">
+  <path d="M0 10 c-9 -7 -12 -12 -12 -16 a 12 12 0 0 1 24 0 c0 4 -3 9 -12 16 Z"/><circle cx="0" cy="-6" r="4"/>
+</g>
+<text class="l" x="1060" y="737">Eco Priority</text><text class="s" x="1060" y="751">Areas at risk</text>
+
+<g class="ib" transform="translate(1280,700)">
+  <path d="M-10 -2 L-10 5 L-3 5 L6 12 L6 -9 L-3 -2 Z"/><path d="M11 -6 a 9 9 0 0 1 0 12"/>
+</g>
+<text class="lb" x="1280" y="737">SACHET / IMAC</text><text class="sb" x="1280" y="751">NDMA · Indian Navy</text>
+
+<!-- evidence pack sits beside the workflow that produces it -->
+<path class="f" d="M918 570 L1054 570" marker-end="url(#a)"/>
+<g class="i" transform="translate(1090,570)">
+  <path d="M-10 -14 L5 -14 L12 -7 L12 14 L-10 14 Z"/><path d="M5 -14 L5 -7 L12 -7"/><path d="M-5 0 L7 0 M-5 6 L7 6"/>
+</g>
+<text class="l" x="1090" y="607">Evidence Pack</text><text class="s" x="1090" y="621">HMAC signed</text>
+</svg>
