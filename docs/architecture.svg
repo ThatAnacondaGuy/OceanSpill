@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 1180" width="1480" height="1180" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrowDash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect width="1480" height="1180" fill="#f8fafc"/>
+
+  <!-- ───────────── Title ───────────── -->
+  <text x="40" y="46" font-size="27" font-weight="700" fill="#0b1c3c">OceanWatch — System Architecture</text>
+  <text x="40" y="70" font-size="14" fill="#64748b">Oil spill detection, drift hindcast and vessel attribution for Indian waters · SIH PS 26143 (NTRO)</text>
+
+  <!-- ═══════════ 1. DATA SOURCES ═══════════ -->
+  <text x="40" y="112" font-size="12" font-weight="700" fill="#475569" letter-spacing="1.4">1 · DATA SOURCES</text>
+
+  <!-- Indian, in use -->
+  <rect x="40" y="124" width="440" height="176" rx="9" fill="#ecfdf5" stroke="#059669" stroke-width="1.6"/>
+  <text x="58" y="148" font-size="13.5" font-weight="700" fill="#065f46">Indian — in use</text>
+  <text x="58" y="172" font-size="12.5" fill="#064e3b">EOS-04 SAR  ·  ISRO / NRSC Bhoonidhi</text>
+  <text x="58" y="172" font-size="12.5" fill="#064e3b"></text>
+  <text x="58" y="194" font-size="11.5" fill="#047857">Primary radar imagery. Single polarisation,</text>
+  <text x="58" y="210" font-size="11.5" fill="#047857">L2B, terrain corrected.</text>
+  <line x1="58" y1="228" x2="462" y2="228" stroke="#a7f3d0" stroke-width="1"/>
+  <text x="58" y="250" font-size="12.5" fill="#064e3b">Coastlines  ·  OpenStreetMap + Natural Earth</text>
+  <text x="58" y="272" font-size="12.5" fill="#064e3b">Registry  ·  Equasis (manual lookup)</text>
+  <text x="58" y="290" font-size="11" fill="#047857">Sanctions cross-check · UN Security Council list</text>
+
+  <!-- Foreign, interim fallback -->
+  <rect x="500" y="124" width="440" height="176" rx="9" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.6"/>
+  <text x="518" y="148" font-size="13.5" font-weight="700" fill="#334155">Foreign — interim fallback</text>
+  <text x="518" y="172" font-size="12.5" fill="#1e293b">Sentinel-1 SAR  ·  ESA Copernicus (CDSE)</text>
+  <text x="518" y="194" font-size="12.5" fill="#1e293b">ERA5 wind &amp; waves, SMOC currents  ·  Open-Meteo</text>
+  <text x="518" y="216" font-size="12.5" fill="#1e293b">GLORYS12 currents  ·  Copernicus Marine</text>
+  <text x="518" y="238" font-size="12.5" fill="#1e293b">AIS positions &amp; identity  ·  Global Fishing Watch</text>
+  <line x1="518" y1="254" x2="922" y2="254" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="518" y="274" font-size="11.5" fill="#475569">Used only where an Indian equivalent is not yet</text>
+  <text x="518" y="290" font-size="11.5" fill="#475569">reachable. Every case records which it used.</text>
+
+  <!-- Indian, awaiting authorisation -->
+  <rect x="960" y="124" width="480" height="176" rx="9" fill="#eff6ff" stroke="#2563eb" stroke-width="1.6"/>
+  <text x="978" y="148" font-size="13.5" font-weight="700" fill="#1e40af">Indian — authorisation required (8)</text>
+  <text x="978" y="171" font-size="12" fill="#1e3a8a">NISAR S-SAR · INCOIS HOOFS currents</text>
+  <text x="978" y="191" font-size="12" fill="#1e3a8a">Oceansat-3 (EOS-06) scatterometer winds</text>
+  <text x="978" y="211" font-size="12" fill="#1e3a8a">National AIS Network · DGLL / ICG / IFC-IOR</text>
+  <text x="978" y="231" font-size="12" fill="#1e3a8a">Vessel registry &amp; PSC history · DG Shipping</text>
+  <text x="978" y="251" font-size="12" fill="#1e3a8a">Watchlists · MEA   ·   SACHET CAP · NDMA</text>
+  <text x="978" y="271" font-size="12" fill="#1e3a8a">IMAC common operating picture · Indian Navy</text>
+  <text x="978" y="291" font-size="11" fill="#1d4ed8">Adapters written. Each awaits an authorisation, not engineering.</text>
+
+  <path d="M 740 300 L 740 338" stroke="#475569" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════ 2. PIPELINE ═══════════ -->
+  <text x="40" y="360" font-size="12" font-weight="700" fill="#475569" letter-spacing="1.4">2 · PROCESSING PIPELINE  —  Python 3.12 (uv), runs offline on a workstation</text>
+  <rect x="40" y="372" width="1400" height="248" rx="9" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.6"/>
+
+  <rect x="62" y="396" width="322" height="200" rx="7" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.2"/>
+  <text x="80" y="420" font-size="12.5" font-weight="700" fill="#0f172a">providers/</text>
+  <text x="80" y="442" font-size="11.5" fill="#334155">Catalogue search + download, one</text>
+  <text x="80" y="458" font-size="11.5" fill="#334155">adapter per agency, cached HTTP.</text>
+  <text x="80" y="482" font-size="11" fill="#475569">sar_eos04 · sar_sentinel1 · eo_sentinel2</text>
+  <text x="80" y="500" font-size="11" fill="#475569">metocean_openmeteo · metocean_cmems</text>
+  <text x="80" y="518" font-size="11" fill="#475569">metocean_forecast · metocean_merged</text>
+  <text x="80" y="536" font-size="11" fill="#475569">ais_gfw · ais_synthetic · sanctions_unsc</text>
+  <text x="80" y="566" font-size="11" fill="#64748b">A provider that fails is recorded as</text>
+  <text x="80" y="582" font-size="11" fill="#64748b">failed; it never silently invents data.</text>
+
+  <rect x="400" y="396" width="322" height="200" rx="7" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.2"/>
+  <text x="418" y="420" font-size="12.5" font-weight="700" fill="#0f172a">sar/  —  radar processing</text>
+  <text x="418" y="442" font-size="11.5" fill="#334155">Raw product to calibrated decibels,</text>
+  <text x="418" y="458" font-size="11.5" fill="#334155">then detection over a sea mask.</text>
+  <text x="418" y="482" font-size="11" fill="#475569">safe · eos04 · calibration · geolocation</text>
+  <text x="418" y="500" font-size="11" fill="#475569">filters (Lee speckle) · landmask · utm</text>
+  <text x="418" y="518" font-size="11" fill="#475569">darkspot (adaptive threshold)</text>
+  <text x="418" y="536" font-size="11" fill="#475569">vessels (bright-target detection)</text>
+  <text x="418" y="566" font-size="11" fill="#64748b">Outputs: dark spots, contrast, shape,</text>
+  <text x="418" y="582" font-size="11" fill="#64748b">radar vessels, quicklook PNG.</text>
+
+  <rect x="738" y="396" width="322" height="200" rx="7" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.3"/>
+  <text x="756" y="420" font-size="12.5" font-weight="700" fill="#5b21b6">ml/  —  training &amp; inference</text>
+  <text x="756" y="442" font-size="11.5" fill="#4c1d95">U-Net, Dice + focal loss, PyTorch on</text>
+  <text x="756" y="458" font-size="11.5" fill="#4c1d95">Apple MPS, exported to ONNX.</text>
+  <text x="756" y="482" font-size="11" fill="#6d28d9">prepare_sar · prepare_mados · prepare_ships</text>
+  <text x="756" y="500" font-size="11" fill="#6d28d9">train_sar · evaluate · infer · model_status</text>
+  <text x="756" y="518" font-size="11" fill="#6d28d9">drift_calibration · validate_drift</text>
+  <text x="756" y="536" font-size="11" fill="#6d28d9">validate_vessels · ais_anomaly</text>
+  <text x="756" y="566" font-size="11" fill="#7c3aed">Scene-level splits, so no scene appears</text>
+  <text x="756" y="582" font-size="11" fill="#7c3aed">on both sides of a validation split.</text>
+
+  <rect x="1076" y="396" width="342" height="200" rx="7" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.2"/>
+  <text x="1094" y="420" font-size="12.5" font-weight="700" fill="#0f172a">build.py  —  assembly</text>
+  <text x="1094" y="442" font-size="11.5" fill="#334155">Joins facts, imagery, forcing, coast,</text>
+  <text x="1094" y="458" font-size="11.5" fill="#334155">traffic and sanctions into one record</text>
+  <text x="1094" y="474" font-size="11.5" fill="#334155">per case, with provenance on each.</text>
+  <text x="1094" y="498" font-size="11" fill="#475569">coast_osm · coastline · shoretype</text>
+  <text x="1094" y="516" font-size="11" fill="#475569">protected_areas · geometry · geo</text>
+  <text x="1094" y="546" font-size="11" fill="#64748b">Every field carries where it came from,</text>
+  <text x="1094" y="562" font-size="11" fill="#64748b">so the interface can label it real,</text>
+  <text x="1094" y="578" font-size="11" fill="#64748b">modelled, synthetic or pending.</text>
+
+  <path d="M 740 620 L 740 660" stroke="#475569" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════ 3. ARTIFACTS ═══════════ -->
+  <text x="40" y="682" font-size="12" font-weight="700" fill="#475569" letter-spacing="1.4">3 · BUILT ARTIFACTS  —  static JSON + PNG, committed to git (13 MB, 50 files)</text>
+  <rect x="40" y="694" width="1400" height="104" rx="9" fill="#fffbeb" stroke="#d97706" stroke-width="1.6"/>
+  <text x="62" y="722" font-size="12" fill="#78350f"><tspan font-weight="700">public/data/cases/</tspan>  7 real Indian incidents, 2017–2025 — facts, sources, observations, timeline, vessels, AIS tracks</text>
+  <text x="62" y="744" font-size="12" fill="#78350f"><tspan font-weight="700">public/data/forcing/</tspan>  wind, current, wave grids   ·   <tspan font-weight="700">coast/</tspan>  coastline + shore type   ·   <tspan font-weight="700">sar/</tspan>  measurements + quicklook images</text>
+  <text x="62" y="766" font-size="12" fill="#78350f"><tspan font-weight="700">shared/</tspan>  model-status.json (measured scores)  ·  access.json (role matrix)  ·  aois · ecological-areas · workflow</text>
+  <text x="62" y="788" font-size="11" fill="#92400e">This is the boundary: everything above runs once, offline. Everything below reads these files and needs no network of its own.</text>
+
+  <path d="M 420 798 L 420 846" stroke="#475569" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <path d="M 1130 798 L 1130 846" stroke="#94a3b8" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrowDash)"/>
+
+  <!-- ═══════════ 4. WEB APP ═══════════ -->
+  <text x="40" y="868" font-size="12" font-weight="700" fill="#475569" letter-spacing="1.4">4 · WEB APPLICATION  —  React 18 + TypeScript + Vite + Tailwind + MapLibre GL   ·   all analysis runs in the browser</text>
+  <rect x="40" y="880" width="1020" height="258" rx="9" fill="#eff6ff" stroke="#2563eb" stroke-width="1.6"/>
+
+  <rect x="62" y="902" width="472" height="120" rx="7" fill="#ffffff" stroke="#93c5fd" stroke-width="1.2"/>
+  <text x="80" y="924" font-size="12.5" font-weight="700" fill="#1e3a8a">engine/  —  the analysis, client-side</text>
+  <text x="80" y="946" font-size="11.5" fill="#1e40af">drift  Lagrangian hindcast + forecast, ensemble, weathering</text>
+  <text x="80" y="964" font-size="11.5" fill="#1e40af">attribution  candidate scoring, CPA, dark-gap analysis</text>
+  <text x="80" y="982" font-size="11.5" fill="#1e40af">detection  look-alike checks, model status, drift calibration</text>
+  <text x="80" y="1000" font-size="11.5" fill="#1e40af">darkships  radar targets vs AIS   ·   liability  worksheet</text>
+  <text x="80" y="1015" font-size="11" fill="#3b82f6">ocean · forcing · land · geo</text>
+
+  <rect x="546" y="902" width="492" height="120" rx="7" fill="#ffffff" stroke="#93c5fd" stroke-width="1.2"/>
+  <text x="564" y="924" font-size="12.5" font-weight="700" fill="#1e3a8a">Top bar  —  7 destinations</text>
+  <text x="564" y="946" font-size="11.5" fill="#1e40af">Dashboard (live markers)  ·  Spill Incidents  ·  Workflow</text>
+  <text x="564" y="964" font-size="11.5" fill="#1e40af">Liability Register  ·  Data Management  ·  Case Archive</text>
+  <text x="564" y="982" font-size="11.5" fill="#1e40af">System Admin</text>
+  <text x="564" y="1006" font-size="11" fill="#3b82f6">Role matrix hides what a role may not see; the same</text>
+  <text x="564" y="1021" font-size="11" fill="#3b82f6">matrix is enforced again by the server.</text>
+
+  <rect x="62" y="1036" width="976" height="84" rx="7" fill="#dbeafe" stroke="#2563eb" stroke-width="1.3"/>
+  <text x="80" y="1058" font-size="12.5" font-weight="700" fill="#1e3a8a">flow/  —  the pipeline a case is carried through (not tabs — stages)</text>
+  <text x="80" y="1084" font-size="12" fill="#1e3a8a">Investigation → Vessels → Environment → Tasking → Ecology → Alerting → Evidence pack</text>
+  <text x="80" y="1106" font-size="11" fill="#1d4ed8">Entered from a live dashboard marker or the incident list. Every stage locked to that one case. Each shows its real inputs before its result.</text>
+
+  <!-- ═══════════ 5. SERVER ═══════════ -->
+  <text x="1080" y="868" font-size="12" font-weight="700" fill="#475569" letter-spacing="1.4">5 · SERVER  —  optional</text>
+  <rect x="1080" y="880" width="360" height="258" rx="9" fill="#f0fdfa" stroke="#0d9488" stroke-width="1.6" stroke-dasharray="6 4"/>
+  <text x="1098" y="906" font-size="12.5" font-weight="700" fill="#115e59">FastAPI + PostgreSQL / PostGIS</text>
+  <text x="1098" y="930" font-size="11.5" fill="#134e4a">Accounts · Argon2id · JWT with revocable</text>
+  <text x="1098" y="946" font-size="11.5" fill="#134e4a">sessions · TOTP MFA</text>
+  <text x="1098" y="968" font-size="11.5" fill="#134e4a">Append-only audit trail (DB trigger)</text>
+  <text x="1098" y="990" font-size="11.5" fill="#134e4a">HMAC-signed evidence PDFs</text>
+  <text x="1098" y="1012" font-size="11.5" fill="#134e4a">Shared workflow state across operators</text>
+  <line x1="1098" y1="1028" x2="1422" y2="1028" stroke="#99f6e4" stroke-width="1"/>
+  <text x="1098" y="1050" font-size="12" font-weight="700" fill="#115e59">worker  —  background jobs</text>
+  <text x="1098" y="1070" font-size="11" fill="#134e4a">scan-aoi · process-scene · refresh-ais</text>
+  <text x="1098" y="1086" font-size="11" fill="#134e4a">refresh-forecast · build-case</text>
+  <text x="1098" y="1110" font-size="10.5" fill="#0f766e">Watches areas for new scenes and turns a</text>
+  <text x="1098" y="1124" font-size="10.5" fill="#0f766e">confirmed detection into a new case.</text>
+
+  <!-- ───────────── Footer: deployment ───────────── -->
+  <rect x="40" y="1152" width="1400" height="0" fill="none"/>
+  <text x="40" y="1168" font-size="11.5" fill="#475569">
+    <tspan font-weight="700">Deployment:</tspan> the web app builds to 16 MB of static files (Vercel) and works with no server at all — the pipeline above has already run and its results are in the artifacts.
+    <tspan font-weight="700" fill="#0d9488"> The server is additive</tspan>, for live watching, accounts and signed documents.
+  </text>
+</svg>
