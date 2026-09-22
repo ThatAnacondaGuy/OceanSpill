@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" width="1400" height="900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#3d4650"/></marker>
+  <style>
+    .box { fill:#ffffff; stroke:#7a838d; stroke-width:1.6; }
+    .pend{ fill:#ffffff; stroke:#7a838d; stroke-width:1.6; stroke-dasharray:6 4; }
+    .grey{ fill:#e9ecef; stroke:#c3c9cf; stroke-width:1.4; }
+    .t   { text-anchor:middle; fill:#1b2026; font-weight:700; }
+    .fl  { stroke:#3d4650; stroke-width:2.2; fill:none; }
+  </style>
+</defs>
+<rect width="1400" height="900" fill="#ffffff"/>
+
+<text x="700" y="48" font-size="34" font-weight="800" fill="#1b2026" text-anchor="middle">ARCHITECTURE</text>
+<line x1="540" y1="58" x2="860" y2="58" stroke="#1b2026" stroke-width="3"/>
+
+<!-- ───── INPUT ───── -->
+<rect x="40" y="84" width="300" height="48" rx="8" fill="#2f3941"/>
+<text x="64" y="116" font-size="21" font-weight="800" fill="#ffffff">INPUT</text>
+<rect x="52" y="140" width="276" height="56" rx="6" fill="#f4f5f7" stroke="#d3d8dd" stroke-width="1.4"/>
+<text x="190" y="175" font-size="15" font-weight="700" fill="#5b6570" text-anchor="middle">ISRO EOS-04 SAR</text>
+<rect x="52" y="204" width="276" height="56" rx="6" fill="#f4f5f7" stroke="#d3d8dd" stroke-width="1.4"/>
+<text x="190" y="239" font-size="15" font-weight="700" fill="#5b6570" text-anchor="middle">Sentinel-1 / Sentinel-2</text>
+<rect x="52" y="268" width="276" height="56" rx="6" fill="#f4f5f7" stroke="#d3d8dd" stroke-width="1.4"/>
+<text x="190" y="303" font-size="15" font-weight="700" fill="#5b6570" text-anchor="middle">AIS Vessel Tracks</text>
+<rect x="52" y="332" width="276" height="56" rx="6" fill="#f4f5f7" stroke="#d3d8dd" stroke-width="1.4"/>
+<text x="190" y="367" font-size="15" font-weight="700" fill="#5b6570" text-anchor="middle">Wind &amp; Ocean Currents</text>
+<rect x="52" y="396" width="276" height="56" rx="6" fill="#f4f5f7" stroke="#d3d8dd" stroke-width="1.4"/>
+<text x="190" y="431" font-size="15" font-weight="700" fill="#5b6570" text-anchor="middle">Coastline &amp; Eco Zones</text>
+
+<!-- connector stub + split -->
+<rect x="352" y="252" width="56" height="18" rx="3" fill="#2f3941"/>
+<path class="fl" d="M408 261 C 440 261, 440 190, 476 190" marker-end="url(#a)"/>
+<path class="fl" d="M408 261 C 440 261, 440 332, 476 332" marker-end="url(#a)"/>
+
+<rect class="box" x="482" y="162" width="250" height="56" rx="28"/>
+<text class="t" x="607" y="197" font-size="16">SAR Imagery</text>
+<rect class="box" x="482" y="304" width="250" height="56" rx="28"/>
+<text class="t" x="607" y="339" font-size="16">Vessel &amp; Ocean Data</text>
+
+<path class="fl" d="M732 190 C 780 190, 780 232, 812 232" marker-end="url(#a)"/>
+<path class="fl" d="M732 332 C 780 332, 780 290, 812 290" marker-end="url(#a)"/>
+
+<!-- ───── PIPELINE ───── -->
+<rect class="box" x="818" y="228" width="330" height="66" rx="8"/>
+<text class="t" x="983" y="268" font-size="19">OCEANWATCH PIPELINE</text>
+
+<!-- side note -->
+<path class="fl" d="M1148 261 L1196 261" marker-end="url(#a)"/>
+<rect x="1202" y="226" width="166" height="70" rx="6" fill="#f4f5f7" stroke="#d3d8dd" stroke-width="1.4"/>
+<text x="1285" y="252" font-size="13" font-weight="700" fill="#1b2026" text-anchor="middle">MapLibre GL</text>
+<text x="1285" y="270" font-size="10.5" fill="#5b6570" text-anchor="middle">Interactive map, drift</text>
+<text x="1285" y="284" font-size="10.5" fill="#5b6570" text-anchor="middle">animation, vessel tracks</text>
+
+<!-- fan to analysis -->
+<path class="fl" d="M983 294 L983 340 M463 340 L1243 340"/>
+<path class="fl" d="M463 340 L463 376" marker-end="url(#a)"/>
+<path class="fl" d="M619 340 L619 376" marker-end="url(#a)"/>
+<path class="fl" d="M775 340 L775 376" marker-end="url(#a)"/>
+<path class="fl" d="M931 340 L931 376" marker-end="url(#a)"/>
+<path class="fl" d="M1087 340 L1087 376" marker-end="url(#a)"/>
+<path class="fl" d="M1243 340 L1243 376" marker-end="url(#a)"/>
+
+<!-- ───── ANALYSIS STAGES ───── -->
+<rect class="grey" x="380" y="366" width="946" height="108" rx="6"/>
+<rect class="box" x="396" y="382" width="140" height="76" rx="5"/>
+<text class="t" x="466" y="414" font-size="13.5">Oil Spill</text><text class="t" x="466" y="432" font-size="13.5">Detection</text>
+<rect class="box" x="552" y="382" width="140" height="76" rx="5"/>
+<text class="t" x="622" y="414" font-size="13.5">Look-Alike</text><text class="t" x="622" y="432" font-size="13.5">Filtering</text>
+<rect class="box" x="708" y="382" width="140" height="76" rx="5"/>
+<text class="t" x="778" y="414" font-size="13.5">Drift &amp;</text><text class="t" x="778" y="432" font-size="13.5">Forecast</text>
+<rect class="box" x="864" y="382" width="140" height="76" rx="5"/>
+<text class="t" x="934" y="414" font-size="13.5">Vessel</text><text class="t" x="934" y="432" font-size="13.5">Detection</text>
+<rect class="box" x="1020" y="382" width="140" height="76" rx="5"/>
+<text class="t" x="1090" y="414" font-size="13.5">Vessel</text><text class="t" x="1090" y="432" font-size="13.5">Attribution</text>
+<rect class="box" x="1176" y="382" width="140" height="76" rx="5"/>
+<text class="t" x="1246" y="414" font-size="13.5">Ecological</text><text class="t" x="1246" y="432" font-size="13.5">Impact</text>
+
+<!-- bar -->
+<rect class="grey" x="380" y="486" width="946" height="46" rx="6"/>
+<text x="853" y="516" font-size="17" font-weight="800" fill="#6c757d" text-anchor="middle">Runs On The Selected Case</text>
+
+<path class="fl" d="M853 532 L853 576" marker-end="url(#a)"/>
+
+<!-- ───── MODELS ───── -->
+<rect class="box" x="713" y="576" width="280" height="56" rx="6"/>
+<text class="t" x="853" y="611" font-size="18">Models Used</text>
+
+<path class="fl" d="M853 632 L853 654 M466 654 L1246 654"/>
+<path class="fl" d="M466 654 L466 684" marker-end="url(#a)"/>
+<path class="fl" d="M622 654 L622 684" marker-end="url(#a)"/>
+<path class="fl" d="M778 654 L778 684" marker-end="url(#a)"/>
+<path class="fl" d="M934 654 L934 684" marker-end="url(#a)"/>
+<path class="fl" d="M1090 654 L1090 684" marker-end="url(#a)"/>
+<path class="fl" d="M1246 654 L1246 684" marker-end="url(#a)"/>
+
+<rect class="grey" x="380" y="674" width="946" height="152" rx="6"/>
+
+<rect class="box" x="396" y="690" width="140" height="120" rx="5"/>
+<text class="t" x="466" y="718" font-size="12.5">Oil Spill</text>
+<rect x="408" y="748" width="116" height="42" rx="4" fill="#f4f5f7" stroke="#b9c0c7" stroke-width="1.3"/>
+<text class="t" x="466" y="775" font-size="15">U-Net</text>
+
+<rect class="box" x="552" y="690" width="140" height="120" rx="5"/>
+<text class="t" x="622" y="718" font-size="12.5">Look-Alike</text>
+<rect x="564" y="740" width="116" height="58" rx="4" fill="#f4f5f7" stroke="#b9c0c7" stroke-width="1.3"/>
+<text class="t" x="622" y="763" font-size="13.5">Adaptive</text><text class="t" x="622" y="781" font-size="13.5">Threshold</text>
+
+<rect class="box" x="708" y="690" width="140" height="120" rx="5"/>
+<text class="t" x="778" y="718" font-size="12.5">Drift</text>
+<rect x="720" y="748" width="116" height="42" rx="4" fill="#f4f5f7" stroke="#b9c0c7" stroke-width="1.3"/>
+<text class="t" x="778" y="775" font-size="14">Lagrangian</text>
+
+<rect class="box" x="864" y="690" width="140" height="120" rx="5"/>
+<text class="t" x="934" y="718" font-size="12.5">Vessel</text>
+<rect x="876" y="748" width="116" height="42" rx="4" fill="#f4f5f7" stroke="#b9c0c7" stroke-width="1.3"/>
+<text class="t" x="934" y="775" font-size="13.5">U-Net SSDD</text>
+
+<rect class="box" x="1020" y="690" width="140" height="120" rx="5"/>
+<text class="t" x="1090" y="718" font-size="12.5">Weathering</text>
+<rect x="1032" y="740" width="116" height="58" rx="4" fill="#f4f5f7" stroke="#b9c0c7" stroke-width="1.3"/>
+<text class="t" x="1090" y="763" font-size="13.5">Fingas —</text><text class="t" x="1090" y="781" font-size="13.5">Mackay</text>
+
+<rect class="box" x="1176" y="690" width="140" height="120" rx="5"/>
+<text class="t" x="1246" y="718" font-size="12.5">Attribution</text>
+<rect x="1188" y="740" width="116" height="58" rx="4" fill="#f4f5f7" stroke="#b9c0c7" stroke-width="1.3"/>
+<text class="t" x="1246" y="763" font-size="13.5">Weighted</text><text class="t" x="1246" y="781" font-size="13.5">MCDA</text>
+
+<!-- ───── OUTPUT (left annotation) ───── -->
+<path class="fl" d="M380 750 C 330 750, 330 700, 300 700" marker-end="url(#a)"/>
+<rect x="40" y="606" width="252" height="188" rx="6" fill="#f4f5f7" stroke="#8e969e" stroke-width="1.6"/>
+<circle cx="88" cy="656" r="30" fill="#2f3941"/>
+<g stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round">
+  <path d="M76 668 L76 648 M88 668 L88 640 M100 668 L100 654"/>
+  <circle cx="88" cy="630" r="3.6"/>
+</g>
+<text x="132" y="644" font-size="19" font-weight="800" fill="#1b2026">Output</text>
+<text x="132" y="666" font-size="10.5" fill="#3d4650">Spill mask and extent</text>
+<text x="132" y="682" font-size="10.5" fill="#3d4650">Probable origin + error</text>
+<text x="132" y="698" font-size="10.5" fill="#3d4650">Drift forecast cone</text>
+<text x="132" y="714" font-size="10.5" fill="#3d4650">Ranked candidate vessels</text>
+<text x="132" y="730" font-size="10.5" fill="#3d4650">Ecological priority</text>
+<text x="132" y="746" font-size="10.5" fill="#3d4650">Signed evidence pack</text>
+<text x="56" y="772" font-size="10" font-style="italic" fill="#6c757d">Attribution is a ranked shortlist,</text>
+<text x="56" y="786" font-size="10" font-style="italic" fill="#6c757d">not evidence of discharge.</text>
+
+<!-- footer -->
+<text x="700" y="866" font-size="12.5" font-weight="700" fill="#1b2026" text-anchor="middle">SOVEREIGN-FIRST: ISRO EOS-04 is the primary imagery source. NISAR, INCOIS, National AIS, DG Shipping, SACHET and IMAC</text>
+<text x="700" y="884" font-size="12.5" font-weight="700" fill="#1b2026" text-anchor="middle">have adapters written and await authorisation; international feeds are interim fallbacks.</text>
+</svg>
