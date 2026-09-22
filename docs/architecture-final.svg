@@ -1,0 +1,207 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 800" width="1400" height="800" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#3f4d5c"/></marker>
+  <style>
+    .hdr  { fill:#33475b; }
+    .hdrt { fill:#ffffff; font-size:14px; font-weight:800; letter-spacing:0.6px; }
+    .cont { fill:#f4f6f8; stroke:#c8d0d8; stroke-width:1.2; }
+    .box  { fill:#ffffff; stroke:#c8d0d8; stroke-width:1.2; }
+    .bt   { font-size:10px; font-weight:700; fill:#16202b; text-anchor:middle; }
+    .bs   { font-size:8.2px; fill:#6b7885; text-anchor:middle; }
+    .rowt { font-size:10px; font-weight:600; fill:#16202b; }
+    .rows { font-size:8px; fill:#6b7885; }
+    .fl   { stroke:#3f4d5c; stroke-width:1.2; fill:none; }
+  </style>
+</defs>
+<rect width="1400" height="800" fill="#ffffff"/>
+
+<text x="700" y="44" font-size="30" font-weight="800" fill="#16202b" text-anchor="middle" letter-spacing="0.5">ARCHITECTURE</text>
+<line x1="540" y1="52" x2="860" y2="52" stroke="#16202b" stroke-width="2.2"/>
+
+<!-- legend -->
+<circle cx="1082" cy="40" r="4.2" fill="#33475b"/>
+<text x="1094" y="44" font-size="10" fill="#3f4d5c">Built in prototype</text>
+<circle cx="1216" cy="40" r="4.2" fill="#ffffff" stroke="#2563eb" stroke-width="1.6"/>
+<text x="1228" y="44" font-size="10" fill="#2563eb">Target architecture</text>
+
+<!-- ══════ INPUT ══════ -->
+<path class="hdr" d="M40 84 h250 a8 8 0 0 1 8 8 v26 h-266 v-26 a8 8 0 0 1 8 -8 z"/>
+<text class="hdrt" x="56" y="107">INPUT</text>
+<rect x="32" y="118" width="266" height="322" fill="#ffffff" stroke="#c8d0d8" stroke-width="1.2"/>
+
+<rect class="box" x="44" y="128" width="242" height="30" rx="4"/>
+<circle cx="58" cy="143" r="4" fill="#33475b"/><text class="rowt" x="70" y="147">ISRO EOS-04 SAR</text>
+<rect class="box" x="44" y="162" width="242" height="30" rx="4"/>
+<circle cx="58" cy="177" r="4" fill="#fff" stroke="#2563eb" stroke-width="1.5"/><text class="rowt" x="70" y="181" fill="#1e40af">NISAR SAR</text>
+<rect class="box" x="44" y="196" width="242" height="30" rx="4"/>
+<circle cx="58" cy="211" r="4" fill="#33475b"/><text class="rowt" x="70" y="215">Sentinel-1 / Sentinel-2</text>
+<rect class="box" x="44" y="230" width="242" height="30" rx="4"/>
+<circle cx="58" cy="245" r="4" fill="#33475b"/><text class="rowt" x="70" y="249">ERA5 / CMEMS Wind &amp; Currents</text>
+<rect class="box" x="44" y="264" width="242" height="30" rx="4"/>
+<circle cx="58" cy="279" r="4" fill="#fff" stroke="#2563eb" stroke-width="1.5"/><text class="rowt" x="70" y="283" fill="#1e40af">INCOIS Ocean &amp; Wind</text>
+<rect class="box" x="44" y="298" width="242" height="30" rx="4"/>
+<circle cx="58" cy="313" r="4" fill="#33475b"/><text class="rowt" x="70" y="317">AIS — Global Fishing Watch</text>
+<rect class="box" x="44" y="332" width="242" height="30" rx="4"/>
+<circle cx="58" cy="347" r="4" fill="#fff" stroke="#2563eb" stroke-width="1.5"/><text class="rowt" x="70" y="351" fill="#1e40af">National AIS — DGLL / ICG</text>
+<rect class="box" x="44" y="366" width="242" height="30" rx="4"/>
+<circle cx="58" cy="381" r="4" fill="#33475b"/><text class="rowt" x="70" y="385">Coastline — OSM / Natural Earth</text>
+<rect class="box" x="44" y="400" width="242" height="30" rx="4"/>
+<circle cx="58" cy="415" r="4" fill="#fff" stroke="#2563eb" stroke-width="1.5"/><text class="rowt" x="70" y="419" fill="#1e40af">NCSCM / GIS Shapefiles</text>
+
+<!-- ══════ DATA INGESTION ══════ -->
+<rect class="box" x="630" y="86" width="420" height="58" rx="7"/>
+<text class="bt" x="840" y="112" font-size="14">DATA INGESTION</text>
+<text class="bs" x="840" y="130" font-size="9.5">Download &#160;|&#160; Preprocess &#160;|&#160; Store &#160;|&#160; Align</text>
+<path class="fl" d="M298 140 L560 140 L560 115 L624 115" marker-end="url(#a)"/>
+
+<!-- ══════ PIPELINE BAR ══════ -->
+<rect class="box" x="540" y="172" width="600" height="44" rx="7"/>
+<text class="bt" x="840" y="200" font-size="14.5">OCEANWATCH INVESTIGATION PIPELINE</text>
+<path class="fl" d="M840 144 L840 166" marker-end="url(#a)"/>
+
+<!-- fan out -->
+<path class="fl" d="M840 216 L840 244 M402 244 L1284 244"/>
+<path class="fl" d="M402 244 L402 268" marker-end="url(#a)"/>
+<path class="fl" d="M528 244 L528 268" marker-end="url(#a)"/>
+<path class="fl" d="M654 244 L654 268" marker-end="url(#a)"/>
+<path class="fl" d="M780 244 L780 268" marker-end="url(#a)"/>
+<path class="fl" d="M906 244 L906 268" marker-end="url(#a)"/>
+<path class="fl" d="M1032 244 L1032 268" marker-end="url(#a)"/>
+<path class="fl" d="M1158 244 L1158 268" marker-end="url(#a)"/>
+<path class="fl" d="M1284 244 L1284 268" marker-end="url(#a)"/>
+
+<!-- ══════ CAPABILITIES ══════ -->
+<rect class="cont" x="330" y="258" width="1024" height="96" rx="7"/>
+<g>
+  <rect class="box" x="344" y="272" width="116" height="68" rx="5"/>
+  <circle cx="450" cy="282" r="3.6" fill="#33475b"/>
+  <text class="bt" x="402" y="303">Oil Spill</text><text class="bt" x="402" y="316">Detection</text>
+  <rect class="box" x="470" y="272" width="116" height="68" rx="5"/>
+  <circle cx="576" cy="282" r="3.6" fill="#33475b"/>
+  <text class="bt" x="528" y="303">Look-Alike</text><text class="bt" x="528" y="316">Discrimination</text>
+  <rect class="box" x="596" y="272" width="116" height="68" rx="5"/>
+  <circle cx="702" cy="282" r="3.6" fill="#33475b"/>
+  <text class="bt" x="654" y="303">Drift</text><text class="bt" x="654" y="316">Hindcast</text>
+  <rect class="box" x="722" y="272" width="116" height="68" rx="5"/>
+  <circle cx="828" cy="282" r="3.6" fill="#33475b"/>
+  <text class="bt" x="780" y="303">Future</text><text class="bt" x="780" y="316">Forecast</text>
+  <rect class="box" x="848" y="272" width="116" height="68" rx="5"/>
+  <circle cx="954" cy="282" r="3.6" fill="#33475b"/>
+  <text class="bt" x="906" y="303">Vessel</text><text class="bt" x="906" y="316">Detection</text>
+  <rect class="box" x="974" y="272" width="116" height="68" rx="5"/>
+  <circle cx="1080" cy="282" r="3.6" fill="#33475b"/>
+  <text class="bt" x="1032" y="303">Dark Ship</text><text class="bt" x="1032" y="316">Detection</text>
+  <rect class="box" x="1100" y="272" width="116" height="68" rx="5"/>
+  <circle cx="1206" cy="282" r="3.6" fill="#33475b"/>
+  <text class="bt" x="1158" y="303">AIS</text><text class="bt" x="1158" y="316">Behaviour</text>
+  <rect class="box" x="1226" y="272" width="116" height="68" rx="5"/>
+  <circle cx="1332" cy="282" r="3.6" fill="#33475b"/>
+  <text class="bt" x="1284" y="303">Ecological</text><text class="bt" x="1284" y="316">Assessment</text>
+</g>
+
+<path class="fl" d="M402 340 L402 396" marker-end="url(#a)"/>
+<path class="fl" d="M528 340 L528 396" marker-end="url(#a)"/>
+<path class="fl" d="M654 340 L654 396" marker-end="url(#a)"/>
+<path class="fl" d="M780 340 L780 396" marker-end="url(#a)"/>
+<path class="fl" d="M906 340 L906 396" marker-end="url(#a)"/>
+<path class="fl" d="M1032 340 L1032 396" marker-end="url(#a)"/>
+<path class="fl" d="M1158 340 L1158 396" marker-end="url(#a)"/>
+<path class="fl" d="M1284 340 L1284 396" marker-end="url(#a)"/>
+
+<!-- ══════ MODELS ══════ -->
+<rect class="cont" x="330" y="386" width="1024" height="112" rx="7"/>
+<text class="bt" x="842" y="404" font-size="12.5">MODELS / METHODS USED</text>
+<g>
+  <rect class="box" x="344" y="412" width="116" height="74" rx="5"/>
+  <circle cx="450" cy="422" r="3.6" fill="#33475b"/>
+  <text class="bt" x="402" y="440">U-Net</text><text class="bs" x="402" y="454">Oil Segmentation</text>
+  <text class="bs" x="402" y="470" fill="#2563eb">○ + GLCM texture</text>
+
+  <rect class="box" x="470" y="412" width="116" height="74" rx="5"/>
+  <circle cx="576" cy="422" r="3.6" fill="#33475b"/>
+  <text class="bt" x="528" y="440">Look-Alike Checks</text><text class="bs" x="528" y="454">Wind · Contrast</text>
+  <text class="bs" x="528" y="466">Edge · Geometry</text>
+
+  <rect class="box" x="596" y="412" width="116" height="74" rx="5"/>
+  <circle cx="702" cy="422" r="3.6" fill="#33475b"/>
+  <text class="bt" x="654" y="440">Ship Detection</text><text class="bs" x="654" y="454">U-Net · SSDD</text>
+  <text class="bs" x="654" y="470" fill="#2563eb">○ + CFAR pre-screen</text>
+
+  <rect class="box" x="722" y="412" width="116" height="74" rx="5"/>
+  <circle cx="828" cy="422" r="3.6" fill="#33475b"/>
+  <text class="bt" x="780" y="440">Lagrangian Drift</text><text class="bs" x="780" y="454">166-buoy calibrated</text>
+  <text class="bs" x="780" y="466">Hindcast + Forecast</text>
+
+  <rect class="box" x="848" y="412" width="116" height="74" rx="5"/>
+  <circle cx="954" cy="422" r="3.6" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
+  <text class="bt" x="906" y="440" fill="#1e40af">OpenOil</text><text class="bs" x="906" y="454" fill="#2563eb">OpenDrift · 3-D</text>
+  <text class="bs" x="906" y="466" fill="#2563eb">Authoritative runs</text>
+
+  <rect class="box" x="974" y="412" width="116" height="74" rx="5"/>
+  <circle cx="1080" cy="422" r="3.6" fill="#33475b"/>
+  <text class="bt" x="1032" y="440">AIS Gap +</text><text class="bs" x="1032" y="454">Behaviour Analysis</text>
+  <text class="bs" x="1032" y="466">Calibrated on 55k events</text>
+
+  <rect class="box" x="1100" y="412" width="116" height="74" rx="5"/>
+  <circle cx="1206" cy="422" r="3.6" fill="#33475b"/>
+  <text class="bt" x="1158" y="440">Spatio-Temporal</text><text class="bs" x="1158" y="454">Correlation Scoring</text>
+  <text class="bs" x="1158" y="466">Shortlist, not evidence</text>
+
+  <rect class="box" x="1226" y="412" width="116" height="74" rx="5"/>
+  <circle cx="1332" cy="422" r="3.6" fill="#33475b"/>
+  <text class="bt" x="1284" y="440">PostGIS</text><text class="bs" x="1284" y="454">Geospatial Fusion</text>
+  <text class="bs" x="1284" y="470" fill="#2563eb">○ + NCSCM layers</text>
+</g>
+
+<path class="fl" d="M566 498 L566 526" marker-end="url(#a)"/>
+
+<!-- ══════ INTELLIGENCE ══════ -->
+<path class="hdr" d="M330 530 h456 a8 8 0 0 1 8 8 v24 h-472 v-24 a8 8 0 0 1 8 -8 z"/>
+<text class="hdrt" x="346" y="551">INTELLIGENCE</text>
+<rect x="322" y="562" width="472" height="128" fill="#ffffff" stroke="#c8d0d8" stroke-width="1.2"/>
+<g stroke="#33475b" stroke-width="1.7" fill="none" stroke-linecap="round" transform="translate(376,624)">
+  <rect x="-7" y="-9" width="14" height="16" rx="2"/>
+  <path d="M-22 -7 L-9 -7 M-22 3 L-9 3 M-22 -7 L-22 3 M9 -7 L22 -7 M9 3 L22 3 M22 -7 L22 3 M0 -9 L0 -15"/>
+  <ellipse cx="0" cy="20" rx="12" ry="4"/><path d="M-12 20 L-12 30 A 12 4 0 0 0 12 30 L12 20"/>
+</g>
+<line x1="420" y1="578" x2="420" y2="676" stroke="#d6dde3" stroke-width="1.2"/>
+<text x="436" y="592" font-size="10" fill="#16202b">Detects oil and separates it from look-alikes,</text>
+<text x="436" y="608" font-size="10" fill="#16202b">reconstructs the release point with stated</text>
+<text x="436" y="624" font-size="10" fill="#16202b">uncertainty, forecasts movement, finds vessels</text>
+<text x="436" y="640" font-size="10" fill="#16202b">the radar sees but AIS does not, and produces</text>
+<text x="436" y="656" font-size="10" fill="#16202b">an explainable, ranked shortlist with an</text>
+<text x="436" y="672" font-size="10" fill="#16202b">auditable chain of custody.</text>
+
+<path class="fl" d="M794 626 L824 626" marker-end="url(#a)"/>
+
+<!-- ══════ OUTPUT ══════ -->
+<path class="hdr" d="M830 530 h508 a8 8 0 0 1 8 8 v24 h-524 v-24 a8 8 0 0 1 8 -8 z"/>
+<text class="hdrt" x="846" y="551">OUTPUT / DASHBOARD</text>
+<rect x="822" y="562" width="524" height="128" fill="#ffffff" stroke="#c8d0d8" stroke-width="1.2"/>
+
+<rect class="box" x="834" y="572" width="248" height="26" rx="4"/>
+<circle cx="846" cy="585" r="3.6" fill="#33475b"/><text class="rowt" x="858" y="589">Oil Spill Mask &amp; Extent</text>
+<rect class="box" x="1090" y="572" width="244" height="26" rx="4"/>
+<circle cx="1102" cy="585" r="3.6" fill="#33475b"/><text class="rowt" x="1114" y="589">Ranked Candidate Vessels</text>
+
+<rect class="box" x="834" y="602" width="248" height="26" rx="4"/>
+<circle cx="846" cy="615" r="3.6" fill="#33475b"/><text class="rowt" x="858" y="619">Probable Origin + Uncertainty</text>
+<rect class="box" x="1090" y="602" width="244" height="26" rx="4"/>
+<circle cx="1102" cy="615" r="3.6" fill="#33475b"/><text class="rowt" x="1114" y="619">Ecological Priority</text>
+
+<rect class="box" x="834" y="632" width="248" height="26" rx="4"/>
+<circle cx="846" cy="645" r="3.6" fill="#33475b"/><text class="rowt" x="858" y="649">Drift Forecast Cone</text>
+<rect class="box" x="1090" y="632" width="244" height="26" rx="4"/>
+<circle cx="1102" cy="645" r="3.6" fill="#33475b"/><text class="rowt" x="1114" y="649">Signed Evidence Pack</text>
+
+<rect class="box" x="834" y="662" width="248" height="22" rx="4"/>
+<circle cx="846" cy="673" r="3.6" fill="#fff" stroke="#2563eb" stroke-width="1.5"/><text class="rowt" x="858" y="677" fill="#1e40af">SACHET Advisory — NDMA</text>
+<rect class="box" x="1090" y="662" width="244" height="22" rx="4"/>
+<circle cx="1102" cy="673" r="3.6" fill="#fff" stroke="#2563eb" stroke-width="1.5"/><text class="rowt" x="1114" y="677" fill="#1e40af">IMAC Picture — Indian Navy</text>
+
+<!-- ══════ FOOTER ══════ -->
+<line x1="40" y1="722" x2="1360" y2="722" stroke="#c8d0d8" stroke-width="1.2"/>
+<text x="700" y="744" font-size="11" font-weight="700" fill="#16202b" text-anchor="middle">SOVEREIGN-FIRST: EOS-04 is the primary imagery source today. Seven further Indian systems have adapters written</text>
+<text x="700" y="760" font-size="11" font-weight="700" fill="#16202b" text-anchor="middle">and await authorisation — international feeds are interim fallbacks, and every case records which it used.</text>
+</svg>
