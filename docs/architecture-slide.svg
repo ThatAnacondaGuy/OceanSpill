@@ -111,55 +111,54 @@
 
 <rect class="box" x="334" y="352" width="142" height="78" rx="5"/>
 <circle cx="464" cy="362" r="3.4" fill="#33475b"/>
-<text class="bt" x="405" y="375" font-size="10">U-Net Segmentation</text>
+<text class="bt" x="405" y="375" font-size="9.6">U-Net</text>
 <text class="bs" x="405" y="389" font-size="8.2">Dice + Focal loss</text>
-<text class="bs" x="405" y="401" font-size="8.2">IoU 0.63 · 69% recall</text>
+<text class="bs" x="405" y="401" font-size="8.2">IoU 0.63 · recall 0.69</text>
 <text class="bsp" x="405" y="415" font-size="8.2">○ + GLCM texture</text>
 
 <rect class="box" x="486" y="352" width="142" height="78" rx="5"/>
 <circle cx="616" cy="362" r="3.4" fill="#33475b"/>
-<text class="bt" x="557" y="375" font-size="10">Dark-Spot Detector</text>
-<text class="bs" x="557" y="389" font-size="8.2">Adaptive k·σ threshold</text>
-<text class="bs" x="557" y="401" font-size="8.2">Classical · runs on EOS-04</text>
+<text class="bt" x="557" y="375" font-size="9.6">Adaptive Thresholding</text>
+<text class="bs" x="557" y="389" font-size="8.2">Local μ − kσ  (k = 1.5)</text>
+<text class="bs" x="557" y="401" font-size="8.2">Dark-spot · EOS-04 path</text>
 
 <rect class="box" x="638" y="352" width="142" height="78" rx="5"/>
 <circle cx="768" cy="362" r="3.4" fill="#33475b"/>
-<text class="bt" x="709" y="375" font-size="10">Look-Alike Checks</text>
-<text class="bs" x="709" y="389" font-size="8.2">Wind · dB contrast</text>
-<text class="bs" x="709" y="401" font-size="8.2">Edge · shape · margin</text>
+<text class="bt" x="709" y="375" font-size="9.6">Feature Discrimination</text>
+<text class="bs" x="709" y="389" font-size="8.2">Damping ratio · wind gate</text>
+<text class="bs" x="709" y="401" font-size="8.2">Compactness · elongation</text>
 
 <rect class="box" x="790" y="352" width="142" height="78" rx="5"/>
 <circle cx="920" cy="362" r="3.4" fill="#33475b"/>
-<text class="bt" x="861" y="375" font-size="10">Lee Speckle Filter</text>
-<text class="bs" x="861" y="389" font-size="8.2">Multilook + despeckle</text>
-<text class="bs" x="861" y="401" font-size="8.2">Sigma-nought calibration</text>
+<text class="bt" x="861" y="375" font-size="9.6">Lee Filter + Multilook</text>
+<text class="bs" x="861" y="389" font-size="8.2">Speckle reduction</text>
+<text class="bs" x="861" y="401" font-size="8.2">σ⁰ radiometric calibration</text>
 
 <rect class="box" x="942" y="352" width="142" height="78" rx="5"/>
 <circle cx="1072" cy="362" r="3.4" fill="#33475b"/>
-<text class="bt" x="1013" y="375" font-size="10">U-Net Ship Detection</text>
-<text class="bs" x="1013" y="389" font-size="8.2">SSDD-trained · IoU 0.55</text>
-<text class="bs" x="1013" y="401" font-size="8.2">16 of 23 on a real scene</text>
+<text class="bt" x="1013" y="375" font-size="9.6">U-Net (SSDD)</text>
+<text class="bs" x="1013" y="389" font-size="8.2">Connected components</text>
+<text class="bs" x="1013" y="401" font-size="8.2">IoU 0.55 · 16/23 on scene</text>
 <text class="bsp" x="1013" y="415" font-size="8.2">○ + CFAR pre-screen</text>
 
 <rect class="box" x="1094" y="352" width="142" height="78" rx="5"/>
 <circle cx="1224" cy="362" r="3.4" fill="#33475b"/>
-<text class="bt" x="1165" y="375" font-size="10">Lagrangian Tracking</text>
-<text class="bs" x="1165" y="389" font-size="8.2">Windage + Stokes + current</text>
-<text class="bs" x="1165" y="401" font-size="8.2">166 buoys · 564 m²/s</text>
+<text class="bt" x="1165" y="375" font-size="9.6">Lagrangian Transport</text>
+<text class="bs" x="1165" y="389" font-size="8.2">Current + Stokes + windage</text>
+<text class="bs" x="1165" y="401" font-size="8.2">Gaussian random walk</text>
 <text class="bsp" x="1165" y="415" font-size="8.2">○ + OpenOil (OpenDrift)</text>
 
 <rect class="box" x="1246" y="352" width="142" height="78" rx="5"/>
 <circle cx="1376" cy="362" r="3.4" fill="#33475b"/>
-<text class="bt" x="1317" y="375" font-size="10">Weathering Model</text>
-<text class="bs" x="1317" y="389" font-size="8.2">Evaporation · emulsion</text>
-<text class="bs" x="1317" y="401" font-size="8.2">Thickness · dispersion</text>
+<text class="bt" x="1317" y="375" font-size="9.6">Oil Weathering</text>
+<text class="bs" x="1317" y="389" font-size="8.2">Fingas log evaporation</text>
+<text class="bs" x="1317" y="401" font-size="8.2">Mackay emulsion · Mooney η</text>
 
 <rect class="box" x="1398" y="352" width="142" height="78" rx="5"/>
 <circle cx="1528" cy="362" r="3.4" fill="#33475b"/>
-<text class="bt" x="1469" y="375" font-size="10">Attribution Scoring</text>
-<text class="bs" x="1469" y="389" font-size="8.2">CPA · multi-criteria</text>
+<text class="bt" x="1469" y="375" font-size="9.6">Weighted MCDA</text>
+<text class="bs" x="1469" y="389" font-size="8.2">CPA · 5 weighted criteria</text>
 <text class="bs" x="1469" y="401" font-size="8.2">prox·34 time·26 traj·18</text>
-<text class="bs" x="1469" y="415" font-size="8.2">AIS gap · 55k events</text>
 
 <path class="fl" d="M600 442 L600 462" marker-end="url(#a)"/>
 
