@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 800" width="1400" height="800" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 852" width="1400" height="852" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
 <defs>
   <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
     <path d="M0 0 L10 5 L0 10 z" fill="#3f4d5c"/></marker>
@@ -14,7 +14,7 @@
     .fl   { stroke:#3f4d5c; stroke-width:1.2; fill:none; }
   </style>
 </defs>
-<rect width="1400" height="800" fill="#ffffff"/>
+<rect width="1400" height="852" fill="#ffffff"/>
 
 <text x="700" y="44" font-size="30" font-weight="800" fill="#16202b" text-anchor="middle" letter-spacing="0.5">ARCHITECTURE</text>
 <line x1="540" y1="52" x2="860" y2="52" stroke="#16202b" stroke-width="2.2"/>
@@ -200,8 +200,38 @@
 <rect class="box" x="1090" y="662" width="244" height="22" rx="4"/>
 <circle cx="1102" cy="673" r="3.6" fill="#fff" stroke="#2563eb" stroke-width="1.5"/><text class="rowt" x="1114" y="677" fill="#1e40af">IMAC Picture — Indian Navy</text>
 
+
+<!-- ══════ TECHNOLOGY ══════ -->
+<rect class="cont" x="40" y="704" width="1320" height="68" rx="7"/>
+<text x="56" y="722" font-size="9.5" font-weight="800" fill="#33475b" letter-spacing="0.8">TECHNOLOGY</text>
+
+<text x="180" y="722" font-size="9" font-weight="700" fill="#16202b">INGEST</text>
+<text x="180" y="737" font-size="8.6" fill="#3f4d5c">Python · requests</text>
+<text x="180" y="750" font-size="8.6" fill="#3f4d5c">on-disk cache</text>
+<text x="180" y="763" font-size="8.6" fill="#2563eb">○ Celery / Airflow</text>
+
+<text x="420" y="722" font-size="9" font-weight="700" fill="#16202b">PROCESS</text>
+<text x="420" y="737" font-size="8.6" fill="#3f4d5c">NumPy · tifffile</text>
+<text x="420" y="750" font-size="8.6" fill="#3f4d5c">sigma-nought · Lee filter</text>
+<text x="420" y="763" font-size="8.6" fill="#2563eb">○ GDAL</text>
+
+<text x="660" y="722" font-size="9" font-weight="700" fill="#16202b">MODELS</text>
+<text x="660" y="737" font-size="8.6" fill="#3f4d5c">PyTorch</text>
+<text x="660" y="750" font-size="8.6" fill="#3f4d5c">ONNX Runtime</text>
+<text x="660" y="763" font-size="8.6" fill="#2563eb">○ OpenOil</text>
+
+<text x="900" y="722" font-size="9" font-weight="700" fill="#16202b">STORE</text>
+<text x="900" y="737" font-size="8.6" fill="#3f4d5c">PostgreSQL · PostGIS</text>
+<text x="900" y="750" font-size="8.6" fill="#3f4d5c">SQLAlchemy · Alembic</text>
+<text x="900" y="763" font-size="8.6" fill="#2563eb">○ Redis · MinIO</text>
+
+<text x="1140" y="722" font-size="9" font-weight="700" fill="#16202b">SERVE</text>
+<text x="1140" y="737" font-size="8.6" fill="#3f4d5c">FastAPI · React</text>
+<text x="1140" y="750" font-size="8.6" fill="#3f4d5c">TypeScript · MapLibre GL</text>
+<text x="1140" y="763" font-size="8.6" fill="#3f4d5c">Vite · Tailwind</text>
+
 <!-- ══════ FOOTER ══════ -->
-<line x1="40" y1="722" x2="1360" y2="722" stroke="#c8d0d8" stroke-width="1.2"/>
-<text x="700" y="744" font-size="11" font-weight="700" fill="#16202b" text-anchor="middle">SOVEREIGN-FIRST: EOS-04 is the primary imagery source today. Seven further Indian systems have adapters written</text>
-<text x="700" y="760" font-size="11" font-weight="700" fill="#16202b" text-anchor="middle">and await authorisation — international feeds are interim fallbacks, and every case records which it used.</text>
+<line x1="40" y1="792" x2="1360" y2="792" stroke="#c8d0d8" stroke-width="1.2"/>
+<text x="700" y="814" font-size="11" font-weight="700" fill="#16202b" text-anchor="middle">SOVEREIGN-FIRST: EOS-04 is the primary imagery source today. Seven further Indian systems have adapters written</text>
+<text x="700" y="830" font-size="11" font-weight="700" fill="#16202b" text-anchor="middle">and await authorisation — international feeds are interim fallbacks, and every case records which it used.</text>
 </svg>
