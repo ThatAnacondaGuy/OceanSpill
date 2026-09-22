@@ -1,0 +1,271 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1290" width="1600" height="1290" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+  <rect width="1600" height="1290" fill="#f8fafc"/>
+
+  <!-- Title -->
+  <text x="40" y="44" font-size="26" font-weight="700" fill="#0b1c3c">OceanWatch — Target Production Architecture</text>
+  <text x="40" y="68" font-size="13.5" fill="#64748b">Maritime oil spill detection, drift hindcast and vessel attribution · SIH PS 26143 (NTRO) · deployment on sovereign Indian infrastructure</text>
+
+  <!-- Legend -->
+  <rect x="40" y="86" width="1520" height="38" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
+  <rect x="58" y="97" width="15" height="15" rx="3" fill="#ecfdf5" stroke="#059669" stroke-width="1.6"/>
+  <text x="81" y="109" font-size="12" fill="#334155"><tspan font-weight="600">Built and proven</tspan> — implemented and measured in the prototype</text>
+  <rect x="520" y="97" width="15" height="15" rx="3" fill="#f1f5f9" stroke="#64748b" stroke-width="1.6"/>
+  <text x="543" y="109" font-size="12" fill="#334155"><tspan font-weight="600">Production build-out</tspan> — standard infrastructure added for live operation</text>
+  <rect x="1040" y="97" width="15" height="15" rx="3" fill="#eff6ff" stroke="#2563eb" stroke-width="1.6" stroke-dasharray="3 2"/>
+  <text x="1063" y="109" font-size="12" fill="#334155"><tspan font-weight="600" fill="#1e40af">Authorisation pending</tspan> — Indian systems; adapter written, access not granted</text>
+
+  <!-- ══ TIER 1 · SOURCES ══ -->
+  <text x="40" y="150" font-size="11.5" font-weight="700" fill="#475569" letter-spacing="1.3">TIER 1 · DATA PROVIDERS</text>
+
+  <rect x="40" y="160" width="400" height="168" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.6"/>
+  <text x="58" y="183" font-size="12.5" font-weight="700" fill="#065f46">Space segment — operational</text>
+  <text x="58" y="205" font-size="11.5" fill="#064e3b">EOS-04 SAR · ISRO / NRSC Bhoonidhi</text>
+  <text x="58" y="223" font-size="10.5" fill="#047857">C-band, single pol, L2B terrain corrected</text>
+  <text x="58" y="247" font-size="11.5" fill="#064e3b">Sentinel-1 SAR · ESA Copernicus (CDSE)</text>
+  <text x="58" y="265" font-size="10.5" fill="#047857">Dual pol VV+VH — interim fallback only</text>
+  <text x="58" y="289" font-size="11.5" fill="#064e3b">Sentinel-2 optical · CDSE</text>
+  <text x="58" y="313" font-size="10.5" fill="#059669">Catalogue polled on a schedule; products staged to object store</text>
+
+  <rect x="465" y="160" width="400" height="168" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.6"/>
+  <text x="483" y="183" font-size="12.5" font-weight="700" fill="#065f46">Metocean &amp; reference — operational</text>
+  <text x="483" y="205" font-size="11.5" fill="#064e3b">ERA5 wind / waves, SMOC currents · Open-Meteo</text>
+  <text x="483" y="227" font-size="11.5" fill="#064e3b">GLORYS12 reanalysis currents · Copernicus Marine</text>
+  <text x="483" y="249" font-size="11.5" fill="#064e3b">AIS positions &amp; identity · Global Fishing Watch</text>
+  <text x="483" y="271" font-size="11.5" fill="#064e3b">Coastline · OpenStreetMap + Natural Earth</text>
+  <text x="483" y="293" font-size="11.5" fill="#064e3b">Sanctions · UN Security Council consolidated list</text>
+  <text x="483" y="315" font-size="10.5" fill="#059669">All foreign feeds are labelled as fallback in every case record</text>
+
+  <rect x="890" y="160" width="400" height="168" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.8" stroke-dasharray="5 3"/>
+  <text x="908" y="183" font-size="12.5" font-weight="700" fill="#1e40af">Sovereign sources — authorisation pending</text>
+  <text x="908" y="204" font-size="11" fill="#1e3a8a">NISAR S-SAR · ISRO / NRSC</text>
+  <text x="908" y="223" font-size="11" fill="#1e3a8a">Oceansat-3 (EOS-06) scatterometer winds · ISRO</text>
+  <text x="908" y="242" font-size="11" fill="#1e3a8a">INCOIS HOOFS operational currents · INCOIS</text>
+  <text x="908" y="261" font-size="11" fill="#1e3a8a">National AIS Network · DGLL / ICG / IFC-IOR</text>
+  <text x="908" y="280" font-size="11" fill="#1e3a8a">Vessel registry &amp; PSC history · DG Shipping</text>
+  <text x="908" y="299" font-size="11" fill="#1e3a8a">Watchlists · MEA</text>
+  <text x="908" y="320" font-size="10.5" fill="#1d4ed8">Each replaces a foreign fallback above. Adapters written and tested.</text>
+
+  <path d="M 240 328 L 240 366" stroke="#475569" stroke-width="1.8" marker-end="url(#a)"/>
+  <path d="M 665 328 L 665 366" stroke="#475569" stroke-width="1.8" marker-end="url(#a)"/>
+  <path d="M 1090 328 L 1090 366" stroke="#2563eb" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#ad)"/>
+
+  <!-- ══ TIER 2 · INGESTION ══ -->
+  <text x="40" y="388" font-size="11.5" font-weight="700" fill="#475569" letter-spacing="1.3">TIER 2 · INGESTION  —  isolated network segment, egress only</text>
+  <rect x="40" y="398" width="1250" height="112" rx="8" fill="#f1f5f9" stroke="#64748b" stroke-width="1.6"/>
+
+  <rect x="58" y="416" width="292" height="76" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="74" y="437" font-size="11.5" font-weight="700" fill="#0f172a">Catalogue pollers</text>
+  <text x="74" y="456" font-size="10.5" fill="#475569">Scheduled search per area of interest;</text>
+  <text x="74" y="472" font-size="10.5" fill="#475569">new scenes queued for download.</text>
+  <text x="74" y="486" font-size="10" fill="#059669">Built · one adapter per agency</text>
+
+  <rect x="366" y="416" width="292" height="76" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="382" y="437" font-size="11.5" font-weight="700" fill="#0f172a">AIS stream consumer</text>
+  <text x="382" y="456" font-size="10.5" fill="#475569">Continuous position ingest, de-duplicated</text>
+  <text x="382" y="472" font-size="10.5" fill="#475569">and written to the time-series store.</text>
+  <text x="382" y="486" font-size="10" fill="#64748b">Batch today · streaming in production</text>
+
+  <rect x="674" y="416" width="292" height="76" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="690" y="437" font-size="11.5" font-weight="700" fill="#0f172a">Metocean fetchers</text>
+  <text x="690" y="456" font-size="10.5" fill="#475569">Forecast and reanalysis grids on a cycle,</text>
+  <text x="690" y="472" font-size="10.5" fill="#475569">clipped to the maritime zones.</text>
+  <text x="690" y="486" font-size="10" fill="#059669">Built · merged multi-provider sampler</text>
+
+  <rect x="982" y="416" width="290" height="76" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="998" y="437" font-size="11.5" font-weight="700" fill="#0f172a">Raw object store</text>
+  <text x="998" y="456" font-size="10.5" fill="#475569">S3-compatible. Scenes land immutable,</text>
+  <text x="998" y="472" font-size="10.5" fill="#475569">checksummed, with a retention policy.</text>
+  <text x="998" y="486" font-size="10" fill="#64748b">Production build-out</text>
+
+  <path d="M 665 510 L 665 548" stroke="#475569" stroke-width="1.8" marker-end="url(#a)"/>
+
+  <!-- ══ TIER 3 · PROCESSING ══ -->
+  <text x="40" y="570" font-size="11.5" font-weight="700" fill="#475569" letter-spacing="1.3">TIER 3 · PROCESSING  —  queue-driven, horizontally scalable</text>
+  <rect x="40" y="580" width="1250" height="176" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.6"/>
+
+  <rect x="58" y="600" width="230" height="138" rx="6" fill="#ffffff" stroke="#c4b5fd"/>
+  <text x="74" y="621" font-size="11.5" font-weight="700" fill="#5b21b6">Job queue + orchestrator</text>
+  <text x="74" y="641" font-size="10.5" fill="#4c1d95">Durable queue, retries with</text>
+  <text x="74" y="657" font-size="10.5" fill="#4c1d95">back-off, dead-letter on repeat</text>
+  <text x="74" y="673" font-size="10.5" fill="#4c1d95">failure, idempotent claims.</text>
+  <text x="74" y="697" font-size="10.5" fill="#6d28d9">scan-aoi · process-scene</text>
+  <text x="74" y="713" font-size="10.5" fill="#6d28d9">refresh-ais · refresh-forecast</text>
+  <text x="74" y="729" font-size="10" fill="#059669">Built · DB-backed worker</text>
+
+  <rect x="304" y="600" width="230" height="138" rx="6" fill="#ffffff" stroke="#c4b5fd"/>
+  <text x="320" y="621" font-size="11.5" font-weight="700" fill="#5b21b6">SAR processing workers</text>
+  <text x="320" y="641" font-size="10.5" fill="#4c1d95">Calibration, geolocation, Lee</text>
+  <text x="320" y="657" font-size="10.5" fill="#4c1d95">speckle filter, land masking,</text>
+  <text x="320" y="673" font-size="10.5" fill="#4c1d95">multilooking, dark-spot and</text>
+  <text x="320" y="689" font-size="10.5" fill="#4c1d95">bright-target detection.</text>
+  <text x="320" y="713" font-size="10" fill="#059669">Built · CPU bound, scales by</text>
+  <text x="320" y="729" font-size="10" fill="#059669">adding workers</text>
+
+  <rect x="550" y="600" width="230" height="138" rx="6" fill="#ffffff" stroke="#7c3aed" stroke-width="1.4"/>
+  <text x="566" y="621" font-size="11.5" font-weight="700" fill="#5b21b6">Model inference service</text>
+  <text x="566" y="641" font-size="10.5" fill="#4c1d95">ONNX Runtime behind a fixed</text>
+  <text x="566" y="657" font-size="10.5" fill="#4c1d95">interface. Oil segmentation,</text>
+  <text x="566" y="673" font-size="10.5" fill="#4c1d95">optical segmentation and ship</text>
+  <text x="566" y="689" font-size="10.5" fill="#4c1d95">detection, versioned per model.</text>
+  <text x="566" y="713" font-size="10" fill="#059669">Built · GPU serving is the</text>
+  <text x="566" y="729" font-size="10" fill="#64748b">production addition</text>
+
+  <rect x="796" y="600" width="230" height="138" rx="6" fill="#ffffff" stroke="#c4b5fd"/>
+  <text x="812" y="621" font-size="11.5" font-weight="700" fill="#5b21b6">Model registry</text>
+  <text x="812" y="641" font-size="10.5" fill="#4c1d95">Every model versioned with the</text>
+  <text x="812" y="657" font-size="10.5" fill="#4c1d95">scores it earned on held-out</text>
+  <text x="812" y="673" font-size="10.5" fill="#4c1d95">scenes, its training set and its</text>
+  <text x="812" y="689" font-size="10.5" fill="#4c1d95">input scaling.</text>
+  <text x="812" y="713" font-size="10" fill="#059669">Built · a model that fails is</text>
+  <text x="812" y="729" font-size="10" fill="#059669">published as failed, not hidden</text>
+
+  <rect x="1042" y="600" width="230" height="138" rx="6" fill="#ffffff" stroke="#c4b5fd"/>
+  <text x="1058" y="621" font-size="11.5" font-weight="700" fill="#5b21b6">Analysis compute</text>
+  <text x="1058" y="641" font-size="10.5" fill="#4c1d95">Lagrangian drift hindcast and</text>
+  <text x="1058" y="657" font-size="10.5" fill="#4c1d95">forecast with ensemble spread,</text>
+  <text x="1058" y="673" font-size="10.5" fill="#4c1d95">weathering, candidate vessel</text>
+  <text x="1058" y="689" font-size="10.5" fill="#4c1d95">scoring, exposure assessment.</text>
+  <text x="1058" y="713" font-size="10" fill="#059669">Built · calibrated against 166</text>
+  <text x="1058" y="729" font-size="10" fill="#059669">real drifting buoys</text>
+
+  <path d="M 665 756 L 665 794" stroke="#475569" stroke-width="1.8" marker-end="url(#a)"/>
+
+  <!-- ══ TIER 4 · DATA ══ -->
+  <text x="40" y="816" font-size="11.5" font-weight="700" fill="#475569" letter-spacing="1.3">TIER 4 · DATA  —  all storage resident in India</text>
+  <rect x="40" y="826" width="1250" height="128" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.6"/>
+
+  <rect x="58" y="846" width="292" height="92" rx="6" fill="#ffffff" stroke="#fcd34d"/>
+  <text x="74" y="867" font-size="11.5" font-weight="700" fill="#78350f">PostgreSQL + PostGIS</text>
+  <text x="74" y="886" font-size="10.5" fill="#92400e">Cases, detections, workflow, accounts,</text>
+  <text x="74" y="902" font-size="10.5" fill="#92400e">areas of interest. Primary with streaming</text>
+  <text x="74" y="918" font-size="10.5" fill="#92400e">replica and point-in-time recovery.</text>
+  <text x="74" y="933" font-size="10" fill="#059669">Built · schema under Alembic migrations</text>
+
+  <rect x="366" y="846" width="292" height="92" rx="6" fill="#ffffff" stroke="#fcd34d"/>
+  <text x="382" y="867" font-size="11.5" font-weight="700" fill="#78350f">Append-only audit store</text>
+  <text x="382" y="886" font-size="10.5" fill="#92400e">Every action with actor, role and time.</text>
+  <text x="382" y="902" font-size="10.5" fill="#92400e">Update and delete refused at the database,</text>
+  <text x="382" y="918" font-size="10.5" fill="#92400e">not merely in application code.</text>
+  <text x="382" y="933" font-size="10" fill="#059669">Built · enforced by trigger, verified live</text>
+
+  <rect x="674" y="846" width="292" height="92" rx="6" fill="#ffffff" stroke="#fcd34d"/>
+  <text x="690" y="867" font-size="11.5" font-weight="700" fill="#78350f">AIS time-series store</text>
+  <text x="690" y="886" font-size="10.5" fill="#92400e">Partitioned by time and vessel for track</text>
+  <text x="690" y="902" font-size="10.5" fill="#92400e">reconstruction over any window, with a</text>
+  <text x="690" y="918" font-size="10.5" fill="#92400e">retention and roll-up policy.</text>
+  <text x="690" y="933" font-size="10" fill="#64748b">Production build-out · 144k positions today</text>
+
+  <rect x="982" y="846" width="290" height="92" rx="6" fill="#ffffff" stroke="#fcd34d"/>
+  <text x="998" y="867" font-size="11.5" font-weight="700" fill="#78350f">Evidence store (WORM)</text>
+  <text x="998" y="886" font-size="10.5" fill="#92400e">Quicklooks, processed products and signed</text>
+  <text x="998" y="902" font-size="10.5" fill="#92400e">documents, write-once so an exhibit cannot</text>
+  <text x="998" y="918" font-size="10.5" fill="#92400e">be altered after issue.</text>
+  <text x="998" y="933" font-size="10" fill="#64748b">Production build-out</text>
+
+  <path d="M 665 954 L 665 992" stroke="#475569" stroke-width="1.8" marker-end="url(#a)"/>
+
+  <!-- ══ TIER 5 · APPLICATION ══ -->
+  <text x="40" y="1014" font-size="11.5" font-weight="700" fill="#475569" letter-spacing="1.3">TIER 5 · APPLICATION  —  stateless replicas behind a load balancer</text>
+  <rect x="40" y="1024" width="1250" height="104" rx="8" fill="#f0fdfa" stroke="#0d9488" stroke-width="1.6"/>
+
+  <rect x="58" y="1042" width="292" height="70" rx="6" fill="#ffffff" stroke="#5eead4"/>
+  <text x="74" y="1063" font-size="11.5" font-weight="700" fill="#115e59">API gateway / reverse proxy</text>
+  <text x="74" y="1082" font-size="10.5" fill="#134e4a">TLS termination, rate limiting, request</text>
+  <text x="74" y="1098" font-size="10.5" fill="#134e4a">logging, single origin for app and API.</text>
+
+  <rect x="366" y="1042" width="292" height="70" rx="6" fill="#ffffff" stroke="#5eead4"/>
+  <text x="382" y="1063" font-size="11.5" font-weight="700" fill="#115e59">Application servers</text>
+  <text x="382" y="1082" font-size="10.5" fill="#134e4a">Case data, actions, monitoring, documents.</text>
+  <text x="382" y="1098" font-size="10" fill="#059669">Built · FastAPI, 153 tests passing</text>
+
+  <rect x="674" y="1042" width="292" height="70" rx="6" fill="#ffffff" stroke="#5eead4"/>
+  <text x="690" y="1063" font-size="11.5" font-weight="700" fill="#115e59">Identity &amp; access control</text>
+  <text x="690" y="1082" font-size="10.5" fill="#134e4a">Argon2id, revocable sessions, TOTP MFA,</text>
+  <text x="690" y="1098" font-size="10" fill="#059669">Built · one role matrix, enforced both sides</text>
+
+  <rect x="982" y="1042" width="290" height="70" rx="6" fill="#ffffff" stroke="#5eead4"/>
+  <text x="998" y="1063" font-size="11.5" font-weight="700" fill="#115e59">Document signing</text>
+  <text x="998" y="1082" font-size="10.5" fill="#134e4a">Evidence packs signed so tampering is</text>
+  <text x="998" y="1098" font-size="10" fill="#059669">detectable. Built · HSM-backed in production</text>
+
+  <path d="M 380 1128 L 380 1166" stroke="#475569" stroke-width="1.8" marker-end="url(#a)"/>
+  <path d="M 950 1166 L 950 1128" stroke="#2563eb" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#ad)"/>
+
+  <!-- ══ TIER 6 · DELIVERY ══ -->
+  <text x="40" y="1188" font-size="11.5" font-weight="700" fill="#475569" letter-spacing="1.3">TIER 6 · DELIVERY &amp; DOWNSTREAM</text>
+  <rect x="40" y="1198" width="620" height="76" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.6"/>
+  <text x="58" y="1220" font-size="11.5" font-weight="700" fill="#065f46">Operator console — served from CDN</text>
+  <text x="58" y="1239" font-size="10.5" fill="#064e3b">Single-page app · map, drift, traffic, ecology, evidence pack.</text>
+  <text x="58" y="1256" font-size="10.5" fill="#064e3b">Seven-stage case pipeline · role-scoped · works offline from built artifacts.</text>
+  <text x="58" y="1270" font-size="10" fill="#047857">Built · map tiles to be self-hosted in production for sovereignty</text>
+
+  <rect x="680" y="1198" width="610" height="76" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.8" stroke-dasharray="5 3"/>
+  <text x="698" y="1220" font-size="11.5" font-weight="700" fill="#1e40af">Downstream agencies — authorisation pending</text>
+  <text x="698" y="1239" font-size="10.5" fill="#1e3a8a">SACHET CAP gateway · NDMA — community advisories, drafted locally today</text>
+  <text x="698" y="1256" font-size="10.5" fill="#1e3a8a">IMAC common operating picture · Indian Navy — payloads generated, not delivered</text>
+  <text x="698" y="1270" font-size="10" fill="#1d4ed8">Coast Guard tasking · enforcement referral to DG Shipping</text>
+
+  <!-- ══ CROSS-CUTTING RAIL ══ -->
+  <text x="1310" y="388" font-size="11.5" font-weight="700" fill="#475569" letter-spacing="1.3">CROSS-CUTTING</text>
+  <rect x="1310" y="398" width="250" height="876" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.6"/>
+
+  <text x="1328" y="424" font-size="11.5" font-weight="700" fill="#0f172a">Hosting &amp; residency</text>
+  <text x="1328" y="443" font-size="10.5" fill="#475569">Government cloud or NTRO</text>
+  <text x="1328" y="459" font-size="10.5" fill="#475569">infrastructure. All data and</text>
+  <text x="1328" y="475" font-size="10.5" fill="#475569">backups resident in India.</text>
+
+  <text x="1328" y="508" font-size="11.5" font-weight="700" fill="#0f172a">Observability</text>
+  <text x="1328" y="527" font-size="10.5" fill="#475569">Metrics, structured logs and</text>
+  <text x="1328" y="543" font-size="10.5" fill="#475569">traces. Queue depth, scene</text>
+  <text x="1328" y="559" font-size="10.5" fill="#475569">latency and provider health</text>
+  <text x="1328" y="575" font-size="10.5" fill="#475569">as first-class alerts.</text>
+
+  <text x="1328" y="608" font-size="11.5" font-weight="700" fill="#0f172a">Provider health</text>
+  <text x="1328" y="627" font-size="10.5" fill="#475569">Every feed reports online,</text>
+  <text x="1328" y="643" font-size="10.5" fill="#475569">fallback, unconfigured or</text>
+  <text x="1328" y="659" font-size="10.5" fill="#475569">awaiting authorisation.</text>
+  <text x="1328" y="677" font-size="10" fill="#059669">Built · visible in the console</text>
+
+  <text x="1328" y="710" font-size="11.5" font-weight="700" fill="#0f172a">Secrets &amp; keys</text>
+  <text x="1328" y="729" font-size="10.5" fill="#475569">Credentials in a managed</text>
+  <text x="1328" y="745" font-size="10.5" fill="#475569">store; signing key in an HSM</text>
+  <text x="1328" y="761" font-size="10.5" fill="#475569">and rotated on a schedule.</text>
+
+  <text x="1328" y="794" font-size="11.5" font-weight="700" fill="#0f172a">Backup &amp; continuity</text>
+  <text x="1328" y="813" font-size="10.5" fill="#475569">Point-in-time recovery, tested</text>
+  <text x="1328" y="829" font-size="10.5" fill="#475569">restores, defined recovery</text>
+  <text x="1328" y="845" font-size="10.5" fill="#475569">point and time objectives.</text>
+
+  <text x="1328" y="878" font-size="11.5" font-weight="700" fill="#0f172a">CI / CD</text>
+  <text x="1328" y="897" font-size="10.5" fill="#475569">Types, unit tests and a build</text>
+  <text x="1328" y="913" font-size="10.5" fill="#475569">on every change; migrations</text>
+  <text x="1328" y="929" font-size="10.5" fill="#475569">applied before release.</text>
+  <text x="1328" y="947" font-size="10" fill="#059669">Built · 224 tests across the stack</text>
+
+  <text x="1328" y="980" font-size="11.5" font-weight="700" fill="#0f172a">Security posture</text>
+  <text x="1328" y="999" font-size="10.5" fill="#475569">Ingestion segment egress-only.</text>
+  <text x="1328" y="1015" font-size="10.5" fill="#475569">Least privilege between tiers.</text>
+  <text x="1328" y="1031" font-size="10.5" fill="#475569">Audit retained independently</text>
+  <text x="1328" y="1047" font-size="10.5" fill="#475569">of the operational database.</text>
+
+  <text x="1328" y="1080" font-size="11.5" font-weight="700" fill="#0f172a">Evidential integrity</text>
+  <text x="1328" y="1099" font-size="10.5" fill="#475569">Provenance carried on every</text>
+  <text x="1328" y="1115" font-size="10.5" fill="#475569">field: real, modelled, synthetic</text>
+  <text x="1328" y="1131" font-size="10.5" fill="#475569">or pending. Model scores are</text>
+  <text x="1328" y="1147" font-size="10.5" fill="#475569">published with their limits.</text>
+  <text x="1328" y="1166" font-size="10" fill="#059669">Built · the project's core rule</text>
+
+  <text x="1328" y="1199" font-size="11.5" font-weight="700" fill="#0f172a">Scaling model</text>
+  <text x="1328" y="1218" font-size="10.5" fill="#475569">Throughput is bound by scene</text>
+  <text x="1328" y="1234" font-size="10.5" fill="#475569">processing; add workers to the</text>
+  <text x="1328" y="1250" font-size="10.5" fill="#475569">queue. Application servers are</text>
+  <text x="1328" y="1266" font-size="10.5" fill="#475569">stateless and replicate freely.</text>
+</svg>
