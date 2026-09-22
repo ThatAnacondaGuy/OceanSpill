@@ -92,7 +92,7 @@
 
 <rect class="box" x="1150" y="236" width="192" height="58" rx="5"/>
 <circle cx="1332" cy="246" r="3.6" fill="#33475b"/>
-<text class="bt" x="1246" y="262">AIS Gap &amp;</text><text class="bt" x="1246" y="277">Behaviour</text>
+<text class="bt" x="1246" y="262">Vessel</text><text class="bt" x="1246" y="277">Attribution</text>
 
 <rect class="box" x="1354" y="236" width="192" height="58" rx="5"/>
 <circle cx="1536" cy="246" r="3.6" fill="#33475b"/>
@@ -110,33 +110,45 @@
 <text class="bt" x="940" y="347" font-size="12">MODELS / METHODS USED</text>
 <rect class="box" x="334" y="354" width="192" height="68" rx="5"/>
 <circle cx="516" cy="364" r="3.6" fill="#33475b"/>
-<text class="bt" x="430" y="378">U-Net</text><text class="bs" x="430" y="393">Oil Segmentation</text>
-<text class="bsp" x="430" y="409">○ + GLCM texture</text>
+<text class="bt" x="430" y="376">U-Net Segmentation</text>
+<text class="bs" x="430" y="390">Dice + Focal loss</text>
+<text class="bs" x="430" y="402">Adaptive dark-spot (k·σ)</text>
+<text class="bsp" x="430" y="415">○ + GLCM texture</text>
 
 <rect class="box" x="538" y="354" width="192" height="68" rx="5"/>
 <circle cx="720" cy="364" r="3.6" fill="#33475b"/>
-<text class="bt" x="634" y="378">Look-Alike Checks</text><text class="bs" x="634" y="393">Wind · Contrast</text>
-<text class="bs" x="634" y="407">Edge · Geometry</text>
+<text class="bt" x="634" y="376">Weighted Rule Set</text>
+<text class="bs" x="634" y="390">Wind window · dB contrast</text>
+<text class="bs" x="634" y="402">Edge · elongation · margin</text>
+<text class="bs" x="634" y="415">5 checks, each weighted</text>
 
 <rect class="box" x="742" y="354" width="192" height="68" rx="5"/>
 <circle cx="924" cy="364" r="3.6" fill="#33475b"/>
-<text class="bt" x="838" y="378">Ship Detection</text><text class="bs" x="838" y="393">U-Net · SSDD-trained</text>
-<text class="bsp" x="838" y="409">○ + CFAR pre-screen</text>
+<text class="bt" x="838" y="376">Lagrangian Tracking</text>
+<text class="bs" x="838" y="390">Windage + Stokes + current</text>
+<text class="bs" x="838" y="402">Random walk · ensemble</text>
+<text class="bsp" x="838" y="415">○ + OpenOil (OpenDrift)</text>
 
 <rect class="box" x="946" y="354" width="192" height="68" rx="5"/>
 <circle cx="1128" cy="364" r="3.6" fill="#33475b"/>
-<text class="bt" x="1042" y="378">Lagrangian Drift</text><text class="bs" x="1042" y="393">166-buoy calibrated</text>
-<text class="bsp" x="1042" y="409">○ + OpenOil (OpenDrift)</text>
+<text class="bt" x="1042" y="376">U-Net (SSDD)</text>
+<text class="bs" x="1042" y="390">Connected components</text>
+<text class="bs" x="1042" y="402">Cross-matched vs AIS</text>
+<text class="bsp" x="1042" y="415">○ + CFAR pre-screen</text>
 
 <rect class="box" x="1150" y="354" width="192" height="68" rx="5"/>
 <circle cx="1332" cy="364" r="3.6" fill="#33475b"/>
-<text class="bt" x="1246" y="378">AIS Gap + Behaviour</text><text class="bs" x="1246" y="393">Trajectory · speed · gaps</text>
-<text class="bs" x="1246" y="407">Calibrated on 55k events</text>
+<text class="bt" x="1246" y="376">Multi-Criteria Scoring</text>
+<text class="bs" x="1246" y="390">CPA · prox ·34 · time ·26</text>
+<text class="bs" x="1246" y="402">traj ·18 · behav ·14 · prior ·08</text>
+<text class="bs" x="1246" y="415">Shortlist, not evidence</text>
 
 <rect class="box" x="1354" y="354" width="192" height="68" rx="5"/>
 <circle cx="1536" cy="364" r="3.6" fill="#33475b"/>
-<text class="bt" x="1450" y="378">Spatio-Temporal</text><text class="bs" x="1450" y="393">Correlation Scoring</text>
-<text class="bs" x="1450" y="407">Shortlist, not evidence</text>
+<text class="bt" x="1450" y="376">Point-in-Polygon</text>
+<text class="bs" x="1450" y="390">Envelope intersection</text>
+<text class="bs" x="1450" y="402">Shore type from OSM</text>
+<text class="bsp" x="1450" y="415">○ + NCSCM shapefiles</text>
 
 <path class="fl" d="M600 434 L600 456" marker-end="url(#a)"/>
 
