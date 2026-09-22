@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 286" width="760" height="286" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<rect width="760" height="286" rx="14" fill="#eef2fa"/>
+
+<rect x="22" y="16" width="238" height="30" rx="15" fill="#1a6ac0"/>
+<text x="42" y="36" font-size="14.5" font-weight="800" fill="#ffffff" letter-spacing="0.4">DEPLOYMENT READINESS</text>
+
+<!-- 1 -->
+<text x="24" y="70" font-size="12" font-weight="700" fill="#16355c">Detection &amp; Analysis</text>
+<rect x="24" y="78" width="528" height="9" rx="4.5" fill="#d6e2f2"/>
+<rect x="24" y="78" width="528" height="9" rx="4.5" fill="#1a6ac0"/>
+<text x="564" y="86" font-size="10.5" font-weight="700" fill="#1a6ac0">Built &amp; measured</text>
+<text x="24" y="100" font-size="9.3" fill="#6b7a8c">U-Net segmentation · Lagrangian drift · weighted attribution — scored on held-out scenes</text>
+
+<!-- 2 -->
+<text x="24" y="126" font-size="12" font-weight="700" fill="#16355c">Case, Workflow &amp; Evidence</text>
+<rect x="24" y="134" width="528" height="9" rx="4.5" fill="#d6e2f2"/>
+<rect x="24" y="134" width="528" height="9" rx="4.5" fill="#1a6ac0"/>
+<text x="564" y="142" font-size="10.5" font-weight="700" fill="#1a6ac0">Built &amp; tested</text>
+<text x="24" y="156" font-size="9.3" fill="#6b7a8c">Seven-stage case pipeline · append-only audit · signed evidence — 224 automated tests</text>
+
+<!-- 3 -->
+<text x="24" y="182" font-size="12" font-weight="700" fill="#16355c">Live Scene Watching</text>
+<rect x="24" y="190" width="528" height="9" rx="4.5" fill="#d6e2f2"/>
+<rect x="24" y="190" width="390" height="9" rx="4.5" fill="#5f97d8"/>
+<text x="564" y="198" font-size="10.5" font-weight="700" fill="#5f97d8">Code complete</text>
+<text x="24" y="212" font-size="9.3" fill="#6b7a8c">Scene watcher, worker queue and API written — awaiting deployment to server infrastructure</text>
+
+<!-- 4 -->
+<text x="24" y="238" font-size="12" font-weight="700" fill="#16355c">Sovereign Data Feeds</text>
+<rect x="24" y="246" width="528" height="9" rx="4.5" fill="#d6e2f2"/>
+<rect x="24" y="246" width="176" height="9" rx="4.5" fill="#9dbde8"/>
+<text x="564" y="254" font-size="10.5" font-weight="700" fill="#7ba3dd">Awaiting access</text>
+<text x="24" y="268" font-size="9.3" fill="#6b7a8c">NISAR · INCOIS · National AIS · SACHET · IMAC — adapters written, every one has a live fallback</text>
+</svg>
