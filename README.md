@@ -95,4 +95,4 @@ cd pipeline && uv run pytest -q
 
 The web tests include a check that replays every case with an officially named source through the
 attribution scoring and reports where the ranking put it, so a change that quietly makes the
-ranking worse shows up as a failure.
+ranking worse shows up as a failure. 
